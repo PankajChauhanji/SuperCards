@@ -1,7 +1,7 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from game.cards import build_deck, shuffled_deck, Card
-from game.room import Room
+from game.core.cards import build_deck, shuffled_deck, Card
+from game.super_seven.room import Room
 
 results = []
 def check(ok, msg):

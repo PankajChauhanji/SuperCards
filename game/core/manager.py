@@ -10,7 +10,7 @@ import time
 from typing import Dict, Optional
 
 from config import ROOM_CODE_LENGTH, EMPTY_ROOM_TTL
-from game.room import Room
+from game.super_seven.room import Room
 
 
 class RoomManager:

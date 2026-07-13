@@ -9,9 +9,9 @@ import random
 from typing import Dict, List, Optional
 
 from config import MAX_PLAYERS, HAND_SIZE, MATCH_REQUIRES_DRAW
-from game.player import Player
-from game.cards import shuffled_deck
-from game.rules import DRAW_ACTIONS, COMBO_ACTIONS, ACTION_SINGLE, ACTION_MATCH
+from game.core.player import Player
+from game.core.cards import shuffled_deck
+from game.super_seven.rules import DRAW_ACTIONS, COMBO_ACTIONS, ACTION_SINGLE, ACTION_MATCH
 
 # Game lifecycle states.
 STATE_LOBBY = "LOBBY"
@@ -294,7 +294,7 @@ class Room:
     # ---- round end / scoring / elimination ----
     def end_round(self, caller_id: Optional[str]) -> dict:
         """Score the round, apply totals, resolve eliminations, set end state."""
-        from game.scoring import score_round
+        from game.super_seven.scoring import score_round
 
         participants = [
             (uid, self.players[uid].hand, self.players[uid].is_safe)

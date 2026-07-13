@@ -10,8 +10,8 @@ call_stop and the turn timer arrive in later phases.
 """
 from flask_socketio import emit
 
-from game.room import STATE_IN_TURN, STATE_ROUND_END
-from game.rules import infer_action
+from game.super_seven.room import STATE_IN_TURN, STATE_ROUND_END
+from game.super_seven.rules import infer_action
 from sockets.common import error
 
 

@@ -13,7 +13,7 @@ from flask import request
 from flask_socketio import join_room as sio_join, emit
 
 from config import DEFAULT_SETTINGS, SETTINGS_BOUNDS, MIN_PLAYERS
-from game.room import STATE_LOBBY, STATE_ROUND_END, STATE_GAME_END
+from game.super_seven.room import STATE_LOBBY, STATE_ROUND_END, STATE_GAME_END
 from sockets.common import bind_sid, error
 
 NAME_MAX = 20

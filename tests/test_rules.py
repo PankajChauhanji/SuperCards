@@ -1,7 +1,7 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """Exhaustive unit tests for game/rules.py — no server needed."""
-from game.rules import (
+from game.super_seven.rules import (
     is_set, is_sequence, is_match, infer_action,
     ACTION_SINGLE, ACTION_PAIR, ACTION_SET, ACTION_SEQUENCE, ACTION_MATCH,
 )

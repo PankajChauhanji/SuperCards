@@ -1,9 +1,9 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """Phase 3 engine tests: first-orbit gating and round-end scoring (no sockets)."""
-from game.room import Room, STATE_IN_TURN, STATE_ROUND_END
-from game.cards import Card
-from game.rules import infer_action
+from game.super_seven.room import Room, STATE_IN_TURN, STATE_ROUND_END
+from game.core.cards import Card
+from game.super_seven.rules import infer_action
 
 results = []
 def check(ok, msg):

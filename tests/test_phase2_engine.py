@@ -1,9 +1,9 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """Deterministic Phase 2 engine tests, driving Room directly (no sockets)."""
-from game.room import Room, STATE_IN_TURN
-from game.cards import Card
-from game.rules import infer_action, ACTION_SET, ACTION_SEQUENCE, ACTION_MATCH, ACTION_SINGLE
+from game.super_seven.room import Room, STATE_IN_TURN
+from game.core.cards import Card
+from game.super_seven.rules import infer_action, ACTION_SET, ACTION_SEQUENCE, ACTION_MATCH, ACTION_SINGLE
 
 results = []
 def check(ok, msg):
@@ -76,7 +76,7 @@ check({c.face for c in r.center_throw} == {"3S", "4D"}, "center now shows the ma
 # ---- match: legacy behavior still available via config.MATCH_REQUIRES_DRAW ----
 import config as _config
 _config.MATCH_REQUIRES_DRAW = True
-import game.room as _room_mod
+import game.super_seven.room as _room_mod
 _room_mod.MATCH_REQUIRES_DRAW = True  # module-level import needs patching too
 r = make_room([Card(9, "C")], [Card(3, "S"), Card(4, "D")],
               center=[Card(2, "H"), Card(3, "H"), Card(4, "H")], last_combo=True)

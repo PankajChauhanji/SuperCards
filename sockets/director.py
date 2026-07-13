@@ -12,7 +12,7 @@ code paths at all.
 Run as an eventlet background task started in app.py.
 """
 import time
-from game.room import STATE_IN_TURN, STATE_GAME_END
+from game.super_seven.room import STATE_IN_TURN, STATE_GAME_END
 
 # Per-room bot scheduling: room_code -> float (earliest time to act)
 # Only populated for solo rooms; never touches group rooms.
@@ -118,8 +118,8 @@ def _tick_bot(socketio, room, bot_id: str):
       • Once the timestamp passes, ask ai.decide_move() for the best action
         and execute it exactly the same way a human socket event would.
     """
-    from game.ai import decide_move, bot_delay
-    from game.rules import infer_action
+    from game.super_seven.ai import decide_move, bot_delay
+    from game.super_seven.rules import infer_action
 
     code = room.code
     now = time.time()
@@ -169,7 +169,7 @@ def _tick_bot(socketio, room, bot_id: str):
     inferred = infer_action([c.rank for c in cards], room.center_rank_set())
     if inferred is None:
         # AI suggested an illegal move; fall back to discarding the highest card.
-        from game.rules import ACTION_SINGLE
+        from game.super_seven.rules import ACTION_SINGLE
         highest = max(room.players[bot_id].hand, key=lambda c: c.value)
         cards = [highest]
         action_type = ACTION_SINGLE

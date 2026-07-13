@@ -2,8 +2,8 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """Phase 4 engine + director tests (no sockets)."""
 import time
-from game.room import Room, STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
-from game.cards import Card
+from game.super_seven.room import Room, STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
+from game.core.cards import Card
 from sockets import director
 
 results = []

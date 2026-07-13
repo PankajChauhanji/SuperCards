@@ -1,7 +1,7 @@
 import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from game.room import Room, STATE_IN_TURN, PICK_SECONDS
-from game.cards import Card
+from game.super_seven.room import Room, STATE_IN_TURN, PICK_SECONDS
+from game.core.cards import Card
 from sockets import director
 
 results = []

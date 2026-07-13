@@ -15,7 +15,7 @@ from flask import Flask, render_template, redirect, url_for
 from flask_socketio import SocketIO
 
 import config
-from game.manager import RoomManager
+from game.core.manager import RoomManager
 from sockets import register_handlers
 
 app = Flask(__name__)

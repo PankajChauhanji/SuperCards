@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from game.room import Room, STATE_LOBBY, STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
+from game.super_seven.room import Room, STATE_LOBBY, STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
 from config import DEFAULT_SETTINGS
 
 def test_spectator():

@@ -1,8 +1,8 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 """Unit tests for game/scoring.py — no server needed."""
-from game.cards import Card
-from game.scoring import hand_total, score_round
+from game.core.cards import Card
+from game.super_seven.scoring import hand_total, score_round
 
 SETTINGS = {"win_discount": 5, "stop_penalty": 40, "max_score": 100, "timeout_limit": 3, "turn_timer": 40}
 results = []
