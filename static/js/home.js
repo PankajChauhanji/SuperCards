@@ -9,9 +9,32 @@
   const joinBtn = document.getElementById("join-btn");
   const settingsToggle = document.getElementById("settings-toggle");
   const settingsGrid = document.getElementById("settings-grid");
+  const settingsSection = document.getElementById("settings-section");
+  const gameTiles = Array.from(document.querySelectorAll(".game-tile[data-game]"));
 
   // Prefill saved name.
   nameInput.value = window.Identity.name();
+
+  // ---- Game picker ----
+  // Selected game_type drives create/solo and which settings block shows.
+  let selectedGame = (gameTiles.find((t) => t.classList.contains("selected"))
+    || gameTiles[0] || {}).dataset?.game || "super_seven";
+
+  function syncSettingsVisibility() {
+    // Show a game's settings block only when that game is selected.
+    if (!settingsSection) return;
+    const forGame = settingsSection.dataset.game;
+    settingsSection.style.display = forGame === selectedGame ? "" : "none";
+  }
+
+  gameTiles.forEach((tile) => {
+    tile.addEventListener("click", () => {
+      selectedGame = tile.dataset.game;
+      gameTiles.forEach((t) => t.classList.toggle("selected", t === tile));
+      syncSettingsVisibility();
+    });
+  });
+  syncSettingsVisibility();
 
   settingsToggle.addEventListener("click", () => {
     settingsGrid.classList.toggle("hidden");
@@ -44,6 +67,7 @@
     socket.emit("create_room", {
       name,
       user_id: window.Identity.userId(),
+      game_type: selectedGame,
       settings: gatherSettings(),
     });
   });
@@ -56,6 +80,7 @@
     socket.emit("create_solo", {
       name,
       user_id: window.Identity.userId(),
+      game_type: selectedGame,
       settings: gatherSettings(),
     });
   });
