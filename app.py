@@ -15,6 +15,7 @@ from flask import Flask, render_template, redirect, url_for
 from flask_socketio import SocketIO
 
 import config
+from game.core import registry
 from game.core.manager import RoomManager
 from sockets import register_handlers
 
@@ -29,15 +30,32 @@ register_handlers(socketio, manager)
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    # The landing-page picker is driven by the registry. A game is selectable
+    # only once its frontend bundle exists; others render as disabled "coming
+    # soon" tiles. (Super 4's backend is registered before its UI is built.)
+    ready = {"super_seven", "super_four"}
+    games = [
+        {"key": spec.key, "display_name": spec.display_name, "ready": spec.key in ready}
+        for spec in registry.all_games().values()
+    ]
+    return render_template("index.html", games=games)
 
 
 @app.route("/room/<code>")
 def room(code):
     code = code.strip().upper()
-    if manager.get_room(code) is None:
+    game_room = manager.get_room(code)
+    if game_room is None:
         return redirect(url_for("index"))
-    return render_template("game.html", code=code)
+    # game_type + display_name let the game page bootstrap the correct variant
+    # bundle and branding (Phase 2).
+    spec = registry.get(game_room.game_type)
+    return render_template(
+        "game.html",
+        code=code,
+        game_type=game_room.game_type,
+        display_name=spec.display_name if spec else game_room.game_type,
+    )
 
 
 if __name__ == "__main__":
