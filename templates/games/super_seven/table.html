@@ -1,0 +1,38 @@
+{# Super Seven table region — the variant-specific felt, piles, hand and actions.
+   Included by game.html based on game_type. #}
+  <div class="table-view" id="table-view" style="display:none">
+    <aside class="scoreboard">
+      <h3>Scores</h3>
+      <ul id="score-list"></ul>
+      <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
+      <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
+    </aside>
+    <section class="felt">
+      <div class="opponents" id="opponents"></div>
+
+      <div class="center-row">
+        <div class="pile deck" id="deck" title="Draw pile">
+          <img src="{{ url_for('static', filename='img/cards/back.svg') }}" alt="deck" />
+          <span class="pile-count" id="deck-count">0</span>
+          <span class="pile-label">Deck</span>
+          <span class="pick-timer" id="pick-timer" style="display:none"></span>
+        </div>
+        <div class="pile discard" id="discard" title="Last throw">
+          <span class="pile-empty" id="discard-empty">No cards thrown yet</span>
+          <span class="pile-label">Center</span>
+        </div>
+      </div>
+
+      <div class="myhand-wrap">
+        <div class="myseat" id="myseat"></div>
+        <div class="hand" id="hand"></div>
+        <div class="action-bar" id="action-bar">
+          <span class="play-label" id="play-label"></span>
+          <div class="action-btns">
+            <button class="btn-throw" id="throw-btn" disabled>Throw</button>
+            <button class="btn-stop" id="stop-btn" disabled title="Call Stop at the start of your turn">Stop</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>

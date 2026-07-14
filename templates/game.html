@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Super Seven · {{ code }}</title>
+  <title>{{ display_name }} · {{ code }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -15,7 +15,7 @@
 </head>
 <body>
   <div class="topbar">
-    <div class="wordmark"><a href="/" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center;"><span class="wordmark-title">SUPER <span class="seven">SEVEN</span></span> <img src="{{ url_for('static', filename='img/super_seven_symbol.svg') }}" alt="Symbol" class="logo-inline-symbol small" /></a></div>
+    {% include 'games/' + game_type + '/branding.html' %}
     <div class="topbar-right">
       <span class="turn-timer" id="turn-timer" style="display:none"></span>
       <span class="round-chip" id="round-chip" style="display:none">Round 1</span>
@@ -69,43 +69,8 @@
     <div class="start-row" id="start-row"></div>
   </main>
 
-  <!-- Table (shown once the round is dealt) -->
-  <div class="table-view" id="table-view" style="display:none">
-    <aside class="scoreboard">
-      <h3>Scores</h3>
-      <ul id="score-list"></ul>
-      <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
-      <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
-    </aside>
-    <section class="felt">
-      <div class="opponents" id="opponents"></div>
-
-      <div class="center-row">
-        <div class="pile deck" id="deck" title="Draw pile">
-          <img src="{{ url_for('static', filename='img/cards/back.svg') }}" alt="deck" />
-          <span class="pile-count" id="deck-count">0</span>
-          <span class="pile-label">Deck</span>
-          <span class="pick-timer" id="pick-timer" style="display:none"></span>
-        </div>
-        <div class="pile discard" id="discard" title="Last throw">
-          <span class="pile-empty" id="discard-empty">No cards thrown yet</span>
-          <span class="pile-label">Center</span>
-        </div>
-      </div>
-
-      <div class="myhand-wrap">
-        <div class="myseat" id="myseat"></div>
-        <div class="hand" id="hand"></div>
-        <div class="action-bar" id="action-bar">
-          <span class="play-label" id="play-label"></span>
-          <div class="action-btns">
-            <button class="btn-throw" id="throw-btn" disabled>Throw</button>
-            <button class="btn-stop" id="stop-btn" disabled title="Call Stop at the start of your turn">Stop</button>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
+  <!-- Table (shown once the round is dealt) — variant-specific markup -->
+  {% include 'games/' + game_type + '/table.html' %}
 
   <!-- Reactions (shown during play) -->
   <div class="reactions-layer" id="reactions-layer"></div>
@@ -151,7 +116,7 @@
 
   <!-- Rules modal -->
   <div class="modal-backdrop" id="rules-modal">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Super Seven rules">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Game rules">
       <div class="rules-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
         <h2 style="margin: 0;" id="rules-title">📖 Rule Book</h2>
         <div class="lang-toggle" style="display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 8px;">
@@ -209,13 +174,16 @@
 
   <div id="toast"></div>
 
-  <script>window.SS_ROOM_CODE = {{ code | tojson }};</script>
+  <script>
+    window.SS_ROOM_CODE = {{ code | tojson }};
+    window.GAME_TYPE = {{ game_type | tojson }};
+  </script>
+  <!-- Shared core: socket transport, identity, sound -->
   <script src="{{ url_for('static', filename='js/vendor/socket.io.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/identity.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/socket.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/sound.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/table.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/selection.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/identity.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/socket.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/sound.js') }}"></script>
+  <!-- Variant gameplay bundle, selected by game_type -->
+  {% include 'games/' + game_type + '/scripts.html' %}
 </body>
 </html>

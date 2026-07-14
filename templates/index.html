@@ -12,6 +12,24 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/reactions.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}" />
+  <style>
+    /* Game picker (landing page) — additive, self-contained. */
+    .game-picker { margin-bottom: 1.25rem; }
+    .picker-label { font-size: 0.85rem; opacity: 0.75; margin-bottom: 0.5rem; }
+    .picker-tiles { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .game-tile {
+      flex: 1 1 130px; min-width: 120px; display: flex; flex-direction: column;
+      align-items: flex-start; gap: 0.25rem; padding: 0.75rem 0.9rem; cursor: pointer;
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.04); color: inherit; text-align: left;
+      transition: border-color 0.15s, background 0.15s, transform 0.05s;
+    }
+    .game-tile:hover:not(.disabled) { border-color: rgba(103,6,206,0.7); background: rgba(103,6,206,0.12); }
+    .game-tile.selected { border-color: #6706ce; background: rgba(103,6,206,0.2); box-shadow: 0 0 0 1px #6706ce inset; }
+    .game-tile .gt-name { font-weight: 600; font-size: 0.95rem; }
+    .game-tile .gt-badge { font-size: 0.7rem; opacity: 0.7; }
+    .game-tile.disabled { cursor: not-allowed; opacity: 0.5; }
+  </style>
 </head>
 <body>
   <main class="home">
@@ -21,6 +39,24 @@
     </header>
 
     <section class="card-panel">
+      <div class="game-picker" id="game-picker">
+        <div class="picker-label">Choose a game</div>
+        <div class="picker-tiles">
+          {% for g in games %}
+          {% if g.ready %}
+          <button type="button" class="game-tile{% if loop.first %} selected{% endif %}" data-game="{{ g.key }}">
+            <span class="gt-name">{{ g.display_name }}</span>
+          </button>
+          {% else %}
+          <button type="button" class="game-tile disabled" disabled title="Coming soon">
+            <span class="gt-name">{{ g.display_name }}</span>
+            <span class="gt-badge">Coming soon</span>
+          </button>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
       <div class="field">
         <label for="name">Your name</label>
         <input type="text" id="name" maxlength="20" autocomplete="off" placeholder="e.g. Riya" />
@@ -29,6 +65,7 @@
       <button class="btn-primary" id="create-btn">Create a room</button>
       <button class="btn-solo" id="solo-btn">Play with Computer</button>
 
+      <div class="game-settings" id="settings-section" data-game="super_seven">
       <button class="settings-toggle" id="settings-toggle" type="button">Game settings ▸</button>
       <div class="settings-grid hidden" id="settings-grid">
         <div>
@@ -56,6 +93,7 @@
           <input type="number" id="set_num_decks" value="1" min="1" max="10" />
         </div>
       </div>
+      </div><!-- /#settings-section -->
     </section>
 
     <p class="divider">or join one</p>
@@ -81,8 +119,8 @@
   <div id="toast"></div>
 
   <script src="{{ url_for('static', filename='js/vendor/socket.io.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/identity.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/identity.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/socket.js') }}"></script>
   <script src="{{ url_for('static', filename='js/home.js') }}"></script>
 </body>
 </html>

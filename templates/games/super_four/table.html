@@ -1,0 +1,75 @@
+{# Super 4 table region — 4 fixed face-down slots, drawn card, powers, Stop. #}
+  <style>
+    .s4-felt { display:flex; flex-direction:column; align-items:center; gap:1.1rem; width:100%; }
+    .s4-opponents { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; width:100%; }
+    .s4-seat { border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:.6rem .7rem;
+               background:rgba(255,255,255,.03); min-width:150px; }
+    .s4-seat.turn { border-color:#6706ce; box-shadow:0 0 0 1px #6706ce inset; }
+    .s4-seat .seat-name { font-weight:600; font-size:.9rem; margin-bottom:.4rem; display:flex;
+               justify-content:space-between; gap:.5rem; align-items:center; }
+    .s4-seat .seat-total { font-size:.75rem; opacity:.7; }
+    .s4-slots { display:flex; gap:.4rem; }
+    .s4-slot { width:46px; height:64px; border-radius:8px; position:relative; cursor:default;
+               background:#1b2333; border:2px solid rgba(255,255,255,.14); display:flex;
+               align-items:center; justify-content:center; overflow:hidden; }
+    .s4-slot img { width:100%; height:100%; object-fit:contain; }
+    .s4-slot .slot-num { position:absolute; top:2px; left:4px; font-size:.6rem; opacity:.5; }
+    .s4-slot.empty { border-style:dashed; opacity:.4; }
+    .s4-slot.known { border-color:#43c6c6; }
+    .s4-slot.selectable { cursor:pointer; border-color:#ff9f43; box-shadow:0 0 8px rgba(255,159,67,.6); }
+    .s4-slot.selectable:hover { transform:translateY(-3px); }
+    .s4-mine { margin-top:.4rem; }
+    .s4-center-row { display:flex; gap:1.4rem; align-items:flex-end; justify-content:center; }
+    .s4-pile { width:60px; height:84px; border-radius:10px; position:relative; display:flex;
+               align-items:center; justify-content:center; background:#141b28;
+               border:1px solid rgba(255,255,255,.12); }
+    .s4-pile img { width:100%; height:100%; object-fit:contain; }
+    .s4-pile .pile-label { position:absolute; bottom:-1.1rem; left:0; right:0; text-align:center;
+               font-size:.65rem; opacity:.6; }
+    .s4-pile .pile-count { position:absolute; top:2px; right:4px; font-size:.7rem;
+               background:rgba(0,0,0,.5); border-radius:6px; padding:0 4px; }
+    .s4-drawn.active { border-color:#6706ce; box-shadow:0 0 12px rgba(103,6,206,.7); }
+    .s4-actionbar { display:flex; flex-direction:column; align-items:center; gap:.5rem; margin-top:.6rem; min-height:2.4rem; }
+    .s4-instr { font-size:.85rem; opacity:.85; text-align:center; min-height:1.1rem; }
+    .s4-btns { display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; }
+    .s4-btns button { padding:.45rem .9rem; border-radius:8px; border:1px solid rgba(255,255,255,.2);
+               background:#6706ce; color:#fff; cursor:pointer; font-weight:600; font-size:.85rem; }
+    .s4-btns button.ghost { background:transparent; }
+    .s4-btns button:disabled { opacity:.4; cursor:not-allowed; }
+    .s4-myname { font-weight:600; margin-bottom:.3rem; }
+  </style>
+
+  <div class="table-view" id="table-view" style="display:none">
+    <aside class="scoreboard">
+      <h3>Scores</h3>
+      <ul id="score-list"></ul>
+    </aside>
+    <section class="felt s4-felt">
+      <div class="s4-opponents" id="s4-opponents"></div>
+
+      <div class="s4-center-row">
+        <div class="s4-pile s4-deck" id="s4-deck" title="Draw pile">
+          <img src="{{ url_for('static', filename='img/cards/back.svg') }}" alt="deck" />
+          <span class="pile-count" id="s4-deck-count">0</span>
+          <span class="pile-label">Deck</span>
+        </div>
+        <div class="s4-pile" id="s4-center" title="Discard">
+          <span id="s4-center-empty" style="opacity:.5">—</span>
+          <span class="pile-label">Discard</span>
+        </div>
+        <div class="s4-pile s4-drawn" id="s4-drawn" style="visibility:hidden">
+          <span class="pile-label">Drawn</span>
+        </div>
+      </div>
+
+      <div class="s4-mine">
+        <div class="s4-myname" id="s4-myname"></div>
+        <div class="s4-slots" id="s4-my-slots"></div>
+      </div>
+
+      <div class="s4-actionbar">
+        <div class="s4-instr" id="s4-instr"></div>
+        <div class="s4-btns" id="s4-btns"></div>
+      </div>
+    </section>
+  </div>
