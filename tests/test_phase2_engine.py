@@ -73,9 +73,9 @@ check(r.current_turn_id() == "P1", "no-draw match passes the turn immediately")
 check(not r.last_was_combo, "a match is not a combo")
 check({c.face for c in r.center_throw} == {"3S", "4D"}, "center now shows the matched cards")
 
-# ---- match: legacy behavior still available via config.MATCH_REQUIRES_DRAW ----
-import config as _config
-_config.MATCH_REQUIRES_DRAW = True
+# ---- match: legacy behavior still available via settings.MATCH_REQUIRES_DRAW ----
+import game.super_seven.settings as _settings
+_settings.MATCH_REQUIRES_DRAW = True
 import game.super_seven.room as _room_mod
 _room_mod.MATCH_REQUIRES_DRAW = True  # module-level import needs patching too
 r = make_room([Card(9, "C")], [Card(3, "S"), Card(4, "D")],
@@ -84,7 +84,7 @@ r.turn_index = 1  # P2 to act
 action, owes = throw(r, "P2", ["3S", "4D"])
 check(action == ACTION_MATCH and owes, "match owes a draw when MATCH_REQUIRES_DRAW is True")
 _room_mod.MATCH_REQUIRES_DRAW = False
-_config.MATCH_REQUIRES_DRAW = False  # restore default for any later tests in this run
+_settings.MATCH_REQUIRES_DRAW = False  # restore default for any later tests in this run
 
 # ---- priority: set beats match ----
 r = make_room([Card(3, "H"), Card(3, "S"), Card(3, "D")], [Card(7, "S")],
