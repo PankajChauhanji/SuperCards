@@ -7,15 +7,17 @@ lingers forever.
 import random
 import string
 import time
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from config import ROOM_CODE_LENGTH, EMPTY_ROOM_TTL
-from game.super_seven.room import Room
+from game.core import registry
 
 
 class RoomManager:
     def __init__(self):
-        self.rooms: Dict[str, Room] = {}
+        # Values are game-specific Room instances; typed loosely so the manager
+        # stays game-agnostic (see game.core.registry for the concrete classes).
+        self.rooms: Dict[str, Any] = {}
 
     def _generate_code(self) -> str:
         while True:
@@ -23,15 +25,30 @@ class RoomManager:
             if code not in self.rooms:
                 return code
 
-    def create_room(self, host_id: str, name: str, settings: dict) -> Room:
+    def create_room(
+        self,
+        host_id: str,
+        name: str,
+        settings: dict,
+        game_type: str = registry.DEFAULT_GAME,
+    ) -> Any:
+        """Create a room for the given game variant.
+
+        Raises ValueError if game_type is not registered — callers (the lobby
+        handlers) validate/translate this into a user-facing error.
+        """
+        spec = registry.get(game_type)
+        if spec is None:
+            raise ValueError(f"Unknown game_type: {game_type!r}")
         self._reap_stale()
         code = self._generate_code()
-        room = Room(code, host_id, settings)
+        room = spec.room_class(code, host_id, settings)
+        room.game_type = game_type
         room.register_player(host_id, name)
         self.rooms[code] = room
         return room
 
-    def get_room(self, code: str) -> Optional[Room]:
+    def get_room(self, code: str) -> Optional[Any]:
         return self.rooms.get(code)
 
     def remove_room(self, code: str) -> None:

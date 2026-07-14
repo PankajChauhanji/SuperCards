@@ -1,12 +1,27 @@
 """Cards: model, deck construction, point values.
 
-A card's point value equals its rank number directly (Ace=1, 2-10 face value,
-Jack=11, Queen=12, King=13), which keeps scoring trivial. The `id` is a compact
-rank+suit code (e.g. "7H", "AS", "10C", "KD") and doubles as the SVG image
-filename: /static/img/cards/<id>.svg.
+By default a card's point value equals its rank number (Ace=1, 2-10 face value,
+Jack=11, Queen=12, King=13) — this is Super Seven's scoring and stays the default.
+The `id` is a compact rank+suit code (e.g. "7H", "AS", "10C", "KD") and doubles as
+the SVG image filename: /static/img/cards/<id>.svg.
+
+Per-variant valuation
+---------------------
+`card_value` is suit-aware-capable (it accepts an optional suit) so a game can
+value cards differently — e.g. Super 4 makes the Red King (KH/KD) worth -1. A
+variant does this in its OWN scoring module, not by mutating global state here:
+because one process hosts every game simultaneously, valuation must never be a
+shared/global setting. The default below is intentionally suit-independent.
+
+    # game/super_four/scoring.py
+    from game.core.cards import RED_SUITS
+    def card_value(card):
+        if card.rank == 13 and card.suit in RED_SUITS:
+            return -1
+        return card.rank
 """
 import random
-from typing import List
+from typing import List, Optional
 
 SUITS = ("S", "H", "D", "C")
 RANKS = list(range(1, 14))          # 1=Ace ... 13=King
@@ -21,8 +36,12 @@ def rank_code(rank: int) -> str:
     return _RANK_CODE[rank]
 
 
-def card_value(rank: int) -> int:
-    # Point value equals the rank number for every card in Super Seven.
+def card_value(rank: int, suit: Optional[str] = None) -> int:
+    """Default point value: the rank number, suit-independent (Super Seven).
+
+    `suit` is accepted so variants can call/override with a suit-aware rule
+    (see the module docstring); the default ignores it.
+    """
     return rank
 
 
