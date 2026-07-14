@@ -12,8 +12,9 @@ from the index page never marks anyone disconnected.
 from flask import request
 from flask_socketio import join_room as sio_join, emit
 
-from config import DEFAULT_SETTINGS, SETTINGS_BOUNDS, MIN_PLAYERS
-from game.super_seven.room import STATE_LOBBY, STATE_ROUND_END, STATE_GAME_END
+from game.core import registry
+from game.core.states import STATE_LOBBY, STATE_ROUND_END, STATE_GAME_END
+from sockets import presenter
 from sockets.common import bind_sid, error
 
 NAME_MAX = 20
@@ -23,8 +24,9 @@ def _clean_name(raw) -> str:
     return (raw or "").strip()[:NAME_MAX]
 
 
-def _clean_settings(raw) -> dict:
-    settings = dict(DEFAULT_SETTINGS)
+def _clean_settings(raw, spec) -> dict:
+    """Sanitise host-supplied settings against a game's default/bounds spec."""
+    settings = dict(spec.default_settings)
     if isinstance(raw, dict):
         for key in settings:
             if key in raw:
@@ -32,7 +34,7 @@ def _clean_settings(raw) -> dict:
                     settings[key] = int(raw[key])
                 except (TypeError, ValueError):
                     pass
-    for key, (lo, hi) in SETTINGS_BOUNDS.items():
+    for key, (lo, hi) in spec.settings_bounds.items():
         settings[key] = max(lo, min(hi, settings[key]))
     return settings
 
@@ -48,9 +50,13 @@ def register(socketio, manager):
             return error("Missing identity.")
         if not name:
             return error("Pick a name first.")
-        settings = _clean_settings(data.get("settings"))
-        room = manager.create_room(user_id, name, settings)
-        emit("room_created", {"code": room.code})
+        game_type = data.get("game_type") or registry.DEFAULT_GAME
+        spec = registry.get(game_type)
+        if spec is None:
+            return error("Unknown game type.")
+        settings = _clean_settings(data.get("settings"), spec)
+        room = manager.create_room(user_id, name, settings, game_type)
+        emit("room_created", {"code": room.code, "game_type": game_type})
 
     # ---- single-player mode ----
     @socketio.on("create_solo")
@@ -67,15 +73,19 @@ def register(socketio, manager):
             return error("Missing identity.")
         if not name:
             return error("Pick a name first.")
-        settings = _clean_settings(data.get("settings"))
-        room = manager.create_room(user_id, name, settings)
+        game_type = data.get("game_type") or registry.DEFAULT_GAME
+        spec = registry.get(game_type)
+        if spec is None:
+            return error("Unknown game type.")
+        settings = _clean_settings(data.get("settings"), spec)
+        room = manager.create_room(user_id, name, settings, game_type)
 
         # Register the bot — mark it connected so it counts toward MIN_PLAYERS.
         bot = room.register_player("bot_suryavanshi", "Suryavanshi")
         bot.is_bot = True
         bot.connected = True   # bot is always "present"
 
-        emit("room_created", {"code": room.code, "solo": True})
+        emit("room_created", {"code": room.code, "solo": True, "game_type": game_type})
 
     @socketio.on("join_room")
     def on_join(data):
@@ -154,6 +164,7 @@ def register(socketio, manager):
             {
                 "code": code,
                 "you": user_id,
+                "game_type": room.game_type,
                 "state": room.state,
                 "host_id": room.host_id,
                 "settings": room.settings,
@@ -167,10 +178,10 @@ def register(socketio, manager):
             to=code,
         )
 
-        # Reconnecting mid-game: resend the appropriate view.
+        # Reconnecting mid-game: resend the appropriate view (per-game private deal).
         if room.in_round():
             emit("round_start", room.public_round_state())
-            emit("your_hand", {"cards": room.hand_for(user_id)})
+            presenter.deal(room, user_id)
         elif room.state == STATE_ROUND_END and getattr(room, "_last_result", None):
             emit("round_end", room.round_end_payload(room._last_result))
         elif room.state == STATE_GAME_END:
@@ -188,18 +199,15 @@ def register(socketio, manager):
             return error("Only the host can start the game.")
         if room.state != STATE_LOBBY:
             return error("The game has already started.")
-        if len(room.connected_players()) < MIN_PLAYERS:
-            return error(f"Need at least {MIN_PLAYERS} players to start.")
+        min_players = registry.get(room.game_type).min_players
+        if len(room.connected_players()) < min_players:
+            return error(f"Need at least {min_players} players to start.")
 
         # Deal the first round and tell everyone.
         room.start_round()
         emit("round_start", room.public_round_state(), to=code)
-        # Each player privately receives only their own hand — never others'.
-        # Bot players have no socket sid so we skip the emit for them.
-        for player in room.connected_players():
-            if player.is_bot:
-                continue
-            emit("your_hand", {"cards": room.hand_for(player.user_id)}, to=player.sid)
+        # Each player privately receives only their own view (per-game presenter).
+        presenter.deal(room)
 
     @socketio.on("rematch")
     def on_rematch(data):
@@ -265,7 +273,7 @@ def register(socketio, manager):
         if room.state != STATE_LOBBY:
             return error("Settings can only be changed in the lobby.")
 
-        room.settings = _clean_settings(data.get("settings"))
+        room.settings = _clean_settings(data.get("settings"), registry.get(room.game_type))
         emit("settings_updated", {"settings": room.settings}, to=code)
 
     @socketio.on("change_table_theme")
