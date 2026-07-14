@@ -26,7 +26,7 @@ Randomised delay (human-feel):
 import random
 from typing import List, Optional, Tuple
 
-from config import MATCH_REQUIRES_DRAW
+from game.super_seven.settings import MATCH_REQUIRES_DRAW
 from game.super_seven.rules import (
     infer_action,
     ACTION_SET, ACTION_SEQUENCE, ACTION_PAIR, ACTION_MATCH, ACTION_SINGLE,

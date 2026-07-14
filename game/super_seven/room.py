@@ -8,16 +8,20 @@ import time
 import random
 from typing import Dict, List, Optional
 
-from config import MAX_PLAYERS, HAND_SIZE, MATCH_REQUIRES_DRAW
+from game.super_seven.settings import MAX_PLAYERS, HAND_SIZE, MATCH_REQUIRES_DRAW
 from game.core.player import Player
 from game.core.cards import shuffled_deck
 from game.super_seven.rules import DRAW_ACTIONS, COMBO_ACTIONS, ACTION_SINGLE, ACTION_MATCH
 
-# Game lifecycle states.
-STATE_LOBBY = "LOBBY"
-STATE_IN_TURN = "IN_TURN"
-STATE_ROUND_END = "ROUND_END"
-STATE_GAME_END = "GAME_END"
+# Game lifecycle states — canonical definitions live in game.core.states and are
+# re-exported here for backward compatibility (existing imports and tests do
+# `from game.super_seven.room import STATE_IN_TURN`).
+from game.core.states import (  # noqa: E402,F401
+    STATE_LOBBY,
+    STATE_IN_TURN,
+    STATE_ROUND_END,
+    STATE_GAME_END,
+)
 
 # Fixed grace period (seconds) to take the owed draw after a discard before the
 # server auto-picks for the player. Deliberately NOT host-configurable.
@@ -25,6 +29,10 @@ PICK_SECONDS = 3
 
 
 class Room:
+    # Variant identifier; RoomManager also sets this per instance from the
+    # registry. Kept as a class default so room.game_type always resolves.
+    game_type = "super_seven"
+
     def __init__(self, code: str, host_id: str, settings: dict):
         self.code = code
         self.host_id = host_id
@@ -273,6 +281,7 @@ class Room:
     def public_round_state(self) -> dict:
         """Common, privacy-safe snapshot shared by every player (no hands)."""
         return {
+            "game_type": self.game_type,
             "state": self.state,
             "round_number": self.round_number,
             "host_id": self.host_id,
