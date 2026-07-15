@@ -66,34 +66,72 @@
       <button class="btn-solo" id="solo-btn">Play with Computer</button>
 
       <div class="game-settings" id="settings-section" data-game="super_seven">
-      <button class="settings-toggle" id="settings-toggle" type="button">Game settings ▸</button>
-      <div class="settings-grid hidden" id="settings-grid">
+      <button class="settings-toggle" type="button">Game settings ▸</button>
+      <div class="settings-grid hidden">
         <div>
           <label for="set_max_score">Max score (out)</label>
-          <input type="number" id="set_max_score" value="100" min="20" max="1000" />
+          <input type="number" id="set_max_score" data-key="max_score" value="100" min="20" max="1000" />
         </div>
         <div>
           <label for="set_stop_penalty">Stop penalty</label>
-          <input type="number" id="set_stop_penalty" value="40" min="0" max="200" />
+          <input type="number" id="set_stop_penalty" data-key="stop_penalty" value="40" min="0" max="200" />
         </div>
         <div>
           <label for="set_win_discount">Win discount</label>
-          <input type="number" id="set_win_discount" value="5" min="0" max="50" />
+          <input type="number" id="set_win_discount" data-key="win_discount" value="5" min="0" max="50" />
         </div>
         <div>
           <label for="set_turn_timer">Turn timer (s)</label>
-          <input type="number" id="set_turn_timer" value="40" min="15" max="180" />
+          <input type="number" id="set_turn_timer" data-key="turn_timer" value="40" min="15" max="180" />
         </div>
         <div>
           <label for="set_timeout_limit">Timeouts allowed</label>
-          <input type="number" id="set_timeout_limit" value="3" min="1" max="10" />
+          <input type="number" id="set_timeout_limit" data-key="timeout_limit" value="3" min="1" max="10" />
         </div>
         <div>
           <label for="set_num_decks">Number of decks</label>
-          <input type="number" id="set_num_decks" value="1" min="1" max="10" />
+          <input type="number" id="set_num_decks" data-key="num_decks" value="1" min="1" max="10" />
         </div>
       </div>
-      </div><!-- /#settings-section -->
+      </div><!-- /super_seven settings -->
+
+      <div class="game-settings" data-game="super_four" style="display:none">
+      <button class="settings-toggle" type="button">Game settings ▸</button>
+      <div class="settings-grid hidden">
+        <div>
+          <label for="s4_turn_timer">Turn time (s)</label>
+          <input type="number" id="s4_turn_timer" data-key="turn_timer" value="30" min="15" max="180" />
+        </div>
+        <div>
+          <label for="s4_match_window">Match window (s)</label>
+          <input type="number" id="s4_match_window" data-key="match_window" value="3" min="0" max="15" />
+        </div>
+        <div>
+          <label for="s4_preview_seconds">Preview (s)</label>
+          <input type="number" id="s4_preview_seconds" data-key="preview_seconds" value="10" min="3" max="30" />
+        </div>
+        <div>
+          <label for="s4_rounds">Rounds</label>
+          <input type="number" id="s4_rounds" data-key="rounds" value="5" min="1" max="20" />
+        </div>
+        <div>
+          <label for="s4_exit_score">Exit score (out)</label>
+          <input type="number" id="s4_exit_score" data-key="exit_score" value="10" min="3" max="100" />
+        </div>
+        <div>
+          <label for="s4_win_score">Win score</label>
+          <input type="number" id="s4_win_score" data-key="win_score" value="-3" min="-20" max="0" />
+        </div>
+        <div>
+          <label for="s4_loss_score">Loss score</label>
+          <input type="number" id="s4_loss_score" data-key="loss_score" value="1" min="0" max="20" />
+        </div>
+        <div>
+          <label for="s4_penalty_score">Caught-Stop penalty</label>
+          <input type="number" id="s4_penalty_score" data-key="penalty_score" value="3" min="0" max="40" />
+        </div>
+      </div>
+      </div><!-- /super_four settings -->
     </section>
 
     <p class="divider">or join one</p>

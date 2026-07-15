@@ -11,7 +11,7 @@ import time
 from flask import request
 from flask_socketio import emit as _femit
 
-from game.core.states import STATE_IN_TURN, STATE_ROUND_END
+from game.core.states import STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
 from game.super_four import ai
 from game.super_four.room import PHASE_DRAW, PHASE_DECIDE, PHASE_POWER, PHASE_MATCH
 from sockets import director, presenter
@@ -27,7 +27,7 @@ def _emit_state(socketio, room):
         if p.is_bot or not p.sid:
             continue
         socketio.emit("your_view", room.private_view(p.user_id), to=p.sid)
-    if room.state == STATE_ROUND_END:
+    if room.state in (STATE_ROUND_END, STATE_GAME_END):
         socketio.emit("s4_round_end", room.round_end_payload(), to=room.code)
 
 
