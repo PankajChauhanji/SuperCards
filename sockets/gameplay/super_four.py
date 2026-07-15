@@ -13,7 +13,7 @@ from flask_socketio import emit as _femit
 
 from game.core.states import STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
 from game.super_four import ai
-from game.super_four.room import PHASE_DRAW, PHASE_DECIDE, PHASE_POWER, PHASE_MATCH
+from game.super_four.room import PHASE_DRAW, PHASE_DECIDE, PHASE_POWER, PHASE_MATCH, PHASE_PREVIEW
 from sockets import director, presenter
 from sockets.common import error
 
@@ -65,6 +65,17 @@ def register(socketio, manager):
             return
         if room.draw(uid) is None:
             return error("You can't draw right now.")
+        _emit_state(socketio, room)
+
+    @socketio.on("s4_begin_play")
+    def on_begin_play(data):
+        room, uid = _room_uid(data)
+        if room is None:
+            return
+        if not room.is_host(uid):
+            return error("Only the host can end the preview.")
+        if not room.begin_play():
+            return error("The preview is not active.")
         _emit_state(socketio, room)
 
     @socketio.on("s4_keep")
@@ -157,6 +168,17 @@ def register(socketio, manager):
             return error("You can't match right now.")
         _emit_state(socketio, room)
 
+    @socketio.on("s4_react_match")
+    def on_react_match(data):
+        room, uid = _room_uid(data)
+        if room is None:
+            return
+        d = data or {}
+        res = room.react_match(uid, d.get("targets"), d.get("replacements", []))
+        if res is None:
+            return error("That match is no longer valid.")
+        _emit_state(socketio, room)
+
     @socketio.on("s4_match_center_opp")
     def on_match_center_opp(data):
         room, uid = _room_uid(data)
@@ -173,7 +195,7 @@ def register(socketio, manager):
         if room is None:
             return
         # Decline this window: mark attempted so the prompt clears for this player.
-        if room.phase == PHASE_MATCH and uid != room.match_discarder:
+        if room.phase == PHASE_MATCH and room._can_attempt_match(uid):
             room.match_attempted.add(uid)
             _emit_state(socketio, room)
 
@@ -254,6 +276,11 @@ def _bot_move(room, bot_id):
 
 
 def _tick_room(socketio, room):
+    if room.phase == PHASE_PREVIEW:
+        if room.expire_preview():
+            _emit_state(socketio, room)
+        return
+
     # Match window: bots may react (only to matches they know), then expire on time.
     if room.phase == PHASE_MATCH:
         acted = False
@@ -263,8 +290,7 @@ def _tick_room(socketio, room):
             plan = ai.find_match(room, uid)
             if plan is None:
                 continue
-            res = (room.match_center_own(uid, plan[1]) if plan[0] == "own"
-                   else room.match_center_opp(uid, plan[1], plan[2]))
+            res = room.react_match(uid, [{"owner": uid, "slot": plan[1]}], [])
             if res is not None:
                 acted = True
                 if res.get("success"):

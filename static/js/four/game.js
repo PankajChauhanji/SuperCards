@@ -79,6 +79,8 @@
   socket.on("your_view", (d) => {
     view.known = {};
     (d.known || []).forEach((k) => { view.known[kkey(k.owner, k.slot)] = k.card; });
+    // Only the player who drew receives this card in their private payload.
+    view.drawn = d.drawn || null;
     if (view.state === "IN_TURN") renderTable();
   });
   socket.on("s4_peek", (d) => {
@@ -110,7 +112,9 @@
     view.currentTurn = d.current_turn;
     view.turnOrder = d.turn_order || [];
     view.deckCount = d.deck_count;
-    view.drawn = d.drawn; view.drawnBy = d.drawn_by;
+    // Public state deliberately never carries the drawn face.
+    if (!d.draw_pending) view.drawn = null;
+    view.drawnBy = d.drawn_by;
     view.center = d.center; view.phase = d.phase;
     view.pendingPower = d.pending_power;
     view.match = d.match || null;
@@ -230,7 +234,7 @@
   // ================= table =================
   function canMatchNow() {
     return view.phase === "match" && view.match &&
-      view.match.discarder !== youId && !(view.match.attempted || []).includes(youId);
+      !(view.match.attempted || []).includes(youId);
   }
 
   function armAutoInteraction() {
@@ -333,16 +337,19 @@
       } else if (occupied) {
         const img = document.createElement("img"); img.src = cardImg("back"); img.alt = "card"; slot.appendChild(img);
       }
-      if (attachClicks && occupied && isSelectable(owner, isMine, mode)) {
+      if (attachClicks && occupied && isSelectable(owner, i, isMine, mode)) {
         slot.classList.add("selectable");
         slot.addEventListener("click", () => onSlotClick(owner, i));
+      }
+      if (mode === "match_center" && (view.interaction.targets || []).some((t) => t.owner === owner && t.slot === i)) {
+        slot.classList.add("selected");
       }
       wrap.appendChild(slot);
     });
     return wrap;
   }
 
-  function isSelectable(owner, isMine, mode) {
+  function isSelectable(owner, slot, isMine, mode) {
     if (view.currentTurn !== youId && !(view.pendingPower && view.pendingPower.by === youId)) {
       // powers/keep/match are always by the acting player
     }
@@ -355,6 +362,8 @@
         return !isMine;
       case "match_center":
         return true; // match your own OR an opponent's card
+      case "match_replacements":
+        return isMine && !(view.interaction.targets || []).some((t) => t.owner === owner && t.slot === slot);
       case "blind_swap":
       case "king":
         return view.interaction.firstPick == null ? isMine : !isMine;
@@ -369,9 +378,22 @@
     if (it.mode === "keep") { socket.emit("s4_keep", { ...base, slot }); view.interaction = null; }
     else if (it.mode === "match") { socket.emit("s4_match_own", { ...base, slot }); view.interaction = null; }
     else if (it.mode === "match_center") {
-      if (owner === youId) socket.emit("s4_match_center_own", { ...base, slot });
-      else socket.emit("s4_match_center_opp", { ...base, target: owner, slot });
-      view.interaction = null;
+      const targets = it.targets || (it.targets = []);
+      const at = targets.findIndex((t) => t.owner === owner && t.slot === slot);
+      if (at >= 0) targets.splice(at, 1); else targets.push({ owner, slot });
+    }
+    else if (it.mode === "match_replacements") {
+      const needed = it.targets.filter((t) => t.owner !== youId);
+      if ((it.replacements || []).some((r) => r.from_slot === slot)) return;
+      it.replacements.push({
+        target_owner: needed[it.replacements.length].owner,
+        target_slot: needed[it.replacements.length].slot,
+        from_slot: slot,
+      });
+      if (it.replacements.length === needed.length) {
+        socket.emit("s4_react_match", { ...base, targets: it.targets, replacements: it.replacements });
+        view.interaction = null;
+      }
     }
     else if (it.mode === "peek_own") { socket.emit("s4_power_peek_own", { ...base, slot }); view.interaction = null; }
     else if (it.mode === "peek_opp") { socket.emit("s4_power_peek_opp", { ...base, opp: owner, slot }); view.interaction = null; }
@@ -412,11 +434,30 @@
       const m = view.match;
       const card = m.card ? `${m.card.code}${SUIT[m.card.suit] || ""}` : "";
       if (canMatchNow()) {
-        instrEl.textContent = `Match the ${card}! Tap YOUR card or an OPPONENT's — or pass. (${m.seconds_left}s)`;
+        const it = view.interaction;
+        if (it && it.mode === "match_replacements") {
+          const left = it.targets.filter((t) => t.owner !== youId).length - it.replacements.length;
+          instrEl.textContent = `Choose ${left} of your cards to give in exchange.`;
+        } else if (it && it.mode === "match_center") {
+          const count = (it.targets || []).length;
+          instrEl.textContent = `Select every ${card} to throw (${count} selected), then confirm.`;
+          if (count) addBtn("Throw selected", () => submitMatchTargets(it.targets));
+        } else {
+          instrEl.textContent = `Match the ${card}! Select any of your or opponents' cards. (${m.seconds_left}s)`;
+          addBtn("Select cards", () => { view.interaction = { mode: "match_center", targets: [] }; renderTable(); });
+        }
         addBtn("Pass", () => { view.interaction = null; socket.emit("s4_match_pass", { code, user_id: youId }); }, true);
       } else {
         instrEl.textContent = `${nameOf(m.discarder)} discarded ${card}. Matching window… (${m.seconds_left}s)`;
       }
+      return;
+    }
+
+    if (view.phase === "preview") {
+      instrEl.textContent = youId === view.hostId
+        ? "Players are memorising their first two cards. Start whenever everyone is ready."
+        : "Memorise your first two cards — the host can start early.";
+      if (youId === view.hostId) addBtn("Start play", () => socket.emit("s4_begin_play", { code, user_id: youId }));
       return;
     }
 
@@ -455,6 +496,16 @@
 
   function canStop() {
     return view.firstOrbitComplete && !view.stopCaller && view.phase === "draw" && view.currentTurn === youId;
+  }
+  function submitMatchTargets(targets) {
+    const opponentTargets = targets.filter((t) => t.owner !== youId);
+    if (!opponentTargets.length) {
+      socket.emit("s4_react_match", { code, user_id: youId, targets, replacements: [] });
+      view.interaction = null;
+      return;
+    }
+    view.interaction = { mode: "match_replacements", targets, replacements: [] };
+    renderTable();
   }
   function addBtn(label, fn, ghost) {
     const b = document.createElement("button"); b.textContent = label;
