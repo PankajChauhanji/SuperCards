@@ -1,19 +1,22 @@
-"""Super 4 scoring — lowest total wins.
+"""Super 4 scoring.
 
-Card values are face value (Ace=1 .. King=13) with one exception: the **King of
-Hearts** (the "Red King") is worth **-1**, the best card in the game. Empty slots
-(cards removed via matching) contribute 0. Penalty cards just add their own value
-like any other card.
+Two layers:
+
+* **Hand value** — a player's total of card values at reveal. Lowest hand wins the
+  round. The King of Hearts (the "Red King") is worth -1; empty slots count 0.
+* **Round points** — a game-level running score where LOWER is better. Each round
+  the winner(s) get `win_score` (negative), a caught Stop caller gets
+  `penalty_score` (positive), and every other active player gets `loss_score`.
+  A player is eliminated once their cumulative reaches `exit_score`.
 """
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 
 def card_value(card) -> int:
     """Point value of a single card (or 0 for an empty slot / None)."""
     if card is None:
         return 0
-    # Only the King of Hearts is the -1 "Red King" (see DESIGN.md).
-    if card.rank == 13 and card.suit == "H":
+    if card.rank == 13 and card.suit == "H":   # King of Hearts = the -1 Red King
         return -1
     return card.rank
 
@@ -23,22 +26,31 @@ def hand_total(cards) -> int:
     return sum(card_value(c) for c in cards)
 
 
-def resolve_stop(totals: Dict[str, int], caller_id: Optional[str]) -> dict:
-    """Determine the round outcome.
+def round_deltas(totals: Dict[str, int], caller_id: Optional[str], settings: dict) -> dict:
+    """Per-player round-score deltas for a finished round.
 
-    totals: {user_id: hand_total} for everyone dealt in.
-    caller_id: who declared Stop (or None for an auto-end).
-
-    The overall winner is always the strictly-lowest total (None on a tie for
-    lowest). When there is a caller, `caller_won` is True iff the caller is that
-    strict winner. Returns {"winner": uid|None, "caller_won": bool, "totals": ...}.
+    Winner(s) = the strictly-lowest hand total (ties share the win). A caller who
+    is not among the winners is "caught". Returns:
+      {"deltas": {uid: int}, "winners": [uid], "caller_won": bool, "totals": {...}}
     """
-    winner = None
-    if totals:
-        lowest = min(totals.values())
-        low_players = [uid for uid, t in totals.items() if t == lowest]
-        if len(low_players) == 1:
-            winner = low_players[0]
+    win = settings.get("win_score", -3)
+    loss = settings.get("loss_score", 1)
+    penalty = settings.get("penalty_score", 3)
 
-    caller_won = caller_id is not None and winner == caller_id
-    return {"winner": winner, "caller_won": caller_won, "totals": dict(totals)}
+    if not totals:
+        return {"deltas": {}, "winners": [], "caller_won": False, "totals": {}}
+
+    lowest = min(totals.values())
+    winners = [uid for uid, t in totals.items() if t == lowest]
+    winset = set(winners)
+    caller_won = caller_id is not None and caller_id in winset
+
+    deltas = {}
+    for uid in totals:
+        if uid in winset:
+            deltas[uid] = win
+        elif uid == caller_id:
+            deltas[uid] = penalty      # called Stop but got caught
+        else:
+            deltas[uid] = loss
+    return {"deltas": deltas, "winners": winners, "caller_won": caller_won, "totals": dict(totals)}

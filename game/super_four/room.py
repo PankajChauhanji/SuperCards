@@ -17,7 +17,7 @@ from game.core.player import Player
 from game.core.cards import shuffled_deck
 from game.core.states import STATE_LOBBY, STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
 from game.super_four import powers
-from game.super_four.scoring import hand_total, resolve_stop
+from game.super_four.scoring import hand_total, round_deltas
 from game.super_four.settings import (
     MAX_PLAYERS, SLOTS, PREVIEW_SLOTS,
 )
@@ -68,10 +68,12 @@ class Room:
         self.transient_reveals: List[dict] = []     # public one-shot reveals (failed matches)
         self.start_offset = 0
         self.turn_start_ts = 0.0
-        # Stop / round-end (filled in by the Stop task)
+        self.preview_deadline = 0.0          # while now < this, owners see their preview
+        # Stop / round-end / game-end
         self.stop_caller: Optional[str] = None
         self.final_turns_left = 0
         self.last_result: Optional[dict] = None
+        self.newly_eliminated: List[str] = []
         self.game_over = False
         self.winner: Optional[str] = None
 
@@ -215,7 +217,9 @@ class Room:
         self.stop_caller = None
         self.final_turns_left = 0
         self.last_result = None
+        self.newly_eliminated = []
         self.turn_start_ts = time.time()
+        self.preview_deadline = time.time() + int(self.settings.get("preview_seconds", 10))
         self.round_number += 1
         self.state = STATE_IN_TURN
 
@@ -483,18 +487,45 @@ class Room:
 
     def _finalize_round(self) -> None:
         totals = {uid: hand_total(self.slots.get(uid, [])) for uid in self.turn_order}
-        result = resolve_stop(totals, self.stop_caller)
-        for uid, t in totals.items():
+        result = round_deltas(totals, self.stop_caller, self.settings)
+        for uid, delta in result["deltas"].items():
             if uid in self.players:
-                self.players[uid].round_score = t
-                self.players[uid].total_score += t   # cumulative; lower is better
-        self.winner = result["winner"]
+                self.players[uid].round_score = delta
+                self.players[uid].total_score += delta   # cumulative; lower is better
+
+        # Elimination: cumulative at/above exit_score -> out (spectates the rest).
+        exit_score = int(self.settings.get("exit_score", 10))
+        self.newly_eliminated = []
+        for uid in self.turn_order:
+            p = self.players.get(uid)
+            if p and not p.eliminated and p.total_score >= exit_score:
+                p.eliminated = True
+                self.newly_eliminated.append(uid)
+
         self.last_result = result
         self.phase = PHASE_DRAW
         self.drawn = None
         self.drawn_by = None
         self.pending_power = None
-        self.state = STATE_ROUND_END
+
+        # Game over after the configured rounds, or when <=1 player is left in.
+        rounds = int(self.settings.get("rounds", 5))
+        remaining = [uid for uid, p in self.players.items()
+                     if not p.eliminated and not p.is_spectator]
+        if self.round_number >= rounds or len(remaining) <= 1:
+            self.game_over = True
+            self.winner = self._lowest_cumulative()
+            self.state = STATE_GAME_END
+        else:
+            self.state = STATE_ROUND_END
+
+    def _lowest_cumulative(self) -> Optional[str]:
+        contenders = {uid: p.total_score for uid, p in self.players.items() if not p.is_spectator}
+        if not contenders:
+            return None
+        low = min(contenders.values())
+        lows = [uid for uid, s in contenders.items() if s == low]
+        return lows[0] if len(lows) == 1 else None
 
     def round_end_payload(self, result=None) -> dict:
         result = result or self.last_result or {}
@@ -504,19 +535,22 @@ class Room:
         }
         return {
             "caller": self.stop_caller,
-            "winner": result.get("winner"),
+            "winners": result.get("winners", []),
             "caller_won": result.get("caller_won", False),
+            "deltas": result.get("deltas", {}),
             "totals": result.get("totals", {}),
             "reveal": reveal,
+            "newly_eliminated": list(self.newly_eliminated),
             "round_number": self.round_number,
+            "rounds": int(self.settings.get("rounds", 5)),
+            "game_over": self.game_over,
+            "winner": self.winner,
             "state": self.state,
             "players": self.public_players(),
         }
 
     def game_end_payload(self) -> dict:
-        # Super 4 is round-based (no elimination cap in v1); provided for the
-        # RoomProtocol. Winner is the lowest cumulative total, if unique.
-        return {"winner": self.winner, "players": self.public_players()}
+        return self.round_end_payload()
 
     def reset_for_rematch(self) -> None:
         for p in self.players.values():
@@ -685,6 +719,7 @@ class Room:
             "turn_order": list(self.turn_order),
             "first_orbit_complete": self.first_orbit_complete,
             "stop_caller": self.stop_caller,
+            "preview_seconds_left": self.preview_seconds_left(),
             "deck_count": len(self.draw_pile),
             "drawn": self.drawn.to_dict() if self.drawn else None,
             "drawn_by": self.drawn_by,
@@ -712,7 +747,12 @@ class Room:
         return {"your_id": viewer, "known": known_cards}
 
     def turn_seconds_left(self) -> int:
-        limit = int(self.settings.get("turn_timer", 45))
+        limit = int(self.settings.get("turn_timer", 30))
         if self.state != STATE_IN_TURN:
             return limit
         return max(0, limit - int(time.time() - self.turn_start_ts))
+
+    def preview_seconds_left(self) -> int:
+        if self.state != STATE_IN_TURN:
+            return 0
+        return max(0, int(self.preview_deadline - time.time()))

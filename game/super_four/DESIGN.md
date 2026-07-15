@@ -55,6 +55,31 @@ Wrong attempts penalise the actor but leave the window open until success or tim
 **[decision]** v1 builds the turn loop + powers + Stop first; the real-time window is a
 distinct increment (Task #18) so the core game is playable and testable earlier.
 
+## Scoring (round-points model, updated 2026-07-14)
+
+Replaces the original cumulative-hand-total model. **Lower cumulative is better.**
+Each round the lowest hand wins; the running score updates by deltas:
+- Round **winner(s)** (strictly-lowest hand; ties share): `win_score` (default **−3**).
+- Every other active player: `loss_score` (default **+1**).
+- A caller who calls **Stop but is caught** (not a winner): `penalty_score` (default **+3**),
+  instead of the loss.
+- Wrong own/cross matches keep costing a **penalty card** (raises that round's hand), not points.
+
+A player is **eliminated** once cumulative ≥ `exit_score` (default **10**) → they spectate the rest.
+A game is `rounds` rounds (default **5**) and also ends early if ≤1 player remains un-eliminated;
+the **lowest cumulative** then wins.
+
+Host-configurable settings (see settings.py): turn_timer, match_window, preview_seconds, rounds,
+exit_score, win_score, loss_score, penalty_score, num_decks. Editable on the create screen and in
+the lobby.
+
+## Preview (updated: strict flash-then-hide)
+
+Each player sees **their own** first two cards for `preview_seconds` (server-timed via
+`preview_deadline` / `preview_seconds_left`), then all cards go face-down and you play from memory.
+The client shows preview cards ONLY while the window is open; peeks (7-10, King) flash briefly then
+hide. Cards are never shown persistently (fixes the old "known cards stay visible" behavior).
+
 ## Stop / end
 - **Stop** can be declared at the **start of your own turn** (before drawing).
   **[decision]** not allowed in the very first orbit (everyone plays once first), matching
