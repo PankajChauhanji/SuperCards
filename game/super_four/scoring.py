@@ -3,7 +3,7 @@
 Two layers:
 
 * **Hand value** — a player's total of card values at reveal. Lowest hand wins the
-  round. The King of Hearts (the "Red King") is worth -1; empty slots count 0.
+  round. Both red Kings (Hearts and Diamonds) are worth -1; empty slots count 0.
 * **Round points** — a game-level running score where LOWER is better. Each round
   the winner(s) get `win_score` (negative), a caught Stop caller gets
   `penalty_score` (positive), and every other active player gets `loss_score`.
@@ -11,12 +11,14 @@ Two layers:
 """
 from typing import Dict, List, Optional
 
+from game.core.cards import RED_SUITS
+
 
 def card_value(card) -> int:
     """Point value of a single card (or 0 for an empty slot / None)."""
     if card is None:
         return 0
-    if card.rank == 13 and card.suit == "H":   # King of Hearts = the -1 Red King
+    if card.rank == 13 and card.suit in RED_SUITS:
         return -1
     return card.rank
 

@@ -136,7 +136,7 @@ def king_should_swap(own_card, opp_card) -> bool:
 
 
 def find_match(room, bot_id):
-    """During a match window, return ('own', slot) | ('opp', owner, slot) | None.
+    """During a match window, return an own matching slot or ``None``.
 
     Bots only ever attempt matches they KNOW (from preview/peeks), so they never
     guess wrong — fair play by the same information rules as a human.
@@ -147,5 +147,8 @@ def find_match(room, bot_id):
     for (owner, slot) in room.known.get(bot_id, set()):
         cards = room.slots.get(owner, [])
         if slot < len(cards) and cards[slot] is not None and cards[slot].rank == mc.rank:
-            return ("own", slot) if owner == bot_id else ("opp", owner, slot)
+            # Opponent reactions require a deliberate transfer-card selection.
+            # Bots leave that strategic move to a future heuristic.
+            if owner == bot_id:
+                return ("own", slot)
     return None

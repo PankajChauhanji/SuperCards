@@ -29,6 +29,7 @@ PHASE_DRAW = "draw"       # current player must draw (or call Stop)
 PHASE_DECIDE = "decide"   # current player drew; must keep / discard / match-own
 PHASE_POWER = "power"     # a discarded power card is being resolved (powers.py)
 PHASE_MATCH = "match"     # a discard is open for cross-player matching (short window)
+PHASE_PREVIEW = "preview" # initial private-memory period; host may end it early
 
 
 class Room:
@@ -57,7 +58,7 @@ class Room:
         self.initial_active = 0
         self.first_orbit_complete = False
         self.phase = PHASE_DRAW
-        self.drawn: Optional[object] = None   # currently drawn card (public)
+        self.drawn: Optional[object] = None   # currently drawn card (private to drawn_by)
         self.drawn_by: Optional[str] = None
         self.pending_power: Optional[dict] = None   # {"by": uid, "rank": int}
         # Cross-player match window (PHASE_MATCH)
@@ -205,7 +206,7 @@ class Room:
         self.turns_completed = 0
         self.initial_active = len(active)
         self.first_orbit_complete = False
-        self.phase = PHASE_DRAW
+        self.phase = PHASE_PREVIEW
         self.drawn = None
         self.drawn_by = None
         self.pending_power = None
@@ -218,10 +219,25 @@ class Room:
         self.final_turns_left = 0
         self.last_result = None
         self.newly_eliminated = []
-        self.turn_start_ts = time.time()
-        self.preview_deadline = time.time() + int(self.settings.get("preview_seconds", 10))
+        self.turn_start_ts = 0.0
+        # The host may start early, but a preview can never run longer than 30s.
+        self.preview_deadline = time.time() + min(30, int(self.settings.get("preview_seconds", 30)))
         self.round_number += 1
         self.state = STATE_IN_TURN
+
+    def begin_play(self) -> bool:
+        """End the initial memory preview and start the first turn."""
+        if self.state != STATE_IN_TURN or self.phase != PHASE_PREVIEW:
+            return False
+        self.phase = PHASE_DRAW
+        self.turn_start_ts = time.time()
+        return True
+
+    def expire_preview(self) -> bool:
+        """Start play when the server-side maximum preview time has elapsed."""
+        if self.phase == PHASE_PREVIEW and time.time() >= self.preview_deadline:
+            return self.begin_play()
+        return False
 
     def current_turn_id(self) -> Optional[str]:
         if not self.turn_order:
@@ -256,7 +272,7 @@ class Room:
 
     # ================= turn actions =================
     def draw(self, user_id: str) -> Optional[dict]:
-        """Current player draws the top card (its face is public)."""
+        """Current player privately draws the top card."""
         if self.state != STATE_IN_TURN or self.phase != PHASE_DRAW:
             return None
         if self.current_turn_id() != user_id:
@@ -271,10 +287,11 @@ class Room:
         return {"card": card, "reshuffled": reshuffled}
 
     def keep(self, user_id: str, slot: int) -> bool:
-        """Swap the drawn card into a slot; the old card goes to the center.
+        """Swap the private drawn card into a slot and discard the old card.
 
-        A kept card is public (everyone watched it go in), so everyone now knows
-        that position. No power triggers on a kept card.
+        The replacement remains hidden. Only the old card landing face-up on the
+        center is public, and it may open a match window. A kept card never fires
+        a power.
         """
         if self.phase != PHASE_DECIDE or self.drawn_by != user_id:
             return False
@@ -285,12 +302,15 @@ class Room:
         my[slot] = self.drawn
         if old is not None:
             self._to_center(old)
-        # Position now holds the (public) drawn card → known to everyone.
+        # A newly kept card is face-down to everyone, including its owner unless
+        # they later earn knowledge through a power.
         self._forget_all(user_id, slot)
-        self._reveal_public(user_id, slot)
         self.drawn = None
         self.drawn_by = None
-        self._advance_turn()
+        if old is not None:
+            self._after_discard(user_id)
+        else:
+            self._advance_turn()
         return True
 
     def discard(self, user_id: str) -> Optional[dict]:
@@ -335,18 +355,16 @@ class Room:
             self._forget_all(user_id, slot)
             self.drawn = None
             self.drawn_by = None
-            self._advance_turn()
+            self._after_discard(user_id)
             return {"success": True, "slot": slot}
-        # Wrong: reveal the slot publicly, discard the drawn card, take a penalty.
-        self._reveal_public(user_id, slot)
-        reveal = {"owner": user_id, "slot": slot, "card": target.to_dict()}
-        self.transient_reveals = [reveal]
+        # Wrong: the selected card stays hidden in its slot; the drawn card is
+        # discarded and the player takes a hidden penalty card.
         self._to_center(drawn)
         penalty = self._take_penalty(user_id)
         self.drawn = None
         self.drawn_by = None
-        self._advance_turn()
-        return {"success": False, "slot": slot, "revealed": reveal, "penalty": penalty}
+        self._after_discard(user_id)
+        return {"success": False, "slot": slot, "penalty": penalty}
 
     # ================= cross-player match window =================
     def _move_knowledge(self, src: Tuple[str, int], dst: Tuple[str, int]) -> None:
@@ -386,32 +404,104 @@ class Room:
     def _can_attempt_match(self, user_id: str) -> bool:
         return (
             self.phase == PHASE_MATCH
-            and user_id != self.match_discarder
             and user_id not in self.match_attempted
             and user_id in self.players
+            and not self.players[user_id].eliminated
+            and not self.players[user_id].is_spectator
         )
 
+    def react_match(self, user_id: str, selections: list, replacements: list) -> Optional[dict]:
+        """Attempt the open, real-time match window as one atomic operation.
+
+        ``selections`` contains any number of ``{owner, slot}`` positions.  All
+        must match the face-up center rank.  The actor may select their own or
+        opponents' cards.  For every opponent card removed, they must choose one
+        distinct card of their own to transfer into that exact slot via
+        ``replacements``.  A wrong attempt leaves all selected cards where they
+        were, gives the actor a penalty card, and leaves the window open for the
+        other players.  The first *successful* request closes the window.
+        """
+        if not self._can_attempt_match(user_id) or not isinstance(selections, list):
+            return None
+        if not selections or self.match_card is None:
+            return None
+
+        selected = []
+        seen = set()
+        for item in selections:
+            if not isinstance(item, dict):
+                return None
+            owner = item.get("owner")
+            try:
+                slot = int(item.get("slot"))
+            except (TypeError, ValueError):
+                return None
+            key = (owner, slot)
+            if key in seen or not self._occupied(owner, slot):
+                return None
+            seen.add(key)
+            selected.append(key)
+
+        # An invalid rank is a genuine failed throw: no card face is published,
+        # the card stays put, and the player can no longer retry this window.
+        if any(self.slots[owner][slot].rank != self.match_card.rank for owner, slot in selected):
+            self.match_attempted.add(user_id)
+            penalty = self._take_penalty(user_id)
+            return {"success": False, "by": user_id, "penalty": penalty}
+
+        opponent_targets = [key for key in selected if key[0] != user_id]
+        if not isinstance(replacements, list):
+            return None
+        replacement_by_target = {}
+        used_give_slots = set()
+        for item in replacements:
+            if not isinstance(item, dict):
+                return None
+            try:
+                target = (item.get("target_owner"), int(item.get("target_slot")))
+                give_slot = int(item.get("from_slot"))
+            except (TypeError, ValueError):
+                return None
+            if target in replacement_by_target or give_slot in used_give_slots:
+                return None
+            replacement_by_target[target] = give_slot
+            used_give_slots.add(give_slot)
+        if set(replacement_by_target) != set(opponent_targets):
+            return None
+        for give_slot in used_give_slots:
+            # A transfer card must be an occupied card of the actor and cannot
+            # also be one of the cards thrown to the center in this reaction.
+            if not self._occupied(user_id, give_slot) or (user_id, give_slot) in seen:
+                return None
+
+        # Validate first, then mutate.  Cards transferred into opponent positions
+        # remain face-down; knowledge follows the physical transfer card.
+        transfers = [(target, (user_id, give_slot))
+                     for target, give_slot in replacement_by_target.items()]
+        for owner, slot in selected:
+            self._to_center(self.slots[owner][slot])
+            self.slots[owner][slot] = None
+            self._forget_all(owner, slot)
+        for (target_owner, target_slot), (from_owner, from_slot) in transfers:
+            given = self.slots[from_owner][from_slot]
+            self.slots[from_owner][from_slot] = None
+            self.slots[target_owner][target_slot] = given
+            self._move_knowledge((from_owner, from_slot), (target_owner, target_slot))
+
+        self._close_match_window()
+        return {
+            "success": True,
+            "by": user_id,
+            "discarded": [{"owner": owner, "slot": slot} for owner, slot in selected],
+            "transfers": [
+                {"target_owner": target[0], "target_slot": target[1], "from_slot": source[1]}
+                for target, source in transfers
+            ],
+        }
+
     def match_center_own(self, user_id: str, slot: int) -> Optional[dict]:
-        """Match the center card against one of your OWN cards during the window."""
-        if not self._can_attempt_match(user_id):
-            return None
-        cards = self.slots.get(user_id)
-        if not cards or slot < 0 or slot >= len(cards) or cards[slot] is None:
-            return None
-        target = cards[slot]
-        if target.rank == self.match_card.rank:
-            self._to_center(target)
-            cards[slot] = None
-            self._forget_all(user_id, slot)
-            self._close_match_window()
-            return {"success": True, "by": user_id, "owner": user_id, "slot": slot}
-        # wrong: reveal + penalty, window stays open
-        self._reveal_public(user_id, slot)
-        reveal = {"owner": user_id, "slot": slot, "card": target.to_dict()}
-        self.transient_reveals = [reveal]
-        self._take_penalty(user_id)
-        self.match_attempted.add(user_id)
-        return {"success": False, "by": user_id, "revealed": reveal}
+        """Compatibility wrapper for an own-card one-card reaction."""
+        return self.react_match(user_id, [{"owner": user_id, "slot": slot}], [])
 
     def _highest_give_slot(self, user_id: str) -> int:
         """Slot of the acting player's highest-value card to give away (or -1)."""
@@ -426,36 +516,12 @@ class Room:
         return best_i
 
     def match_center_opp(self, user_id: str, target_uid: str, target_slot: int) -> Optional[dict]:
-        """Match the center against an OPPONENT's card. On success their card is
-        removed and you give them your highest card (auto) to refill the slot."""
-        if not self._can_attempt_match(user_id) or target_uid == user_id:
-            return None
-        tcards = self.slots.get(target_uid)
-        if not tcards or target_slot < 0 or target_slot >= len(tcards) or tcards[target_slot] is None:
-            return None
-        target = tcards[target_slot]
-        if target.rank == self.match_card.rank:
-            self._to_center(target)
-            self._forget_all(target_uid, target_slot)
-            give_slot = self._highest_give_slot(user_id)
-            given = None
-            if give_slot >= 0:
-                given = self.slots[user_id][give_slot]
-                tcards[target_slot] = given
-                self.slots[user_id][give_slot] = None
-                self._move_knowledge((user_id, give_slot), (target_uid, target_slot))
-            else:
-                tcards[target_slot] = None  # nothing to give -> slot empties
-            self._close_match_window()
-            return {"success": True, "by": user_id, "target": target_uid,
-                    "slot": target_slot, "gave": bool(given)}
-        # wrong: reveal target + penalty to actor, window stays open
-        self._reveal_public(target_uid, target_slot)
-        reveal = {"owner": target_uid, "slot": target_slot, "card": target.to_dict()}
-        self.transient_reveals = [reveal]
-        self._take_penalty(user_id)
-        self.match_attempted.add(user_id)
-        return {"success": False, "by": user_id, "revealed": reveal}
+        """Deprecated one-card opponent reaction; callers must choose a transfer.
+
+        Kept only to reject old clients safely instead of applying the former
+        auto-give-highest rule.
+        """
+        return None
 
     def expire_match_window(self) -> bool:
         """Called by the director when the window's deadline passes."""
@@ -721,8 +787,11 @@ class Room:
             "stop_caller": self.stop_caller,
             "preview_seconds_left": self.preview_seconds_left(),
             "deck_count": len(self.draw_pile),
-            "drawn": self.drawn.to_dict() if self.drawn else None,
+            # Draws are private.  The public table only says that the active
+            # player is deciding; the actual card is supplied in private_view.
+            "drawn": None,
             "drawn_by": self.drawn_by,
+            "draw_pending": self.drawn is not None,
             "center": self.center.to_dict() if self.center else None,
             "pending_power": self.pending_power,
             "match": None if self.phase != PHASE_MATCH else {
@@ -737,14 +806,26 @@ class Room:
         }
 
     def private_view(self, viewer: str) -> dict:
-        """The faces `viewer` legitimately knows — overlaid on the public state."""
+        """Private transient data for ``viewer`` without persistent card leaks.
+
+        Initial preview cards are included only while the preview phase is live.
+        Power results are delivered by their targeted one-shot socket events, so
+        reconnects and routine state refreshes never reveal a card face merely
+        because a player once saw it.
+        """
         known_cards = []
-        for (owner, slot) in sorted(self.known.get(viewer, set())):
-            cards = self.slots.get(owner)
-            if cards is None or slot >= len(cards) or cards[slot] is None:
-                continue
-            known_cards.append({"owner": owner, "slot": slot, "card": cards[slot].to_dict()})
-        return {"your_id": viewer, "known": known_cards}
+        if self.phase == PHASE_PREVIEW and time.time() < self.preview_deadline:
+            for (owner, slot) in sorted(self.known.get(viewer, set())):
+                if owner != viewer:
+                    continue
+                cards = self.slots.get(owner)
+                if cards is None or slot >= len(cards) or cards[slot] is None:
+                    continue
+                known_cards.append({"owner": owner, "slot": slot, "card": cards[slot].to_dict()})
+        private_drawn = None
+        if viewer == self.drawn_by and self.drawn is not None:
+            private_drawn = self.drawn.to_dict()
+        return {"your_id": viewer, "known": known_cards, "drawn": private_drawn}
 
     def turn_seconds_left(self) -> int:
         limit = int(self.settings.get("turn_timer", 30))

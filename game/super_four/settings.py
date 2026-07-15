@@ -11,8 +11,8 @@ PREVIEW_SLOTS = (0, 1)       # slots the owner may look at before play begins
 # once their cumulative reaches `exit_score`. See scoring.py / room.py.
 DEFAULT_SETTINGS = {
     "turn_timer": 30,        # seconds per turn before auto-play
-    "match_window": 3,       # seconds a discard stays matchable by others (0 = off)
-    "preview_seconds": 10,   # how long the initial two-card preview is shown
+    "match_window": 4,       # seconds a face-up discard stays matchable (0 = off)
+    "preview_seconds": 30,   # host may start early; server caps the preview at 30s
     "rounds": 5,             # rounds in a game (game may end earlier by elimination)
     "exit_score": 10,        # cumulative at/above this -> eliminated (spectator)
     "win_score": -3,         # round winner's score delta

@@ -6,18 +6,18 @@ ambiguous, the decision made here is marked **[decision]** so it can be revisite
 ## Core model
 - **4 fixed slots** per player, indexed 0–3 (shown to users as 1–4). A slot holds a
   Card or is **empty** (removed via matching) — empties count as 0 and lower your total.
-- **Preview:** at deal, each player privately learns **slots 0 and 1** (their "first two").
-  Client shows them for a countdown, then hides. Server marks those two as known-to-owner.
-- **Card values:** Ace=1 … King=13. **[decision]** The rules name "the Red King (King of
-  Hearts)" as −1 → **only King of Hearts (KH) = −1**; King of Diamonds is a normal 13.
+- **Preview:** at deal, each player privately sees **slots 0 and 1** (their "first two").
+  The host may start play early; the server starts it automatically after at most 30 seconds.
+- **Card values:** Ace=1 … King=13. Both red Kings — **King of Hearts (KH)** and
+  **King of Diamonds (KD)** — are worth −1.
 - **Deck:** standard 52 (num_decks configurable). Reshuffle the discard back into the draw
   pile when it runs out (keep the current center card out).
 
 ## Turn flow
-1. **Draw** the top card — its face is **public** (everyone sees the drawn card).
+1. **Draw** the top card — its face is private to the active player.
 2. Then exactly one of:
    - **Keep**: choose a slot; drawn card goes there (face-down), the old card goes to the
-     center face-up. **No power triggers** on a kept card.
+   center face-up. The kept card remains face-down. **No power triggers** on a kept card.
    - **Discard**: drawn card goes to the center face-up. If its rank is **7–13 it triggers
      a power** (see below) — powers fire ONLY on an immediately-discarded drawn card.
    - **Match own card** ("Matching Your Own Card"): pick one of your slots; if that card's
@@ -43,17 +43,14 @@ current card that viewer legitimately knows. Rules:
   carries only counts / face-down flags + momentary public reveals (failed matches, final
   reveal). Peeks are sent to the **acting socket only**.
 
-## Cross-player matching ("Matching a Card Discarded by Another Player")
-Whenever a card lands on the center, a **match window** opens (config
-`match_window` seconds). Any player may attempt:
-- **Match own card**: pick own slot; correct → discard it (empty slot); wrong → reveal +
-  penalty card.
-- **Match an opponent's card**: pick opponent slot; correct → remove their card and **give
-  them one of your own cards** to fill it (your total drops); wrong → reveal + penalty.
-First **successful** attempt closes the window ("only the first who reacts successfully").
-Wrong attempts penalise the actor but leave the window open until success or timeout.
-**[decision]** v1 builds the turn loop + powers + Stop first; the real-time window is a
-distinct increment (Task #18) so the core game is playable and testable earlier.
+## Table matching
+Whenever a card lands face-up on the center, a four-second match window opens. Every player,
+including the discarder, may submit a match; the server accepts the first fully correct submission.
+A submission may contain any number of own and opponent cards, as long as every selected card matches
+the center rank (suit does not matter). For each opponent card removed, the reacting player chooses one
+of their own cards to transfer into that exact slot. A wrong submission returns all selected cards to
+their original slots, gives the actor a hidden penalty card at the last index, and leaves the window
+open for other players until expiry.
 
 ## Scoring (round-points model, updated 2026-07-14)
 
@@ -75,8 +72,8 @@ the lobby.
 
 ## Preview (updated: strict flash-then-hide)
 
-Each player sees **their own** first two cards for `preview_seconds` (server-timed via
-`preview_deadline` / `preview_seconds_left`), then all cards go face-down and you play from memory.
+Each player sees **their own** first two cards until the host starts play or the server's 30-second
+maximum expires, then all cards go face-down and you play from memory.
 The client shows preview cards ONLY while the window is open; peeks (7-10, King) flash briefly then
 hide. Cards are never shown persistently (fixes the old "known cards stay visible" behavior).
 
