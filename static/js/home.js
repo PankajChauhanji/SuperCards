@@ -7,10 +7,8 @@
   const createBtn = document.getElementById("create-btn");
   const soloBtn = document.getElementById("solo-btn");
   const joinBtn = document.getElementById("join-btn");
-  const settingsToggle = document.getElementById("settings-toggle");
-  const settingsGrid = document.getElementById("settings-grid");
-  const settingsSection = document.getElementById("settings-section");
   const gameTiles = Array.from(document.querySelectorAll(".game-tile[data-game]"));
+  const settingsSections = Array.from(document.querySelectorAll(".game-settings[data-game]"));
 
   // Prefill saved name.
   nameInput.value = window.Identity.name();
@@ -21,10 +19,9 @@
     || gameTiles[0] || {}).dataset?.game || "super_seven";
 
   function syncSettingsVisibility() {
-    // Show a game's settings block only when that game is selected.
-    if (!settingsSection) return;
-    const forGame = settingsSection.dataset.game;
-    settingsSection.style.display = forGame === selectedGame ? "" : "none";
+    settingsSections.forEach((sec) => {
+      sec.style.display = sec.dataset.game === selectedGame ? "" : "none";
+    });
   }
 
   gameTiles.forEach((tile) => {
@@ -36,20 +33,27 @@
   });
   syncSettingsVisibility();
 
-  settingsToggle.addEventListener("click", () => {
-    settingsGrid.classList.toggle("hidden");
-    settingsToggle.textContent = settingsGrid.classList.contains("hidden")
-      ? "Game settings ▸"
-      : "Game settings ▾";
+  // Each settings section has its own collapse toggle.
+  settingsSections.forEach((sec) => {
+    const toggle = sec.querySelector(".settings-toggle");
+    const grid = sec.querySelector(".settings-grid");
+    if (toggle && grid) {
+      toggle.addEventListener("click", () => {
+        grid.classList.toggle("hidden");
+        toggle.textContent = grid.classList.contains("hidden") ? "Game settings ▸" : "Game settings ▾";
+      });
+    }
   });
 
+  // Gather settings from the visible game's section (inputs carry data-key).
   function gatherSettings() {
-    const ids = ["max_score", "stop_penalty", "win_discount", "turn_timer", "timeout_limit", "num_decks"];
+    const sec = settingsSections.find((s) => s.dataset.game === selectedGame);
     const out = {};
-    ids.forEach((id) => {
-      const el = document.getElementById("set_" + id);
-      if (el && el.value !== "") out[id] = parseInt(el.value, 10);
-    });
+    if (sec) {
+      sec.querySelectorAll("input[data-key]").forEach((el) => {
+        if (el.value !== "") out[el.dataset.key] = parseInt(el.value, 10);
+      });
+    }
     return out;
   }
 

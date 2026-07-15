@@ -13,10 +13,14 @@
     pendingPower: null, match: null, firstOrbitComplete: false, stopCaller: null,
     roundNumber: 0, settings: null, secondsLeft: null,
     known: {},          // "owner:slot" -> card dict (only what I may see)
+    flashes: {},        // "owner:slot" -> {card, until} : briefly-shown (peeks)
+    previewLeft: 0,     // seconds left in the initial preview window
     interaction: null,  // { mode, firstPick }
     kingLook: null,     // [{owner,slot,card}, ...] awaiting swap decision
     _sig: "",
   };
+  const PREVIEW_SLOTS = [0, 1];
+  const FLASH_MS = 5000;
   let prevTurn = null;
 
   // ---- DOM ----
@@ -78,14 +82,14 @@
     if (view.state === "IN_TURN") renderTable();
   });
   socket.on("s4_peek", (d) => {
-    view.known[kkey(d.owner, d.slot)] = d.card;
+    _flash(d.owner, d.slot, d.card);       // shown briefly, then you must remember
     renderTable();
     const who = d.owner === youId ? "your card" : nameOf(d.owner) + "'s card";
     showToast(`Peeked ${who}: ${d.card.code}${SUIT[d.card.suit] || ""}`);
   });
   socket.on("s4_king_look", (d) => {
     view.kingLook = d.looked || [];
-    (d.looked || []).forEach((k) => { view.known[kkey(k.owner, k.slot)] = k.card; });
+    (d.looked || []).forEach((k) => _flash(k.owner, k.slot, k.card));
     renderTable();
   });
   socket.on("s4_round_end", (d) => {
@@ -115,6 +119,7 @@
     view.stopCaller = d.stop_caller;
     view.roundNumber = d.round_number;
     if (typeof d.turn_seconds_left === "number") view.secondsLeft = d.turn_seconds_left;
+    if (typeof d.preview_seconds_left === "number") view.previewLeft = d.preview_seconds_left;
 
     if (view.state === "IN_TURN" && view.currentTurn === youId && prevTurn !== youId) {
       if (window.SS.sound && window.SS.sound.turnPing) window.SS.sound.turnPing();
@@ -166,13 +171,7 @@
       li.append(who, tags); rosterEl.appendChild(li);
     });
 
-    if (lobbySettings) {
-      const s = view.settings || {};
-      lobbySettings.innerHTML =
-        '<div class="lobby-settings-summary" style="font-size:.85rem;opacity:.75">' +
-        `Turn ${s.turn_timer || 45}s · Preview ${s.preview_seconds || 10}s · ` +
-        `Match window ${s.match_window != null ? s.match_window : 5}s</div>`;
-    }
+    renderLobbySettings();
 
     const n = view.players.length;
     metaEl.textContent = n + (n === 1 ? " player" : " players") + " in the room";
@@ -188,6 +187,42 @@
       p.textContent = "Waiting for the host to start…"; startRow.appendChild(p);
     }
   }
+  const S4_FIELDS = [
+    ["turn_timer", "Turn time (s)"], ["match_window", "Match window (s)"],
+    ["preview_seconds", "Preview (s)"], ["rounds", "Rounds"],
+    ["exit_score", "Exit score (out)"], ["win_score", "Win score"],
+    ["loss_score", "Loss score"], ["penalty_score", "Caught-Stop penalty"],
+  ];
+  function renderLobbySettings() {
+    if (!lobbySettings) return;
+    const s = view.settings || {};
+    if (youId === view.hostId) {
+      let h = '<div style="font-size:.8rem;opacity:.7;margin-bottom:.3rem">Game settings (host)</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.35rem;font-size:.8rem">';
+      S4_FIELDS.forEach(([k, label]) => {
+        h += `<label style="display:flex;justify-content:space-between;gap:.4rem;align-items:center">` +
+          `<span>${label}</span><input type="number" data-key="${k}" value="${s[k] != null ? s[k] : ""}" style="width:60px" /></label>`;
+      });
+      h += '</div><button class="btn-ghost" id="s4-save-settings" style="margin-top:.5rem;width:auto;padding:.3rem .8rem">Save settings</button>';
+      lobbySettings.innerHTML = h;
+      const save = $("s4-save-settings");
+      if (save) save.addEventListener("click", () => {
+        const out = {};
+        lobbySettings.querySelectorAll("input[data-key]").forEach((el) => {
+          if (el.value !== "") out[el.dataset.key] = parseInt(el.value, 10);
+        });
+        socket.emit("update_settings", { code, user_id: youId, settings: out });
+        showToast("Settings saved");
+      });
+    } else {
+      lobbySettings.innerHTML = '<div style="font-size:.8rem;opacity:.75">' +
+        `Turn ${s.turn_timer || 30}s · Match ${s.match_window != null ? s.match_window : 3}s · ` +
+        `Rounds ${s.rounds || 5} · Out at ${s.exit_score || 10} · ` +
+        `Win ${s.win_score != null ? s.win_score : -3} / Loss +${s.loss_score != null ? s.loss_score : 1} / ` +
+        `Caught +${s.penalty_score != null ? s.penalty_score : 3}</div>`;
+    }
+  }
+
   function badge(text, cls) {
     const b = document.createElement("span"); b.className = "badge " + cls; b.textContent = text; return b;
   }
@@ -263,6 +298,24 @@
     renderActions();
   }
 
+  function _flash(owner, slot, card) {
+    view.flashes[kkey(owner, slot)] = { card: card, until: Date.now() + FLASH_MS };
+  }
+
+  function _visibleFace(owner, i) {
+    // A public reveal (failed match) is shown to everyone.
+    const reveal = (view.transientReveals || []).find((r) => r.owner === owner && r.slot === i);
+    if (reveal) return reveal.card;
+    // A peek/King look flashes briefly to the viewer, then hides (memory!).
+    const fl = view.flashes[kkey(owner, i)];
+    if (fl && fl.until > Date.now()) return fl.card;
+    // The initial preview: your own first two cards, only while the window is open.
+    if (owner === youId && PREVIEW_SLOTS.indexOf(i) !== -1 && view.previewLeft > 0) {
+      return view.known[kkey(owner, i)] || null;
+    }
+    return null;
+  }
+
   function renderSlots(owner, occ, isMine, attachClicks) {
     const wrap = document.createElement("div"); wrap.className = "s4-slots";
     const mode = view.interaction ? view.interaction.mode : null;
@@ -270,12 +323,10 @@
       const slot = document.createElement("div");
       slot.className = "s4-slot" + (occupied ? "" : " empty");
       slot.dataset.owner = owner; slot.dataset.slot = i;
-      if (isMine) {
-        const num = document.createElement("span"); num.className = "slot-num"; num.textContent = i + 1;
-        slot.appendChild(num);
-      }
-      const reveal = (view.transientReveals || []).find((r) => r.owner === owner && r.slot === i);
-      const card = view.known[kkey(owner, i)] || (reveal && reveal.card);
+      // Index number on every card (1-4), yours and opponents'.
+      const num = document.createElement("span"); num.className = "slot-num"; num.textContent = i + 1;
+      slot.appendChild(num);
+      const card = occupied ? _visibleFace(owner, i) : null;
       if (occupied && card) {
         const img = document.createElement("img"); img.src = cardImg(card.face); img.alt = card.code;
         slot.appendChild(img); slot.classList.add("known");
@@ -414,10 +465,16 @@
     if (!scoreList) return;
     scoreList.innerHTML = "";
     const sorted = [...view.players].filter((p) => !p.is_spectator).sort((a, b) => a.score - b.score);
-    sorted.forEach((p, idx) => {
+    let crowned = false;
+    sorted.forEach((p) => {
       const li = document.createElement("li");
-      li.innerHTML = `<span>${escapeHtml(p.name)}</span><span>${p.score}${idx === 0 ? " 👑" : ""}</span>`;
+      const out = p.eliminated;
+      let tag = "";
+      if (out) tag = " 💀 OUT";
+      else if (!crowned) { tag = " 👑"; crowned = true; }  // lowest active leads
+      li.innerHTML = `<span>${escapeHtml(p.name)}</span><span>${p.score}${tag}</span>`;
       li.style.display = "flex"; li.style.justifyContent = "space-between";
+      if (out) li.style.opacity = "0.45";
       scoreList.appendChild(li);
     });
   }
@@ -432,41 +489,87 @@
   // ================= round end =================
   function showRoundEnd(d) {
     const title = $("roundend-title"), sub = $("roundend-sub"), body = $("roundend-body"), footer = $("roundend-footer");
-    if (d.winner) title.textContent = nameOf(d.winner) + " wins the round!";
-    else title.textContent = "Round over — no clear winner (tie)";
-    if (d.caller) {
-      sub.textContent = d.caller_won
-        ? nameOf(d.caller) + " called Stop and had the lowest total."
-        : nameOf(d.caller) + " called Stop but was caught!";
-    } else sub.textContent = "";
+    const winners = d.winners || [];
+    const winNames = winners.map(nameOf).join(", ");
 
-    let html = '<table style="width:100%;border-collapse:collapse;font-size:.9rem">';
-    const totals = d.totals || {};
+    if (d.game_over) {
+      title.textContent = d.winner ? "🏆 " + nameOf(d.winner) + " wins the game!" : "Game over — it's a tie!";
+    } else if (winners.length > 1) {
+      title.textContent = winNames + " tie for the round";
+    } else if (winners.length === 1) {
+      title.textContent = winNames + " wins the round!";
+    } else {
+      title.textContent = "Round over";
+    }
+
+    let subtext = "";
+    if (d.caller) {
+      subtext = d.caller_won
+        ? nameOf(d.caller) + " called Stop and won."
+        : nameOf(d.caller) + " called Stop but was caught (+" + penaltyPts() + ").";
+    }
+    if ((d.newly_eliminated || []).length) {
+      subtext += (subtext ? "  " : "") + "Out: " + d.newly_eliminated.map(nameOf).join(", ") + ".";
+    }
+    if (!d.game_over) subtext += (subtext ? "  " : "") + `Round ${d.round_number}/${d.rounds}.`;
+    sub.textContent = subtext;
+
+    // Table: name | revealed cards | hand total | round Δ | cumulative
+    const totals = d.totals || {}, deltas = d.deltas || {};
+    const cumById = {}; (d.players || []).forEach((p) => { cumById[p.user_id] = p.score; });
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:.85rem">';
+    html += '<tr style="opacity:.6"><td>Player</td><td>Cards</td><td style="text-align:right">Hand</td>' +
+            '<td style="text-align:right">Δ</td><td style="text-align:right">Total</td></tr>';
     Object.keys(d.reveal || {}).sort((a, b) => (totals[a] || 0) - (totals[b] || 0)).forEach((uid) => {
       const cards = (d.reveal[uid] || []).map((c) => c ? `${c.code}${SUIT[c.suit] || ""}` : "—").join(" ");
-      html += `<tr><td style="padding:.25rem .4rem;font-weight:600">${escapeHtml(nameOf(uid))}</td>` +
+      const dv = deltas[uid];
+      const dstr = dv == null ? "" : (dv > 0 ? "+" + dv : "" + dv);
+      const win = winners.indexOf(uid) !== -1;
+      html += `<tr${win ? ' style="font-weight:600;color:#8f6"' : ''}>` +
+        `<td style="padding:.25rem .4rem">${escapeHtml(nameOf(uid))}</td>` +
         `<td style="padding:.25rem .4rem;opacity:.8">${cards}</td>` +
-        `<td style="padding:.25rem .4rem;text-align:right">${totals[uid] != null ? totals[uid] : ""}</td></tr>`;
+        `<td style="padding:.25rem .4rem;text-align:right">${totals[uid] != null ? totals[uid] : ""}</td>` +
+        `<td style="padding:.25rem .4rem;text-align:right">${dstr}</td>` +
+        `<td style="padding:.25rem .4rem;text-align:right">${cumById[uid] != null ? cumById[uid] : ""}</td></tr>`;
     });
     html += "</table>";
     body.innerHTML = html;
 
     footer.innerHTML = "";
     if (youId === view.hostId) {
-      const b = document.createElement("button"); b.className = "btn-primary"; b.textContent = "Next round";
-      b.addEventListener("click", () => { socket.emit("s4_next_round", { code, user_id: youId }); closeModal("roundend-modal"); });
+      const b = document.createElement("button"); b.className = "btn-primary";
+      if (d.game_over) {
+        b.textContent = "New game";
+        b.addEventListener("click", () => { socket.emit("rematch", { code, user_id: youId }); closeModal("roundend-modal"); });
+      } else {
+        b.textContent = "Next round";
+        b.addEventListener("click", () => { socket.emit("s4_next_round", { code, user_id: youId }); closeModal("roundend-modal"); });
+      }
       footer.appendChild(b);
     } else {
-      const p = document.createElement("p"); p.className = "meta"; p.textContent = "Waiting for the host…";
+      const p = document.createElement("p"); p.className = "meta";
+      p.textContent = d.game_over ? "Waiting for the host to start a new game…" : "Waiting for the host…";
       footer.appendChild(p);
     }
     openModal("roundend-modal");
   }
 
+  function penaltyPts() {
+    return (view.settings && view.settings.penalty_score != null) ? view.settings.penalty_score : 3;
+  }
+
   // ================= chrome: timer, rules, reactions =================
   function syncTimer() {
     const el = $("turn-timer"); if (!el) return;
-    if (view.state !== "IN_TURN" || view.secondsLeft == null) { el.style.display = "none"; return; }
+    if (view.state !== "IN_TURN") { el.style.display = "none"; return; }
+    // During the preview window the chip counts down the memorize time.
+    if (view.previewLeft > 0) {
+      el.style.display = "inline-block";
+      el.textContent = "👁 memorize " + view.previewLeft + "s";
+      el.classList.add("low");
+      return;
+    }
+    if (view.secondsLeft == null) { el.style.display = "none"; return; }
     el.style.display = "inline-block";
     el.textContent = "⏱ " + Math.max(0, view.secondsLeft) + "s";
     el.classList.toggle("low", view.secondsLeft <= 10);
@@ -485,6 +588,18 @@
       view.match.seconds_left -= 1;
       if (view.state === "IN_TURN") renderActions();
     }
+    // Preview countdown: when it hits 0, hide the previewed cards (memory time).
+    if (view.state === "IN_TURN" && view.previewLeft > 0) {
+      view.previewLeft -= 1;
+      syncTimer();
+      if (view.previewLeft <= 0) renderTable();
+    }
+    // Expire peek/King flashes and re-render when any lapse.
+    var now = Date.now(), changed = false;
+    for (var k in view.flashes) {
+      if (view.flashes[k].until <= now) { delete view.flashes[k]; changed = true; }
+    }
+    if (changed && view.state === "IN_TURN") renderTable();
   }, 1000);
 
   function openModal(id) { const m = $(id); if (m) m.classList.add("open"); }
