@@ -1,6 +1,11 @@
-# 🃏 Super Seven
+# 🃏 Super Seven Cards
 
-A fast-paced real-time multiplayer card game built with **Flask-SocketIO** and **vanilla JS**. Shed the points in your hand, call **Stop** when you think you're lowest, and survive the elimination cap.
+A real-time multiplayer card-game platform built with **Flask-SocketIO** and **vanilla JS**. Create one room, choose a game, and play with friends from the same site.
+
+Currently included:
+
+- **Super Seven** — a face-up shedding game of sets, sequences, matching, and Stop.
+- **Super Four** — a hidden-information memory game with fixed card slots, powers, fast table matches, and Stop.
 
 ---
 
@@ -19,7 +24,7 @@ A fast-paced real-time multiplayer card game built with **Flask-SocketIO** and *
 | ![Game Lobby](static/img/game_images/super_seven_lobby.png) | ![Game Table](static/img/game_images/super_seven_game_table.png) |
 
 ---
-## 📖 The Official Rule Book
+## 📖 Super Seven rule book
 
 ### 🎯 1. Game Objective
 The goal is to shed the points in your hand. When you believe your remaining cards have a lower total value than every other active opponent, call **Stop** to end the round. If your cumulative score across multiple rounds exceeds the score cap, you are eliminated. The last player standing wins!
@@ -63,13 +68,66 @@ Round scores accumulate over time. Once your cumulative total crosses the **Scor
 
 ---
 
+## 🧠 Super Four rule book
+
+### Objective and setup
+
+Finish with the lowest total of card values. Each player starts with **four face-down cards** in fixed slots. At the beginning of a round, each player may privately memorise slots 1 and 2 until the host starts play, with a server-enforced maximum of **30 seconds**.
+
+### Card values
+
+Ace is 1; number cards use their face value; Jack, Queen, and King are 11, 12, and 13. Both red Kings — **King of Hearts** and **King of Diamonds** — are worth **−1**.
+
+### Turn flow
+
+1. **Draw privately.** Only the active player sees the drawn card.
+2. Choose one action:
+   - **Keep:** replace one of your slots. The new card stays hidden; the replaced card is discarded face-up.
+   - **Discard:** put the drawn card face-up on the center. A 7–King power activates only when the drawn card is directly discarded.
+   - **Match your own card:** if a chosen slot matches the drawn rank, both are discarded; a wrong guess gives you a hidden penalty card.
+3. Every face-up table discard opens a **4-second table-match window**.
+
+### Table matches
+
+Any player, including the discarder, may react during the match window. Suit does not matter — only rank must match.
+
+- The first fully correct match received by the server wins the reaction.
+- A player may throw multiple matching cards from their own and/or opponents' slots.
+- For each opponent card removed, the reactor chooses one of their own cards to transfer into that exact opponent slot.
+- A wrong attempt returns all selected cards to their original slots, adds a hidden penalty card to the reactor's last slot/index, and leaves the window open for other players until it expires.
+
+### Powers
+
+Powers occur only when the card drawn from the deck is immediately discarded:
+
+- **7 or 8:** privately peek at one of your own cards.
+- **9 or 10:** privately peek at one opponent card.
+- **Jack or Queen (11 or 12):** blind-swap one of your cards with an opponent card.
+- **King (13):** privately look at one of your cards and one opponent card, then optionally swap them.
+
+### Stop, rounds, and scoring
+
+Call **Stop** only at the start of your turn and only after every player has taken one turn. Each other player receives one final turn, then cards are revealed.
+
+- Lowest hand each round: `win_score` (default **−3**).
+- Other players: `loss_score` (default **+1**).
+- A Stop caller who is not lowest: `penalty_score` (default **+3**).
+- At `exit_score` (default **10**) a player is eliminated to spectator status.
+- The game normally lasts `rounds` (default **5**); the lowest cumulative score wins.
+
+Super Four is server-authoritative: hidden card faces are never broadcast in public state, and preview/peek faces are delivered only to the eligible player.
+
+---
+
 ## ✨ Features
 
 - **Real-time multiplayer** — WebSocket-powered with Flask-SocketIO, all actions sync instantly across all players
-- **Complete game loop** — lobby, dealing, turn play, drawing, Stop with first-orbit gating, round scoring, and multi-round rotation
-- **Smart turn engine** — supports single discard, set, sequence, and match plays with full server-side validation
-- **Scoring system** — win discount for correct Stop calls, caught penalty for wrong ones, safe/trap rule enforcement
-- **Automatic turn timer** — 40-second timer per turn with auto-play; a player is removed after three consecutive timeouts
+- **Game picker** — rooms choose Super Seven or Super Four at creation time
+- **Variant isolation** — shared platform services, with rules and UI bundles owned by each game
+- **Complete game loops** — lobby, dealing, turn play, Stop, scoring, elimination, and multi-round rotation
+- **Server-authoritative rules** — validation, timers, private state, and race arbitration run on the server
+- **Super Four memory mechanics** — private draws, host-controlled preview, card powers, penalties, and real-time matching
+- **Automatic turn timer** — per-game turn timers with auto-play; players can be removed after repeated timeouts
 - **Elimination & tiebreaker** — players eliminated at the score cap; survivor tiebreaker when multiple players hit it simultaneously
 - **Reconnection support** — players rejoin seamlessly at any stage using stable client-generated identities
 - **Host migration** — if the host disconnects, another player automatically takes over
@@ -82,18 +140,22 @@ Round scores accumulate over time. Once your cumulative total crosses the **Scor
 ```
 super_seven_cards/
 ├── app.py                  # Flask + SocketIO entrypoint
-├── config.py               # Environment variables and tunable constants
+├── config.py               # Runtime/deployment configuration
 ├── game/                   # Pure domain logic (networking-free)
-│   ├── cards.py            # Card definitions and deck management
-│   └── player.py           # Player profiles and identity tracking
-├── sockets/                # WebSocket event handlers
-│   ├── common.py           # Shared payload helpers
-│   └── connection.py       # Connect / disconnect handling
+│   ├── core/               # Cards, players, registry, manager, shared states
+│   ├── super_seven/        # Super Seven room, rules, scoring, AI, settings
+│   └── super_four/         # Super Four room, powers, scoring, AI, settings
+├── sockets/                # Shared WebSocket handlers and per-game gameplay handlers
+│   └── gameplay/           # super_seven.py and super_four.py
 ├── static/
 │   ├── css/style.css       # UI styles
-│   ├── js/                 # Modular frontend (game, lobby, socket, table)
+│   ├── js/core/            # Shared browser utilities
+│   ├── js/seven/           # Super Seven client bundle
+│   ├── js/four/            # Super Four client bundle
 │   └── img/cards/          # Generated SVG card faces
-├── templates/              # Jinja2 views (index + game)
+├── templates/games/        # Per-game table, branding, and script templates
+├── static/rules/           # Per-game English and Hindi rule pages
+├── tests/                  # Engine, privacy, scoring, power, and socket checks
 ├── tools/
 │   └── generate_cards.py   # SVG card face generator
 ├── Procfile                # Gunicorn startup command
@@ -123,7 +185,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open **http://localhost:5000**. To test multiplayer solo, open a second browser window in **Incognito** — it generates a separate player identity. Create a room, share the 4-letter code, and start.
+Open **http://localhost:5000**. Select a game when creating a room. To test multiplayer locally, open a second browser window in **Incognito** — it generates a separate player identity.
 
 ---
 
@@ -140,7 +202,7 @@ Open **http://localhost:5000**. To test multiplayer solo, open a second browser 
 
 ## 🌐 Deployment
 
-Super Seven is a stateful WebSocket app with in-memory room state — always run **exactly one worker**:
+This is a stateful WebSocket app with in-memory room state — always run **exactly one worker**:
 
 ```bash
 gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT app:app
@@ -169,11 +231,12 @@ Browser (vanilla JS + Socket.IO client)
               ↕  WebSockets
 Flask-SocketIO (single-process, eventlet)
               ↕
-In-memory game engine (room / player / rules / scoring)
+Game registry → Super Seven or Super Four room engine
 ```
 
-- **Domain layer** (`game/`) is completely decoupled from networking — pure Python logic, easy to unit test
-- **Socket layer** (`sockets/`) handles all real-time events and delegates to the domain layer
+- **Shared core** (`game/core/`) owns room registration and common lifecycle contracts.
+- **Variant domain layers** (`game/super_seven/`, `game/super_four/`) are decoupled from networking and easy to test.
+- **Socket layer** (`sockets/`) dispatches gameplay actions by `game_type`.
 - **Client identities** are stable and client-generated — survives page refreshes and reconnections mid-game
 
 ---
