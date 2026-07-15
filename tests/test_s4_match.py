@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-"""Super 4 cross-player matching: window open/close, own/opp match, penalties, expiry."""
+"""Super 4 table matching: first correct reaction wins, wrong attempts penalise."""
 from game.core.cards import Card
 from game.super_four.room import Room, PHASE_MATCH, PHASE_DRAW
 from game.super_four.settings import DEFAULT_SETTINGS
@@ -15,6 +15,7 @@ def fresh(uids, window=5):
     for u in uids:
         r.register_player(u, u); r.players[u].connected = True
     r.start_round()
+    r.begin_play()
     return r
 
 # ---- a non-power discard opens a match window ----
@@ -25,7 +26,7 @@ r.draw_pile = [Card(3, "D")]  # A will draw and discard a 3
 r.draw("A"); r.discard("A")
 check(r.phase == PHASE_MATCH and r.match_card.rank == 3, "discard opens a match window on the 3")
 check(r.match_discarder == "A", "discarder recorded")
-check(r.match_center_own("A", 1) is None, "the discarder cannot match their own discard")
+check(r._can_attempt_match("A"), "the discarder may react to their own table discard")
 
 # ---- own-match success closes the window and advances ----
 res = r.match_center_own("B", 1)  # B slot1 is a 3
@@ -41,18 +42,20 @@ r.draw("A"); r.discard("A")
 res = r.match_center_own("B", 0)  # B slot0 is 6, not 3 -> wrong
 check(not res["success"] and r.phase == PHASE_MATCH, "wrong match keeps window open")
 check(len(r.slots["B"]) == 5, "wrong matcher takes a penalty card (5th slot entry appended)")
-check("B" in r.match_attempted and r.match_center_own("B", 1) is None, "one attempt per player per window")
+check("B" in r.match_attempted and r.slots["B"][0].rank == 6, "wrong selected card stays hidden in its slot")
 
-# ---- opponent-match success: their card removed, you give your highest ----
+# ---- opponent-match success: reactor chooses which own card to transfer ----
 r = fresh(["A", "B"])
 r.slots["A"] = [Card(2, "S"), Card(3, "S"), Card(4, "S"), None]  # A slot2 = 4
 r.slots["B"] = [Card(1, "D"), Card(11, "H"), None, None]         # B highest = J(11) at slot1
 r.draw_pile = [Card(4, "D")]  # A draws & discards a 4
 r.draw("A"); r.discard("A")
-res = r.match_center_opp("B", "A", 2)  # match A's slot2 (a 4)
+res = r.react_match("B", [{"owner": "A", "slot": 2}], [
+    {"target_owner": "A", "target_slot": 2, "from_slot": 0},
+])
 check(res and res["success"], "B matches A's 4 (opponent match)")
-check(r.slots["A"][2] is not None and r.slots["A"][2].rank == 11, "A's slot refilled with B's given (highest) card")
-check(r.slots["B"][1] is None, "B gave away their highest card (slot emptied)")
+check(r.slots["A"][2] is not None and r.slots["A"][2].rank == 1, "A's slot refilled with B's chosen card")
+check(r.slots["B"][0] is None, "B gave away the card they selected")
 check(r.phase == PHASE_DRAW, "window closes after a successful opponent match")
 
 # ---- window expiry advances with no match ----

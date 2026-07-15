@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-"""Super 4 scoring: card values (KH=-1), hand totals, round-point deltas."""
+"""Super 4 scoring: card values (both red Kings=-1), hand totals, round-point deltas."""
 from game.core.cards import Card
 from game.super_four.scoring import card_value, hand_total, round_deltas
 from game.super_four.settings import DEFAULT_SETTINGS
@@ -14,7 +14,7 @@ S = DEFAULT_SETTINGS  # win_score=-3, loss_score=1, penalty_score=3
 # ---- card_value ----
 check(card_value(Card(1, "S")) == 1, "Ace = 1")
 check(card_value(Card(13, "S")) == 13, "King of Spades = 13")
-check(card_value(Card(13, "D")) == 13, "King of Diamonds = 13 (not the red king)")
+check(card_value(Card(13, "D")) == -1, "King of Diamonds = -1 (red King)")
 check(card_value(Card(13, "H")) == -1, "King of Hearts = -1")
 check(card_value(None) == 0, "empty slot = 0")
 

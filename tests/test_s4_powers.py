@@ -15,6 +15,7 @@ def fresh(uids):
     for u in uids:
         r.register_player(u, u); r.players[u].connected = True
     r.start_round()
+    r.begin_play()
     # deterministic slots
     r.slots["A"] = [Card(2, "S"), Card(3, "S"), Card(4, "S"), Card(5, "S")]
     r.slots["B"] = [Card(9, "D"), Card(10, "D"), Card(11, "D"), Card(12, "D")]

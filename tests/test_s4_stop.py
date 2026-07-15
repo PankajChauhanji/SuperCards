@@ -16,6 +16,7 @@ def fresh(uids):
     for u in uids:
         r.register_player(u, u); r.players[u].connected = True
     r.start_round()
+    r.begin_play()
     return r
 
 # ---- Stop is blocked during the first orbit ----
