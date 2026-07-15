@@ -13,6 +13,7 @@ A highly strategic, fast-paced card game of deception, psychological warfare, an
 6. [Clearing the Table (The Full Pass)](#-clearing-the-table-the-full-pass)
 7. [Winning the Game](#-winning-the-game)
 8. [Advanced Strategy Tips](#-advanced-strategy-tips)
+9. [Development Plan (Implementation Steps)](#-development-plan-implementation-steps)
 
 ---
 
@@ -94,3 +95,46 @@ The first player to discard their last card wins!
 *   **The Strategic Pass:** You don't have to play even if you have the target rank. If the pile is dangerously large, passing is a safe way to let other players take the risk of bluffing and getting caught.
 *   **The "Accidental" Truth:** Occasionally play honestly on your lead-off turns. Establishing yourself as an honest player makes it significantly easier to pull off a 4-card bluff later in the game.
 *   **Card Counting:** Keep track of how many cards of a specific rank have already been played or are in your own hand. If you hold three 9s and someone claims to play three 9s, they are mathematically guaranteed to be bluffing.
+
+---
+
+## 🛠️ Development Plan (Implementation Steps)
+
+Because the underlying shared platform (Lobby, Socket connection, Player management, basic UI, and Deck dealing) is already fully operational, adding the Bluff game simply requires hooking a new logic module into the existing registry.
+
+### Step 1: Registry and Configurations
+*   **Action:** Add `bluff` to `game/core/registry.py`.
+*   **Action:** Create `game/bluff/settings.py` (define default timers, timeouts, etc.).
+*   **Action:** Create the static HTML rule files (`static/rules/bluff/en.html`).
+
+### Step 2: Backend Game Engine (`game/bluff/room.py`)
+*   **State Required:** 
+    *   `target_rank`: The locked rank for the current round (1-13, or `None` if starting fresh).
+    *   `center_pile`: List of all cards currently in the center.
+    *   `last_play`: Details of the immediately preceding play (who threw, which exact cards, claimed quantity).
+    *   `pass_count`: Counter tracking consecutive passes.
+    *   `dead_pile`: Cards permanently removed from the game after a full table pass.
+*   **Core Methods to Implement:**
+    *   `apply_play(user_id, card_ids, declared_rank)`: Process a player throwing 1-4 cards. Updates `last_play`, resets `pass_count`, advances turn.
+    *   `apply_pass(user_id)`: Skip turn. Increment `pass_count`. If `pass_count == active_players - 1`, sweep the `center_pile` to `dead_pile` and grant the next turn a fresh start.
+    *   `apply_show(user_id)`: The challenger triggers a reveal of `last_play`. Verify truthfulness. Assign the `center_pile` to the loser as a penalty. Set the winner as the next turn leader. Reset round state.
+    *   `public_view(user_id)`: Return the sanitized state (center pile count, current target rank, whose turn it is, but hide other players' cards and the center pile's true faces).
+
+### Step 3: Backend Socket Layer (`sockets/gameplay/bluff.py`)
+*   **Action:** Register new event handlers:
+    *   `on("bluff_play")`: Call `room.apply_play()`.
+    *   `on("bluff_pass")`: Call `room.apply_pass()`.
+    *   `on("bluff_show")`: Call `room.apply_show()`.
+*   **Action:** Handle broadcasting the resulting `state` updates back to the room. Broadcast transient events (like `toast` messages for "Player X called Show! It was a Bluff!").
+
+### Step 4: Frontend UI (`static/js/bluff/game.js` & `templates/bluff.html`)
+*   **UI Components:**
+    *   **Action Panel:** 
+        *   If it's a fresh round: Show a rank selector (dropdown or 13 buttons) so the player can choose the `target_rank`. Show a [Throw Cards] button.
+        *   If the round is active: Show the current `target_rank`. Show [Throw Cards], [Pass], and [Show] (if applicable to the current player).
+    *   **Table View:** Render the center pile as a stack of face-down cards. Display the declared rank prominently.
+    *   **Show Animation:** When a "Show" is called, animate flipping the `last_play` cards face up for a few seconds before sweeping the pile to the loser.
+*   **Integration:** Bind UI buttons to emit the corresponding `bluff_play`, `bluff_pass`, and `bluff_show` socket events.
+
+### Step 5: Testing
+*   **Action:** Write unit tests for `game/bluff/room.py` to ensure "Show" resolves correctly and "Pass" clears the table accurately. Ensure no information leaks in `public_view`.
