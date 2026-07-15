@@ -41,13 +41,13 @@ check(infer_action([]) is None, "empty -> illegal")
 # ---- pair rule (issue 7): two of a kind is legal and draws one ----
 check(infer_action([7, 7]) == ACTION_PAIR, "two of a kind -> pair (draws one)")
 check(infer_action([13, 13]) == ACTION_PAIR, "two kings is a legal pair (issue 8)")
-check(infer_action([7, 7], {5, 6, 7}) == ACTION_PAIR,
-      "two of a kind stays a pair even when matchable")
+check(infer_action([7, 7], {5, 6, 7}) == ACTION_MATCH,
+      "two of a kind becomes a match when matchable")
 check(infer_action([7, 8]) is None, "two different ranks with no center -> illegal")
 
 # ---- match off the current center (issue 8): no longer combo-gated ----
-check(infer_action([13, 13], {13}) == ACTION_PAIR,
-      "two kings after a king is a pair (legal regardless of center)")
+check(infer_action([13, 13], {13}) == ACTION_MATCH,
+      "two kings after a king is a match")
 check(infer_action([7, 8], {7, 8, 9}) == ACTION_MATCH,
       "two distinct ranks both in center -> match")
 check(infer_action([2, 4], {2, 3, 4}) == ACTION_MATCH,

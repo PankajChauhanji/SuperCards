@@ -102,6 +102,7 @@
   socket.on("s4_timeout", (d) => {
     showToast((d.user_id === youId ? "You" : d.name) + " ran out of time");
   });
+  socket.on("toast", (d) => showToast(d.message));
   socket.on("reaction", (d) => floatReaction(d.emoji));
 
   function applyState(d) {
@@ -476,6 +477,13 @@
     if (view.phase === "decide" && view.drawnBy === youId && view.drawn) {
       const d = view.drawn;
       const it = view.interaction;
+      if (it && it.mode === "discard_confirm") {
+        instrEl.textContent = `Do you also want to match your own card with ${d.code}?`;
+        addBtn("Yes, match own card", () => { view.interaction = { mode: "match", firstPick: null }; renderTable(); });
+        addBtn("No, just discard", () => socket.emit("s4_discard", { code, user_id: youId }));
+        addBtn("Cancel", () => { view.interaction = null; renderTable(); }, true);
+        return;
+      }
       if (it && (it.mode === "keep" || it.mode === "match")) {
         instrEl.textContent = it.mode === "keep"
           ? `Keep ${d.code}${SUIT[d.suit] || ""} — tap a slot to place it.`
@@ -483,11 +491,10 @@
         addBtn("Cancel", () => { view.interaction = null; renderTable(); }, true);
         return;
       }
-      const powerNote = (d.rank >= 7) ? " (discarding triggers its power)" : "";
-      instrEl.textContent = `You drew ${d.code}${SUIT[d.suit] || ""}. Keep, discard${powerNote}, or match.`;
+      const powerNote = (d.rank >= 7) ? " (discard triggers power)" : "";
+      instrEl.textContent = `You drew ${d.code}${SUIT[d.suit] || ""}. Keep, or discard${powerNote}.`;
       addBtn("Keep", () => { view.interaction = { mode: "keep", firstPick: null }; renderTable(); });
-      addBtn("Discard", () => socket.emit("s4_discard", { code, user_id: youId }));
-      addBtn("Match", () => { view.interaction = { mode: "match", firstPick: null }; renderTable(); }, true);
+      addBtn("Discard", () => { view.interaction = { mode: "discard_confirm" }; renderTable(); });
       return;
     }
 

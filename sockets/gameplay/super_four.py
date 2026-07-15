@@ -85,6 +85,9 @@ def register(socketio, manager):
             return
         if not room.keep(uid, _int(data, "slot")):
             return error("You can't keep into that slot.")
+        player = room.players.get(uid)
+        if player:
+            socketio.emit("toast", {"message": f"{player.name} kept a card"}, to=room.code)
         _emit_state(socketio, room)
 
     @socketio.on("s4_discard")

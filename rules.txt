@@ -1,0 +1,26 @@
+Goal
+Finish with the lowest total of card values. On your turn you may call Stop if you think you're lowest — everyone else gets one final turn, then all cards are revealed. Call it right and you win; get beaten and you lose.
+
+🃏 Setup
+You get 4 face-down cards in fixed slots 1–4. At the start of each round you get time till admin starts the rounds or max 30 sec to memorise your own first two cards — then everything goes face-down and you must play from memory.
+
+🔢 Card values
+Ace = 1, number cards = face value, Jack = 11, Queen = 12, King = 13. Exception: the King of red colour is worth −1 — the best card in the game.
+
+🔄 Your turn
+Draw the top card (No one sees it except you).
+Keep it: tap a slot to swap it in; the old card is discarded. (you might keep it if it's lower and you have a bigger card.) No one sees the  card you kept but everyone sees the card you thrown in table. but everyone get message that you kept that cards. 
+Discard it: if it's a power card (7–13) its power triggers. (power is only if card from deck is thrown back and not kept not from the card which is from your 4 cards.)
+After a card is thrown at table everyone including you have right to throw that number card of any colour and any counts to table only first person thrown is allowed not others.
+but if you thrown a wrong card then you get a penalty.
+Match: tap a slot you believe already holds that same value — right and it's removed (fewer points!); wrong and you take a penalty card.
+✨ Card powers (only when you discard the drawn card)
+7 or 8 — look at one of your own cards.
+9 or 10 — look at one opponent's card.
+11 or 12 — blind-swap one of yours with an opponent's (no one sees them).
+King (13) — look at one of yours and one opponent's, then optionally swap.
+🏆 Scoring & winning
+A game is 5 rounds and lower is better. Each round: the lowest hand wins (−3), everyone else loses (+1). Call Stop and win → −3; call Stop and get caught (not lowest) → a +3 penalty. Reach the exit score (10) and you're eliminated to a spectator. Lowest total after 5 rounds wins the game. (All values are host-configurable.)
+
+🧠 Strategy
+Remember your own cards and any you glimpse from opponents. Shed high cards, hunt the King of Hearts, and pick the perfect moment to call Stop.
