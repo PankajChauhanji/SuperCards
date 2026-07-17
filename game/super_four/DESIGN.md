@@ -31,6 +31,10 @@ ambiguous, the decision made here is marked **[decision]** so it can be revisite
 - **11 or 12** — **blind swap** one of your cards with an opponent's (no reveal to anyone).
 - **13 King** — look at one of yours + one opponent's (private to you), then **optionally swap**.
 
+**Every power is optional (updated 2026-07-17):** the acting player may skip it — the client
+sends `s4_power_skip` (same `Room.power_skip` the director already used on timeout). The King's
+swap decision was always optional; now the look/swap/peek itself is too.
+
 ## Hidden information (critical — no leaks)
 Per-viewer knowledge is tracked: `known[viewer] = set((owner, slot))` = positions whose
 current card that viewer legitimately knows. Rules:
@@ -56,14 +60,20 @@ cards to transfer into that exact slot. Malformed requests are rejected without 
 the window. The window/validation logic lives in `matching.MatchWindow`; the Room applies
 the mutations.
 
-## Scoring (round-points model, updated 2026-07-14)
+## Scoring (risk-based round points, updated 2026-07-17)
 
-Replaces the original cumulative-hand-total model. **Lower cumulative is better.**
-Each round the lowest hand wins; the running score updates by deltas:
-- Round **winner(s)** (strictly-lowest hand; ties share): `win_score` (default **−3**).
-- Every other active player: `loss_score` (default **+1**).
-- A caller who calls **Stop but is caught** (not a winner): `penalty_score` (default **+3**),
-  instead of the loss.
+Replaces the 2026-07-14 lowest-hand-wins model. **Lower cumulative is better**, and the
+**only way to score negative is to call Stop and win**. A won Stop also inflates the whole
+table toward `exit_score`, so passivity is punished twice — you fall behind AND move closer
+to elimination:
+- A **Stop caller with the strictly-lowest hand** (a tie = caught): `win_score` (default **−1**).
+- **Everyone else when the caller wins**: `stop_loss_score` (default **+2**).
+- A **caught** caller (tied or beaten): `penalty_score` (default **+4**); the rest take the
+  routine `loss_score` (default **+1**).
+- A round with **no caller** (degenerate deck-out): every active player takes `loss_score`.
+- Balance rationale: winning a Stop gains 3 relative points (−1 vs +2); being caught costs 3
+  (+4 vs the +1 the rest take) — so calling is correct at roughly ≥50% confidence, keeping the
+  memory/judgment core intact while five passive rounds of +2 hit the default exit score of 10.
 - Wrong own/cross matches keep costing a **penalty card** (raises that round's hand), not points.
 
 A player is **eliminated** once cumulative ≥ `exit_score` (default **10**) → they spectate the rest.
@@ -76,8 +86,8 @@ table's average cumulative score plus `abs(avg) * penalty%` (abs so the penalty 
 when the average is negative).
 
 Host-configurable settings (see settings.py): turn_timer, match_window, preview_seconds, rounds,
-exit_score, win_score, loss_score, penalty_score, num_decks. Editable on the create screen and in
-the lobby.
+exit_score, win_score, stop_loss_score, loss_score, penalty_score, num_decks. Editable on the
+create screen and in the lobby.
 
 ## Preview (updated: strict flash-then-hide)
 
@@ -93,7 +103,8 @@ hide. Cards are never shown persistently (fixes the old "known cards stay visibl
 - After Stop, every other player gets **one final turn**; when play returns to the caller,
   all cards are revealed.
 - **[decision]** Caller **wins iff their total is strictly the lowest** (ties → caller loses,
-  consistent with Super Seven). Non-callers: lowest total is the round winner.
+  consistent with Super Seven). Non-callers never score negative — the lowest hand is shown as
+  the round's best hand but only a winning caller earns `win_score` (see Scoring).
 
 ## Rounds / session
 - **[decision]** Super 4 is round-based: each round ends at reveal with per-player totals and

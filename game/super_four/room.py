@@ -834,7 +834,8 @@ class Room:
         return {"swapped": bool(do_swap)}
 
     def power_skip(self, user_id: str) -> bool:
-        """End a pending power without acting — used by the director on timeout."""
+        """End a pending power without acting — powers are optional, so this is
+        both the player's voluntary "skip" and the director's timeout fallback."""
         if self.phase != PHASE_POWER or not self.pending_power or self.pending_power.get("by") != user_id:
             return False
         self._end_power()

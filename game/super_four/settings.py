@@ -17,9 +17,10 @@ DEFAULT_SETTINGS = {
     "preview_seconds": 30,   # host may start early; server caps the preview at 30s
     "rounds": 5,             # rounds in a game (game may end earlier by elimination)
     "exit_score": 10,        # cumulative at/above this -> eliminated (spectator)
-    "win_score": -3,         # round winner's score delta
-    "loss_score": 1,         # every other active player's score delta
-    "penalty_score": 3,      # caught Stop caller's delta (instead of loss_score)
+    "win_score": -1,         # winning Stop caller's delta — the only negative score
+    "stop_loss_score": 2,    # everyone else's delta when a Stop caller WINS
+    "loss_score": 1,         # everyone else's delta otherwise (caught caller / deck-out)
+    "penalty_score": 4,      # caught Stop caller's delta (instead of loss_score)
     "num_decks": 1,          # 52-card decks shuffled together
 }
 
@@ -32,6 +33,7 @@ SETTINGS_BOUNDS = {
     "rounds": (1, 20),
     "exit_score": (3, 100),
     "win_score": (-20, 0),
+    "stop_loss_score": (0, 20),
     "loss_score": (0, 20),
     "penalty_score": (0, 40),
     "num_decks": (1, 6),

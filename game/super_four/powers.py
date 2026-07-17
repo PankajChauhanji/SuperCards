@@ -1,6 +1,7 @@
 """Super 4 card powers — pure metadata / targeting.
 
-Powers trigger ONLY when a drawn card is immediately discarded (see room.discard).
+Powers trigger ONLY when a drawn card is immediately discarded (see room.discard),
+and using one is always OPTIONAL — the acting player may skip it (room.power_skip).
 This module classifies a rank into its power kind and describes what target the
 power needs; the actual state mutation lives on the Room (power_* methods) so slot
 and knowledge updates stay in one place.

@@ -4,9 +4,11 @@ Two layers:
 
 * **Hand value** — a player's total of card values at reveal. Lowest hand wins the
   round. Both red Kings (Hearts and Diamonds) are worth -1; empty slots count 0.
-* **Round points** — a game-level running score where LOWER is better. Each round
-  the winner(s) get `win_score` (negative), a caught Stop caller gets
-  `penalty_score` (positive), and every other active player gets `loss_score`.
+* **Round points** — a game-level running score where LOWER is better. Risk-based:
+  the ONLY negative delta is a winning Stop caller's `win_score`, and a won Stop
+  also inflates everyone else by `stop_loss_score` (> the routine `loss_score`),
+  pushing the passive players toward `exit_score`. A caught caller gets
+  `penalty_score`; a low hand earns nothing without the risk of calling Stop.
   A player is eliminated once their cumulative reaches `exit_score`.
 """
 from typing import Dict, List, Optional
@@ -31,28 +33,31 @@ def hand_total(cards) -> int:
 def round_deltas(totals: Dict[str, int], caller_id: Optional[str], settings: dict) -> dict:
     """Per-player round-score deltas for a finished round.
 
-    Winner(s) = the strictly-lowest hand total (ties share the win). A caller who
-    is not among the winners is "caught". Returns:
+    Risk-based: the only way to score negative is to call Stop and WIN.
+      * Caller with the STRICTLY-lowest hand (a tie = caught): `win_score`, and
+        everyone else takes `stop_loss_score` — a won Stop pressures the table.
+      * Caught caller: `penalty_score`; everyone else takes the routine `loss_score`.
+      * No caller at all (e.g. deck-out): every active player gets `loss_score` —
+        the lowest hand earns nothing without the risk of a call.
+    `winners` still lists the lowest hand(s), for display only. Returns:
       {"deltas": {uid: int}, "winners": [uid], "caller_won": bool, "totals": {...}}
     """
-    win = settings.get("win_score", -3)
+    win = settings.get("win_score", -1)
+    stop_loss = settings.get("stop_loss_score", 2)
     loss = settings.get("loss_score", 1)
-    penalty = settings.get("penalty_score", 3)
+    penalty = settings.get("penalty_score", 4)
 
     if not totals:
         return {"deltas": {}, "winners": [], "caller_won": False, "totals": {}}
 
     lowest = min(totals.values())
     winners = [uid for uid, t in totals.items() if t == lowest]
-    winset = set(winners)
-    caller_won = caller_id is not None and caller_id in winset
+    caller_won = caller_id is not None and winners == [caller_id]
 
     deltas = {}
     for uid in totals:
-        if uid in winset:
-            deltas[uid] = win
-        elif uid == caller_id:
-            deltas[uid] = penalty      # called Stop but got caught
+        if uid == caller_id:
+            deltas[uid] = win if caller_won else penalty
         else:
-            deltas[uid] = loss
+            deltas[uid] = stop_loss if caller_won else loss
     return {"deltas": deltas, "winners": winners, "caller_won": caller_won, "totals": dict(totals)}
