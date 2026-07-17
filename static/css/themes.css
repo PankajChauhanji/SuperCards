@@ -48,6 +48,24 @@ body.theme-red_casino .opponents .seat {
   border-color: rgba(230, 178, 60, 0.3) !important;
 }
 
+/* Super 4 seats pick up the same theme treatment as Super Seven seats. */
+body.theme-casino .s4-seat {
+  background: #022c22 !important;
+  border-color: rgba(230, 178, 60, 0.3) !important;
+}
+body.theme-cyberpunk .s4-seat {
+  background: #090520 !important;
+  border-color: rgba(6, 182, 212, 0.3) !important;
+}
+body.theme-marble .s4-seat {
+  background: #18191c !important;
+  border-color: rgba(230, 178, 60, 0.2) !important;
+}
+body.theme-red_casino .s4-seat {
+  background: #2d0505 !important;
+  border-color: rgba(230, 178, 60, 0.3) !important;
+}
+
 /* ---------- Theme Select Dropdown ---------- */
 .theme-select-wrap {
   position: relative;

@@ -8,7 +8,7 @@
   });
 
   let toastTimer = null;
-  function showToast(message) {
+  function showToast(message, ms) {
     let el = document.getElementById("toast");
     if (!el) {
       el = document.createElement("div");
@@ -18,7 +18,7 @@
     el.textContent = message;
     el.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+    toastTimer = setTimeout(() => el.classList.remove("show"), ms || 3200);
   }
 
   window.SS = { socket, showToast };

@@ -11,7 +11,7 @@
     currentTurn: null, turnOrder: [], deckCount: 0,
     drawn: null, drawnBy: null, center: null, phase: "draw",
     pendingPower: null, match: null, firstOrbitComplete: false, stopCaller: null,
-    roundNumber: 0, settings: null, secondsLeft: null,
+    roundNumber: 0, settings: null, secondsLeft: null, tableTheme: "default",
     known: {},          // "owner:slot" -> card dict (only what I may see)
     flashes: {},        // "owner:slot" -> {card, until} : briefly-shown (peeks)
     previewLeft: 0,     // seconds left in the initial preview window
@@ -48,15 +48,28 @@
   socket.on("room_joined", (d) => {
     view.hostId = d.host_id; view.state = d.state; view.players = d.players;
     if (d.settings) view.settings = d.settings;
+    view.tableTheme = d.table_theme || "default";
+    syncTableTheme();
     sync();
   });
   socket.on("player_list", (d) => {
+    const before = new Set(view.players.map((p) => p.user_id));
     view.hostId = d.host_id; view.players = d.players;
-    if (view.state !== "IN_TURN") renderLobby();
+    // Mid-game joiners arrive as spectators: tell the table about them.
+    if (before.size) {
+      d.players.forEach((p) => {
+        if (!before.has(p.user_id) && p.is_spectator) {
+          showToast(p.name + " is watching — spectators can join from the next round");
+        }
+      });
+    }
+    if (view.state === "IN_TURN") renderTable(); else renderLobby();
+    syncThemeSelectorVisibility();
   });
   socket.on("room_reset", (d) => {
     view.state = "LOBBY"; view.hostId = d.host_id; view.players = d.players;
     if (d.settings) view.settings = d.settings;
+    if (d.table_theme) { view.tableTheme = d.table_theme; syncTableTheme(); }
     view.known = {}; view.interaction = null; view.kingLook = null;
     closeModal("roundend-modal"); sync(); showToast("New game — back to the lobby");
   });
@@ -100,16 +113,23 @@
     syncTimer(); showRoundEnd(d);
   });
   socket.on("s4_timeout", (d) => {
-    showToast((d.user_id === youId ? "You" : d.name) + " ran out of time");
+    // Room-wide announcements come from the server; this is your personal note.
+    if (d.user_id !== youId) return;
+    showToast(d.removed
+      ? "You missed too many turns — you're spectating now. Ask the host to admit you back."
+      : "You ran out of time — your turn was auto-played", 3200);
   });
-  socket.on("toast", (d) => showToast(d.message));
-  socket.on("reaction", (d) => floatReaction(d.emoji));
+  socket.on("toast", (d) => showToast(d.message, d.ms));
+  socket.on("reaction", (d) => floatReaction(d.emoji, d.name));
 
   function applyState(d) {
     if (d.state) view.state = d.state;
     if (d.players) view.players = d.players;
     if (d.host_id) view.hostId = d.host_id;
     if (d.settings) view.settings = d.settings;
+    if (d.table_theme && d.table_theme !== view.tableTheme) {
+      view.tableTheme = d.table_theme; syncTableTheme();
+    }
     view.currentTurn = d.current_turn;
     view.turnOrder = d.turn_order || [];
     view.deckCount = d.deck_count;
@@ -148,6 +168,7 @@
     if (dock) dock.style.display = inRound ? "flex" : "none";
     if (inRound) renderTable(); else renderLobby();
     syncRoundChip();
+    syncThemeSelectorVisibility();
   }
 
   // ================= lobby =================
@@ -165,6 +186,7 @@
       const tags = document.createElement("div"); tags.className = "roster-tags";
       if (p.user_id === view.hostId) tags.appendChild(badge("Host", "host"));
       if (p.user_id === youId) tags.appendChild(badge("You", "you"));
+      if (p.is_spectator) tags.appendChild(badge(p.pending_join ? "Joining next" : "Spectator", "spec"));
       if (youId === view.hostId && p.user_id !== youId) {
         const kick = document.createElement("button"); kick.className = "kick-btn";
         kick.textContent = "✕"; kick.title = "Remove " + p.name;
@@ -197,35 +219,58 @@
     ["preview_seconds", "Preview (s)"], ["rounds", "Rounds"],
     ["exit_score", "Exit score (out)"], ["win_score", "Win score"],
     ["loss_score", "Loss score"], ["penalty_score", "Caught-Stop penalty"],
+    ["timeout_limit", "Missed turns (out)"],
   ];
   function renderLobbySettings() {
     if (!lobbySettings) return;
     const s = view.settings || {};
-    if (youId === view.hostId) {
-      let h = '<div style="font-size:.8rem;opacity:.7;margin-bottom:.3rem">Game settings (host)</div>' +
+    const isHost = youId === view.hostId;
+    const mode = isHost ? "host" : "guest";
+    // Build the panel once per role; later renders only sync the values, so the
+    // host's in-progress edits are never wiped by a roster refresh.
+    if (lobbySettings.dataset.mode !== mode) {
+      lobbySettings.dataset.mode = mode;
+      let h = '<div style="font-size:.8rem;opacity:.7;margin-bottom:.3rem">Game settings' +
+        (isHost ? "" : " (set by the host)") + "</div>" +
         '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.35rem;font-size:.8rem">';
       S4_FIELDS.forEach(([k, label]) => {
-        h += `<label style="display:flex;justify-content:space-between;gap:.4rem;align-items:center">` +
-          `<span>${label}</span><input type="number" data-key="${k}" value="${s[k] != null ? s[k] : ""}" style="width:60px" /></label>`;
+        h += '<label style="display:flex;justify-content:space-between;gap:.4rem;align-items:center">' +
+          `<span>${label}</span>` +
+          (isHost
+            ? `<input type="number" data-key="${k}" style="width:60px" />`
+            : `<span data-key="${k}" style="font-weight:600"></span>`) +
+          "</label>";
       });
-      h += '</div><button class="btn-ghost" id="s4-save-settings" style="margin-top:.5rem;width:auto;padding:.3rem .8rem">Save settings</button>';
+      h += "</div>";
+      if (isHost) {
+        h += '<button class="btn-ghost" id="s4-save-settings" style="margin-top:.5rem;width:auto;padding:.3rem .8rem">Save settings</button>';
+      }
       lobbySettings.innerHTML = h;
-      const save = $("s4-save-settings");
-      if (save) save.addEventListener("click", () => {
-        const out = {};
+      if (isHost) {
         lobbySettings.querySelectorAll("input[data-key]").forEach((el) => {
-          if (el.value !== "") out[el.dataset.key] = parseInt(el.value, 10);
+          el.addEventListener("input", () => { el.dataset.dirty = "1"; });
         });
-        socket.emit("update_settings", { code, user_id: youId, settings: out });
-        showToast("Settings saved");
-      });
-    } else {
-      lobbySettings.innerHTML = '<div style="font-size:.8rem;opacity:.75">' +
-        `Turn ${s.turn_timer || 30}s · Match ${s.match_window != null ? s.match_window : 3}s · ` +
-        `Rounds ${s.rounds || 5} · Out at ${s.exit_score || 10} · ` +
-        `Win ${s.win_score != null ? s.win_score : -3} / Loss +${s.loss_score != null ? s.loss_score : 1} / ` +
-        `Caught +${s.penalty_score != null ? s.penalty_score : 3}</div>`;
+        $("s4-save-settings").addEventListener("click", () => {
+          const out = {};
+          lobbySettings.querySelectorAll("input[data-key]").forEach((el) => {
+            if (el.value !== "") out[el.dataset.key] = parseInt(el.value, 10);
+            delete el.dataset.dirty;
+          });
+          socket.emit("update_settings", { code, user_id: youId, settings: out });
+          showToast("Settings saved");
+        });
+      }
     }
+    S4_FIELDS.forEach(([k]) => {
+      const el = lobbySettings.querySelector(`[data-key="${k}"]`);
+      if (!el) return;
+      const val = s[k] != null ? String(s[k]) : "";
+      if (el.tagName === "INPUT") {
+        if (el !== document.activeElement && !el.dataset.dirty) el.value = val;
+      } else {
+        el.textContent = val || "—";
+      }
+    });
   }
 
   function badge(text, cls) {
@@ -240,9 +285,12 @@
 
   function armAutoInteraction() {
     // During a match window I can attempt, arm the "match_center" targeting mode.
+    // Never clobber an in-progress match flow (match_replacements is the second
+    // step of the same attempt — resetting it would throw the selection away).
     if (canMatchNow()) {
-      if (!view.interaction || view.interaction.mode !== "match_center") {
-        view.interaction = { mode: "match_center", firstPick: null };
+      const m = view.interaction && view.interaction.mode;
+      if (m !== "match_center" && m !== "match_replacements") {
+        view.interaction = { mode: "match_center", targets: [] };
       }
       return;
     }
@@ -434,6 +482,7 @@
     if (view.phase === "match" && view.match) {
       const m = view.match;
       const card = m.card ? `${m.card.code}${SUIT[m.card.suit] || ""}` : "";
+      const iAmNext = m.next_player === youId;
       if (canMatchNow()) {
         const it = view.interaction;
         if (it && it.mode === "match_replacements") {
@@ -441,7 +490,7 @@
           instrEl.textContent = `Choose ${left} of your cards to give in exchange.`;
         } else if (it && it.mode === "match_center") {
           const count = (it.targets || []).length;
-          instrEl.textContent = `Select every ${card} to throw (${count} selected), then confirm.`;
+          instrEl.textContent = `Select every ${card} to throw (${count} selected), then confirm. (${m.seconds_left}s)`;
           if (count) addBtn("Throw selected", () => submitMatchTargets(it.targets));
         } else {
           instrEl.textContent = `Match the ${card}! Select any of your or opponents' cards. (${m.seconds_left}s)`;
@@ -450,6 +499,14 @@
         addBtn("Pass", () => { view.interaction = null; socket.emit("s4_match_pass", { code, user_id: youId }); }, true);
       } else {
         instrEl.textContent = `${nameOf(m.discarder)} discarded ${card}. Matching window… (${m.seconds_left}s)`;
+      }
+      // The next player may start their turn early, which ends the window.
+      // (Not the Stop caller — their "turn" is the reveal, handled server-side.)
+      if (iAmNext && view.stopCaller !== youId) {
+        addBtn("Draw — start my turn", () => socket.emit("s4_draw", { code, user_id: youId }));
+        if (view.firstOrbitComplete && !view.stopCaller) {
+          addBtn("Stop", () => socket.emit("s4_stop", { code, user_id: youId }), true);
+        }
       }
       return;
     }
@@ -471,6 +528,14 @@
       instrEl.textContent = "Your turn — draw a card" + (canStop() ? ", or call Stop." : ".");
       addBtn("Draw", () => socket.emit("s4_draw", { code, user_id: youId }));
       if (canStop()) addBtn("Stop", () => socket.emit("s4_stop", { code, user_id: youId }), true);
+      return;
+    }
+
+    // Safety net: if my private drawn card ever goes missing (dropped event),
+    // re-enter the room once to resync instead of leaving zero clickable options.
+    if (view.phase === "decide" && view.drawnBy === youId && !view.drawn) {
+      instrEl.textContent = "Syncing your card…";
+      if (view._resyncSig !== view._sig) { view._resyncSig = view._sig; enter(); }
       return;
     }
 
@@ -535,7 +600,58 @@
       if (out) li.style.opacity = "0.45";
       scoreList.appendChild(li);
     });
+
+    // Spectators: visible to everyone; the host can admit them for next round.
+    const specs = view.players.filter((p) => p.is_spectator);
+    if (specs.length) {
+      const head = document.createElement("li");
+      head.textContent = "Watching";
+      head.style.cssText = "margin-top:.6rem;opacity:.6;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em";
+      scoreList.appendChild(head);
+      specs.forEach((p) => {
+        const li = document.createElement("li");
+        li.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:.4rem";
+        const nm = document.createElement("span");
+        nm.textContent = "👁 " + p.name + (p.user_id === youId ? " (you)" : "");
+        li.appendChild(nm);
+        if (p.pending_join) {
+          const tag = document.createElement("span");
+          tag.textContent = "Joining next";
+          tag.style.cssText = "font-size:.7rem;opacity:.8";
+          li.appendChild(tag);
+        } else if (youId === view.hostId) {
+          const btn = document.createElement("button");
+          btn.textContent = "+";
+          btn.title = "Admit " + p.name + " to the next round";
+          btn.style.cssText = "width:22px;height:22px;border:none;border-radius:4px;cursor:pointer;" +
+            "background:rgba(255,255,255,.15);color:inherit;font-size:16px;line-height:1";
+          btn.addEventListener("click", () => openSpectatorModal(p.user_id, p.name));
+          li.appendChild(btn);
+        }
+        scoreList.appendChild(li);
+      });
+    }
   }
+
+  // ---- spectator admit modal (host) ----
+  let admitTargetId = null;
+  function openSpectatorModal(targetId, name) {
+    const m = $("spectator-modal"); if (!m) return;
+    admitTargetId = targetId;
+    $("admit-name").textContent = name;
+    $("admit-penalty").value = "0";
+    m.classList.add("open");
+  }
+  if ($("admit-cancel")) $("admit-cancel").addEventListener("click", () => {
+    closeModal("spectator-modal"); admitTargetId = null;
+  });
+  if ($("admit-confirm")) $("admit-confirm").addEventListener("click", () => {
+    if (admitTargetId) {
+      const penalty = parseInt($("admit-penalty").value, 10) || 0;
+      socket.emit("admit_spectator", { code, user_id: youId, target_id: admitTargetId, penalty: penalty });
+    }
+    closeModal("spectator-modal"); admitTargetId = null;
+  });
 
   function setPileCard(el, card) {
     let img = el.querySelector("img.pile-face");
@@ -609,6 +725,12 @@
       p.textContent = d.game_over ? "Waiting for the host to start a new game…" : "Waiting for the host…";
       footer.appendChild(p);
     }
+    if (d.game_over) {
+      const home = document.createElement("button"); home.className = "btn-ghost";
+      home.textContent = "Home";
+      home.addEventListener("click", () => { window.location.href = "/"; });
+      footer.appendChild(home);
+    }
     openModal("roundend-modal");
   }
 
@@ -681,22 +803,124 @@
   }
   if ($("rules-btn")) $("rules-btn").addEventListener("click", () => { openModal("rules-modal"); loadRules("en"); });
   if ($("rules-close")) $("rules-close").addEventListener("click", () => closeModal("rules-modal"));
+  const rulesModal = $("rules-modal");
+  if (rulesModal) rulesModal.addEventListener("click", (e) => {
+    if (e.target === rulesModal) closeModal("rules-modal");
+  });
   document.querySelectorAll(".lang-btn").forEach((b) => b.addEventListener("click", (e) => loadRules(e.target.dataset.lang)));
 
-  // Reactions (shared social channel)
+  // Reactions (shared social channel) — same UX as the Super Seven bundle.
   const fab = $("reaction-fab"), panel = $("reaction-panel");
+  const rxRecentContainer = $("rx-recent-container"), rxRecentGrid = $("rx-recent-grid");
+  function getRecentReactions() {
+    try { return JSON.parse(localStorage.getItem("super_seven_recent_rx")) || []; }
+    catch (e) { return []; }
+  }
+  function sendReaction(emoji) {
+    // Panel stays open — rapid repeat clicks spam reactions, same as Super Seven.
+    socket.emit("reaction", { code, user_id: youId, emoji });
+    let recent = getRecentReactions();
+    recent = recent.filter((e) => e !== emoji);
+    recent.unshift(emoji);
+    if (recent.length > 5) recent.pop();
+    localStorage.setItem("super_seven_recent_rx", JSON.stringify(recent));
+    updateRecentGrid();
+  }
+  function updateRecentGrid() {
+    if (!rxRecentContainer || !rxRecentGrid) return;
+    const recent = getRecentReactions();
+    if (fab && recent.length) fab.textContent = recent[0];
+    if (!recent.length) { rxRecentContainer.style.display = "none"; return; }
+    rxRecentContainer.style.display = "flex";
+    rxRecentGrid.innerHTML = "";
+    recent.forEach((emoji) => {
+      const btn = document.createElement("button");
+      btn.className = "rx"; btn.dataset.e = emoji; btn.title = emoji; btn.textContent = emoji;
+      btn.addEventListener("click", () => sendReaction(emoji));
+      rxRecentGrid.appendChild(btn);
+    });
+  }
   if (fab && panel) {
-    fab.addEventListener("click", () => { panel.hidden = !panel.hidden; });
-    document.querySelectorAll(".rx").forEach((b) => b.addEventListener("click", () => {
-      socket.emit("reaction", { code, user_id: youId, emoji: b.dataset.e }); panel.hidden = true;
-    }));
+    // Single click toggles the panel; rapid double-click fires the last-used
+    // reaction immediately (same feel as Super Seven).
+    let lastFabClick = 0, fabClickTimeout = null;
+    fab.addEventListener("click", () => {
+      const now = Date.now();
+      const rapid = now - lastFabClick < 300;
+      lastFabClick = now;
+      if (rapid) {
+        if (fabClickTimeout) { clearTimeout(fabClickTimeout); fabClickTimeout = null; }
+        sendReaction(getRecentReactions()[0] || "🤡");
+      } else {
+        fabClickTimeout = setTimeout(() => {
+          fabClickTimeout = null;
+          panel.hidden = !panel.hidden;
+          if (!panel.hidden) updateRecentGrid();
+        }, 220);
+      }
+    });
+    document.querySelectorAll("#rx-main-grid .rx").forEach((b) =>
+      b.addEventListener("click", () => sendReaction(b.dataset.e)));
+    document.addEventListener("click", (e) => {
+      const dock = $("reaction-dock");
+      if (dock && !dock.contains(e.target)) panel.hidden = true;
+    });
+    updateRecentGrid();
   }
-  function floatReaction(emoji) {
+  function floatReaction(emoji, name) {
     const layer = $("reactions-layer"); if (!layer) return;
-    const el = document.createElement("div"); el.className = "reaction-float"; el.textContent = emoji;
-    el.style.left = (10 + Math.floor(Math.random() * 80)) + "%";
-    layer.appendChild(el); setTimeout(() => el.remove(), 2600);
+    const el = document.createElement("div"); el.className = "rx-float"; el.textContent = emoji;
+    if (name) {
+      const tag = document.createElement("span"); tag.className = "rx-name"; tag.textContent = name;
+      el.appendChild(tag);
+    }
+    el.style.left = (10 + Math.random() * 70) + "%";
+    el.style.setProperty("--drift", (Math.random() * 60 - 30) + "px");
+    layer.appendChild(el); setTimeout(() => el.remove(), 3900);
   }
+
+  // ---- table themes (same shared selector + CSS as Super Seven) ----
+  const THEME_MAP = {
+    default: { icon: "🟢", name: "Default" },
+    casino: { icon: "🎰", name: "Casino Felt" },
+    cyberpunk: { icon: "👾", name: "Cyberpunk" },
+    marble: { icon: "🏛️", name: "Marble Luxury" },
+    red_casino: { icon: "🍒", name: "Red Casino" },
+  };
+  function syncTableTheme() {
+    const theme = view.tableTheme || "default";
+    Object.keys(THEME_MAP).forEach((t) => document.body.classList.remove("theme-" + t));
+    if (theme !== "default") document.body.classList.add("theme-" + theme);
+    const icon = $("current-theme-icon"), name = $("current-theme-name");
+    if (icon && name) {
+      const active = THEME_MAP[theme] || THEME_MAP.default;
+      icon.textContent = active.icon; name.textContent = active.name;
+    }
+  }
+  function syncThemeSelectorVisibility() {
+    const wrap = $("theme-select-wrap");
+    if (wrap) wrap.style.display = view.hostId === youId ? "inline-flex" : "none";
+  }
+  const themeBtn = $("theme-select-btn"), themeDropdown = $("theme-dropdown");
+  if (themeBtn && themeDropdown) {
+    themeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const hidden = themeDropdown.hasAttribute("hidden");
+      if (hidden) { themeDropdown.removeAttribute("hidden"); themeDropdown.setAttribute("aria-hidden", "false"); }
+      else { themeDropdown.setAttribute("hidden", ""); themeDropdown.setAttribute("aria-hidden", "true"); }
+    });
+    themeDropdown.querySelectorAll(".theme-opt").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        socket.emit("change_table_theme", { code, user_id: youId, theme: btn.dataset.t });
+        themeDropdown.setAttribute("hidden", ""); themeDropdown.setAttribute("aria-hidden", "true");
+      });
+    });
+    document.addEventListener("click", () => {
+      themeDropdown.setAttribute("hidden", ""); themeDropdown.setAttribute("aria-hidden", "true");
+    });
+  }
+  socket.on("table_theme_updated", (d) => { view.tableTheme = d.theme; syncTableTheme(); });
 
   // Mute (best-effort)
   if ($("mute-btn") && window.SS.sound && window.SS.sound.toggleMute) {
@@ -706,9 +930,13 @@
     });
   }
   // Copy code
-  if ($("copy-btn")) $("copy-btn").addEventListener("click", () => {
-    navigator.clipboard && navigator.clipboard.writeText(location.href);
-    showToast("Room link copied");
+  if ($("copy-btn")) $("copy-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      showToast("Room code copied");
+    } catch (_) {
+      showToast("Code: " + code);
+    }
   });
 
   function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; }
