@@ -43,14 +43,18 @@ current card that viewer legitimately knows. Rules:
   carries only counts / face-down flags + momentary public reveals (failed matches, final
   reveal). Peeks are sent to the **acting socket only**.
 
-## Table matching
-Whenever a card lands face-up on the center, a four-second match window opens. Every player,
-including the discarder, may submit a match; the server accepts the first fully correct submission.
-A submission may contain any number of own and opponent cards, as long as every selected card matches
-the center rank (suit does not matter). For each opponent card removed, the reacting player chooses one
-of their own cards to transfer into that exact slot. A wrong submission returns all selected cards to
-their original slots, gives the actor a hidden penalty card at the last index, and leaves the window
-open for other players until expiry.
+## Table matching (rewritten 2026-07-17 — see game/super_four/matching.py)
+Whenever a card lands face-up on the center, a match window opens: it lasts at most
+`match_window` seconds (max 10) and also closes as soon as the **next player starts their
+turn** (draw or Stop). Every player, including the discarder, may throw.
+**Only the FIRST throw counts** (rules.txt): a correct throw removes the cards; a wrong
+throw returns them and costs a hidden penalty card at the last index — either way the
+window closes and everyone else is too late. A submission may contain any number of own
+and opponent cards, as long as every selected card matches the center rank (suit does not
+matter). For each opponent card removed, the reacting player chooses one of their own
+cards to transfer into that exact slot. Malformed requests are rejected without consuming
+the window. The window/validation logic lives in `matching.MatchWindow`; the Room applies
+the mutations.
 
 ## Scoring (round-points model, updated 2026-07-14)
 
@@ -65,6 +69,11 @@ Each round the lowest hand wins; the running score updates by deltas:
 A player is **eliminated** once cumulative ≥ `exit_score` (default **10**) → they spectate the rest.
 A game is `rounds` rounds (default **5**) and also ends early if ≤1 player remains un-eliminated;
 the **lowest cumulative** then wins.
+
+Mid-game joiners enter as **spectators**; the host may admit them (with an optional penalty %).
+At the next round boundary (`_finalize_round`) an admitted spectator becomes active at the
+table's average cumulative score plus `abs(avg) * penalty%` (abs so the penalty still hurts
+when the average is negative).
 
 Host-configurable settings (see settings.py): turn_timer, match_window, preview_seconds, rounds,
 exit_score, win_score, loss_score, penalty_score, num_decks. Editable on the create screen and in
@@ -93,5 +102,6 @@ hide. Cards are never shown persistently (fixes the old "known cards stay visibl
 
 ## Table limits & timers **[decision]**
 - MIN_PLAYERS=2, MAX_PLAYERS=8 (memory game; keep the table readable).
-- turn_timer=45s (auto-play a discard on timeout), timeout_limit=3 (kick), preview=10s,
-  match_window=5s.
+- turn_timer=30s (auto-play a discard on timeout), timeout_limit=2 (benched to spectator;
+  host can admit back — same flow as late joiners), preview≤30s,
+  match_window=10s max (0 disables; window also ends when the next player acts).
