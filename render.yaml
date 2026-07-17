@@ -1,6 +1,10 @@
+# Multi-game platform service (Super Seven + Super Four), deployed from the
+# platform branch. Deliberately named differently from the live `super-seven`
+# service so a Blueprint deploy creates a NEW service (super-cards.onrender.com)
+# and never touches the production Super Seven deployment built from master.
 services:
   - type: web
-    name: super-seven
+    name: super-cards
     runtime: python
     plan: free
     region: singapore
