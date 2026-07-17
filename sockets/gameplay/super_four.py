@@ -289,6 +289,16 @@ def register(socketio, manager):
             return error("No King decision pending.")
         _emit_state(socketio, room)
 
+    @socketio.on("s4_power_skip")
+    def on_power_skip(data):
+        # Powers are optional: the acting player may decline instead of using one.
+        room, uid = _room_uid(data)
+        if room is None:
+            return
+        if not act_power_skip(socketio, room, uid):
+            return error("No power to skip.")
+        _emit_state(socketio, room)
+
     @socketio.on("s4_match_center_own")
     def on_match_center_own(data):
         room, uid = _room_uid(data)
