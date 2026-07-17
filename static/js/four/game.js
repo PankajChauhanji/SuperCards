@@ -217,9 +217,9 @@
   const S4_FIELDS = [
     ["turn_timer", "Turn time (s)"], ["match_window", "Match window (s)"],
     ["preview_seconds", "Preview (s)"], ["rounds", "Rounds"],
-    ["exit_score", "Exit score (out)"], ["win_score", "Win score"],
-    ["loss_score", "Loss score"], ["penalty_score", "Caught-Stop penalty"],
-    ["timeout_limit", "Missed turns (out)"],
+    ["exit_score", "Exit score (out)"], ["win_score", "Stop win (caller)"],
+    ["stop_loss_score", "Others on won Stop"], ["loss_score", "Loss (other rounds)"],
+    ["penalty_score", "Caught-Stop penalty"], ["timeout_limit", "Missed turns (out)"],
   ];
   function renderLobbySettings() {
     if (!lobbySettings) return;
@@ -470,12 +470,16 @@
     if (myPower) {
       const kind = view.interaction ? view.interaction.mode : "";
       const firstDone = view.interaction && view.interaction.firstPick != null;
-      instrEl.textContent = {
+      instrEl.textContent = ({
         peek_own: "Power: tap one of YOUR cards to peek.",
         peek_opp: "Power: tap an OPPONENT's card to peek.",
         blind_swap: firstDone ? "Now tap an OPPONENT's card to swap." : "Blind swap: tap one of YOUR cards.",
         king: firstDone ? "Now tap an OPPONENT's card to look." : "King: tap one of YOUR cards.",
-      }[kind] || "Use your power.";
+      }[kind] || "Use your power.") + " (optional)";
+      addBtn("Skip power", () => {
+        view.interaction = null;
+        socket.emit("s4_power_skip", { code, user_id: youId });
+      }, true);
       return;
     }
 
@@ -668,10 +672,14 @@
 
     if (d.game_over) {
       title.textContent = d.winner ? "🏆 " + nameOf(d.winner) + " wins the game!" : "Game over — it's a tie!";
+    } else if (d.caller && d.caller_won) {
+      title.textContent = nameOf(d.caller) + " called Stop and won!";
+    } else if (d.caller) {
+      title.textContent = nameOf(d.caller) + " called Stop and got caught!";
     } else if (winners.length > 1) {
-      title.textContent = winNames + " tie for the round";
+      title.textContent = winNames + " tie for the lowest hand";
     } else if (winners.length === 1) {
-      title.textContent = winNames + " wins the round!";
+      title.textContent = winNames + " has the lowest hand";
     } else {
       title.textContent = "Round over";
     }
@@ -679,8 +687,10 @@
     let subtext = "";
     if (d.caller) {
       subtext = d.caller_won
-        ? nameOf(d.caller) + " called Stop and won."
-        : nameOf(d.caller) + " called Stop but was caught (+" + penaltyPts() + ").";
+        ? nameOf(d.caller) + " had the lowest hand — everyone else takes +" + stopLossPts() + "."
+        : nameOf(d.caller) + " was caught (+" + penaltyPts() + ") — lowest hand: " + (winNames || "—") + ".";
+    } else if (winners.length) {
+      subtext = "No Stop call — only a winning Stop scores minus points.";
     }
     if ((d.newly_eliminated || []).length) {
       subtext += (subtext ? "  " : "") + "Out: " + d.newly_eliminated.map(nameOf).join(", ") + ".";
@@ -735,7 +745,10 @@
   }
 
   function penaltyPts() {
-    return (view.settings && view.settings.penalty_score != null) ? view.settings.penalty_score : 3;
+    return (view.settings && view.settings.penalty_score != null) ? view.settings.penalty_score : 4;
+  }
+  function stopLossPts() {
+    return (view.settings && view.settings.stop_loss_score != null) ? view.settings.stop_loss_score : 2;
   }
 
   // ================= chrome: timer, rules, reactions =================
