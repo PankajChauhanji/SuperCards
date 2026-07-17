@@ -8,7 +8,12 @@ sockets/gameplay/super_seven.py).
 
 Run as an eventlet background task started in app.py.
 """
+import logging
+import traceback
+
 from game.core.states import STATE_IN_TURN
+
+logger = logging.getLogger(__name__)
 
 # game_type -> tick(socketio, room) callable, provided by each variant.
 _TICKERS: dict = {}
@@ -27,16 +32,21 @@ def register(socketio, manager):
                 _tick(socketio, manager)
             except Exception:
                 # A background loop must never die on a transient error.
-                pass
+                logger.error("director tick failed:\n%s", traceback.format_exc())
 
     socketio.start_background_task(loop)
 
 
 def _tick(socketio, manager):
-    for _code, room in list(manager.rooms.items()):
+    for code, room in list(manager.rooms.items()):
         if room.state != STATE_IN_TURN:
             continue
         ticker = _TICKERS.get(room.game_type)
         if ticker is None:
             continue
-        ticker(socketio, room)
+        try:
+            ticker(socketio, room)
+        except Exception:
+            # One broken room must never stall the ticker for every other room.
+            logger.error("ticker failed for room %s (%s):\n%s",
+                         code, room.game_type, traceback.format_exc())
