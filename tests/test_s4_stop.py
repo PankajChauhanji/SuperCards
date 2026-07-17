@@ -40,8 +40,8 @@ check(r.state == STATE_ROUND_END, "round finalizes when play returns to caller")
 pay = r.round_end_payload()
 check(pay["winners"] == ["A"] and pay["caller_won"], "A strictly lowest -> caller wins")
 check(pay["totals"] == {"A": 3, "B": 11}, "hand totals computed correctly")
-check(pay["deltas"] == {"A": -3, "B": 1}, "winner -3, loser +1")
-check(r.players["A"].total_score == -3 and r.players["B"].total_score == 1,
+check(pay["deltas"] == {"A": -1, "B": 2}, "winning caller -1, others +2 (won Stop inflates the table)")
+check(r.players["A"].total_score == -1 and r.players["B"].total_score == 2,
       "cumulative round points applied (lower is better)")
 check(len(pay["reveal"]["A"]) == 4 and pay["reveal"]["B"][0]["rank"] == 5,
       "reveal exposes every slot at round end")
@@ -56,15 +56,15 @@ r.call_stop("A")
 r.draw_pile = [Card(3, "C")]
 r.draw("B"); r.discard("B")
 pay = r.round_end_payload()
-check(pay["winners"] == ["B"] and not pay["caller_won"], "A not lowest -> caught, B wins")
-check(r.players["A"].total_score == 3 and r.players["B"].total_score == -3,
-      "caught caller +3 penalty, winner -3")
+check(pay["winners"] == ["B"] and not pay["caller_won"], "A not lowest -> caught, B lowest hand")
+check(r.players["A"].total_score == 4 and r.players["B"].total_score == 1,
+      "caught caller +4 penalty, others +1 (no reward without calling Stop)")
 
 # ---- elimination + game over ----
 r = fresh(["A", "B"])
 r.settings["exit_score"] = 5
 r.settings["rounds"] = 99            # ensure elimination (not round cap) ends it
-r.players["A"].total_score = 4       # one more loss tips A over exit_score
+r.players["A"].total_score = 4       # B's won Stop (+2 to A) tips A over exit_score
 r.slots["A"] = [Card(9, "S"), Card(9, "D"), None, None]   # A high -> loses
 r.slots["B"] = [Card(1, "S"), Card(2, "S"), None, None]   # B low -> wins
 r.first_orbit_complete = True
@@ -100,8 +100,8 @@ r.call_stop("A")
 r.draw_pile = [Card(3, "C")]
 r.draw("B"); r.discard("B")          # final orbit ends -> round finalizes
 check(not spec.is_spectator and not spec.pending_join, "pending spectator converted at round end")
-# post-round totals: A 4-3=1, B 2+1=3 -> avg 2; +50% of abs(avg) -> 3
-check(spec.total_score == 3, "joiner starts at table average + penalty%% (got %s)" % spec.total_score)
+# post-round totals: A 4-1=3, B 2+2=4 -> avg 3.5; +50% of abs(avg) -> round(5.25) = 5
+check(spec.total_score == 5, "joiner starts at table average + penalty%% (got %s)" % spec.total_score)
 # an un-admitted spectator stays out
 r2 = fresh(["A", "B"])
 watcher = r2.register_player("D", "D")

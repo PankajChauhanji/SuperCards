@@ -114,5 +114,22 @@ res = r.discard("A")
 check(res is not None and res["power_rank"] == 9,
       "peek-opponent power still fires with an empty own hand")
 
+# ---- powers are optional: the actor may skip instead of using one ----
+r = fresh(["A", "B"])
+r.draw_pile = [Card(11, "C")]                # Jack -> blind swap pending
+r.draw("A"); r.discard("A")
+check(r.phase == PHASE_POWER, "J discard opens the power phase")
+check(not r.power_skip("B"), "only the acting player may skip the power")
+check(r.power_skip("A"), "actor skips the swap voluntarily")
+check(r.phase == PHASE_DRAW and r.current_turn_id() == "B",
+      "skip ends the power phase and the turn advances")
+check(r.slots["A"][0] is not None and r.slots["A"][0].rank == 2,
+      "no swap happened — slots untouched after skip")
+
+r = fresh(["A", "B"])
+r.draw_pile = [Card(13, "C")]                # King is skippable too
+r.draw("A"); r.discard("A")
+check(r.power_skip("A") and r.phase == PHASE_DRAW, "King power skipped without looking")
+
 print("\n%d/%d Super 4 power checks passed" % (sum(results), len(results)))
 sys.exit(0 if all(results) else 1)
