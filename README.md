@@ -103,7 +103,8 @@ Any player, including the discarder, may react during the match window. Suit doe
 
 ### Powers
 
-Powers occur only when the card drawn from the deck is immediately discarded:
+Powers occur only when the card drawn from the deck is immediately discarded, and using one is
+always **optional** — you may skip any power instead:
 
 - **7 or 8:** privately peek at one of your own cards.
 - **9 or 10:** privately peek at one opponent card.
@@ -114,9 +115,15 @@ Powers occur only when the card drawn from the deck is immediately discarded:
 
 Call **Stop** only at the start of your turn and only after every player has taken one turn. Each other player receives one final turn, then cards are revealed.
 
-- Lowest hand each round: `win_score` (default **−3**).
-- Other players: `loss_score` (default **+1**).
-- A Stop caller who is not lowest: `penalty_score` (default **+3**).
+Scoring is risk-based — the only way to score minus points is to call Stop and win, and every
+won Stop pushes the rest of the table toward elimination:
+
+- A Stop caller with the strictly-lowest hand: `win_score` (default **−1**).
+- Everyone else when the caller wins: `stop_loss_score` (default **+2**).
+- A Stop caller who is not strictly lowest (tied or beaten): `penalty_score` (default **+4**);
+  everyone else then takes `loss_score` (default **+1**).
+- A round with no Stop call (deck-out): everyone takes `loss_score` — a low hand earns nothing
+  without the risk.
 - At `exit_score` (default **10**) a player is eliminated to spectator status.
 - Missing `timeout_limit` turns (default **2**) benches a player to spectator; the host can admit them back for a later round, like any spectator.
 - The game normally lasts `rounds` (default **5**); the lowest cumulative score wins.

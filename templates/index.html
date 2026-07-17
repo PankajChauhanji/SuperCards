@@ -119,16 +119,20 @@
           <input type="number" id="s4_exit_score" data-key="exit_score" value="10" min="3" max="100" />
         </div>
         <div>
-          <label for="s4_win_score">Win score</label>
-          <input type="number" id="s4_win_score" data-key="win_score" value="-3" min="-20" max="0" />
+          <label for="s4_win_score">Stop win (caller)</label>
+          <input type="number" id="s4_win_score" data-key="win_score" value="-1" min="-20" max="0" />
         </div>
         <div>
-          <label for="s4_loss_score">Loss score</label>
+          <label for="s4_stop_loss_score">Others on won Stop</label>
+          <input type="number" id="s4_stop_loss_score" data-key="stop_loss_score" value="2" min="0" max="20" />
+        </div>
+        <div>
+          <label for="s4_loss_score">Loss (other rounds)</label>
           <input type="number" id="s4_loss_score" data-key="loss_score" value="1" min="0" max="20" />
         </div>
         <div>
           <label for="s4_penalty_score">Caught-Stop penalty</label>
-          <input type="number" id="s4_penalty_score" data-key="penalty_score" value="3" min="0" max="40" />
+          <input type="number" id="s4_penalty_score" data-key="penalty_score" value="4" min="0" max="40" />
         </div>
       </div>
       </div><!-- /super_four settings -->
