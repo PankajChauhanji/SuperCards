@@ -101,5 +101,57 @@ check(all(isinstance(p["slots"], list) and all(isinstance(x, bool) for x in p["s
           for p in ps["players"]),
       "public players expose slot occupancy as booleans only (no faces)")
 
+# ---- timeout strikes: at the limit a player is benched to spectator ----
+r = fresh(["A", "B", "C"])
+r.settings["timeout_limit"] = 2
+cur = r.current_turn_id()
+info = r.timeout_strike(cur)
+check(not info["removed"] and info["timeout_count"] == 1 and not r.players[cur].is_spectator,
+      "first missed turn only counts a strike")
+cards_before = len(r.draw_pile) + len(r.discard_pile)
+held = sum(1 for c in r.slots[cur] if c is not None)
+info = r.timeout_strike(cur)
+check(info["removed"] and r.players[cur].is_spectator,
+      "second missed turn benches the player to spectator")
+check(cur not in r.turn_order and r.slots[cur] == [],
+      "benched player leaves the rotation and their cards leave play")
+check(len(r.draw_pile) + len(r.discard_pile) == cards_before + held,
+      "benched player's cards go back to the pile (nothing lost)")
+check(r.state == "IN_TURN" and r.current_turn_id() in r.turn_order and r.phase == PHASE_DRAW,
+      "round continues with the next player on turn")
+check(all(o != cur for ks in r.known.values() for (o, _s) in ks),
+      "all knowledge about the benched player's positions is dropped")
+
+# benched player can be admitted back like any spectator (clean slate)
+p = r.players[cur]
+p.pending_join = True
+survivors = list(r.turn_order)
+r.slots[survivors[0]] = [Card(1, "S"), None, None, None]
+r.slots[survivors[1]] = [Card(9, "S"), None, None, None]
+r.first_orbit_complete = True
+r.turn_index = 0
+r.call_stop(survivors[0])
+r.draw_pile.append(Card(3, "C"))
+r.draw(survivors[1]); r.discard(survivors[1])   # final orbit ends -> finalize
+check(not p.is_spectator and p.timeout_count == 0,
+      "admitted-back player becomes active at round end with a clean timeout slate")
+
+# with 2 players, benching one finalizes the round immediately
+r = fresh(["A", "B"])
+r.settings["timeout_limit"] = 1
+info = r.timeout_strike(r.current_turn_id())
+check(info["removed"] and r.state in ("ROUND_END", "GAME_END"),
+      "benching the second-to-last player ends the round")
+
+# a Stop caller is never benched mid-final-orbit
+r = fresh(["A", "B", "C"])
+r.settings["timeout_limit"] = 1
+r.first_orbit_complete = True
+caller = r.current_turn_id()
+r.call_stop(caller)
+info = r.timeout_strike(caller)
+check(not info["removed"] and not r.players[caller].is_spectator,
+      "the Stop caller cannot be benched by strikes")
+
 print("\n%d/%d Super 4 room checks passed" % (sum(results), len(results)))
 sys.exit(0 if all(results) else 1)

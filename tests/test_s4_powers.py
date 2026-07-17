@@ -89,5 +89,30 @@ r.draw("A"); r.discard("A")
 check(r.power_peek_own("B", 0) is None, "opponent cannot resolve A's power")
 check(r.power_peek_opp("A", "B", 0) is None, "wrong power kind (peek_opp on a 7) rejected")
 
+# ---- swap powers need one of YOUR OWN cards too (empty-hand freeze regression) ----
+r = fresh(["A", "B"])
+r.slots["A"] = [None, None, None, None]      # A matched everything away
+r.draw_pile = [Card(11, "C")]                # Jack -> blind swap
+r.draw("A")
+res = r.discard("A")
+check(res is not None and res["power_rank"] is None and r.phase == PHASE_DRAW,
+      "J discarded with no own cards -> no power phase, turn advances (no freeze)")
+
+r = fresh(["A", "B"])
+r.slots["A"] = [None, None, None, None]
+r.draw_pile = [Card(13, "C")]                # King
+r.draw("A")
+res = r.discard("A")
+check(res is not None and res["power_rank"] is None and r.phase == PHASE_DRAW,
+      "King discarded with no own cards -> no power phase (no freeze)")
+
+r = fresh(["A", "B"])
+r.slots["A"] = [None, None, None, None]
+r.draw_pile = [Card(9, "C")]                 # 9 -> peek opponent, still fine with empty hand
+r.draw("A")
+res = r.discard("A")
+check(res is not None and res["power_rank"] == 9,
+      "peek-opponent power still fires with an empty own hand")
+
 print("\n%d/%d Super 4 power checks passed" % (sum(results), len(results)))
 sys.exit(0 if all(results) else 1)

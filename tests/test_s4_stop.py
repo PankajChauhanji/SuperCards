@@ -83,5 +83,38 @@ r.reset_for_rematch()
 check(r.players["A"].total_score == 0 and not r.players["A"].eliminated and r.state == "LOBBY",
       "rematch clears scores/elimination and returns to lobby")
 
+# ---- admitted spectators become active players at the round boundary ----
+r = fresh(["A", "B"])
+spec = r.register_player("C", "C")
+spec.connected = True
+spec.is_spectator = True
+spec.pending_join = True
+spec.join_penalty_pct = 50
+r.players["A"].total_score = 4
+r.players["B"].total_score = 2
+r.slots["A"] = [Card(1, "S"), Card(2, "S"), None, None]
+r.slots["B"] = [Card(5, "S"), Card(6, "S"), None, None]
+r.first_orbit_complete = True
+r.turn_index = 0
+r.call_stop("A")
+r.draw_pile = [Card(3, "C")]
+r.draw("B"); r.discard("B")          # final orbit ends -> round finalizes
+check(not spec.is_spectator and not spec.pending_join, "pending spectator converted at round end")
+# post-round totals: A 4-3=1, B 2+1=3 -> avg 2; +50% of abs(avg) -> 3
+check(spec.total_score == 3, "joiner starts at table average + penalty%% (got %s)" % spec.total_score)
+# an un-admitted spectator stays out
+r2 = fresh(["A", "B"])
+watcher = r2.register_player("D", "D")
+watcher.connected = True
+watcher.is_spectator = True
+r2.slots["A"] = [Card(1, "S"), Card(2, "S"), None, None]
+r2.slots["B"] = [Card(5, "S"), Card(6, "S"), None, None]
+r2.first_orbit_complete = True
+r2.turn_index = 0
+r2.call_stop("A")
+r2.draw_pile = [Card(3, "C")]
+r2.draw("B"); r2.discard("B")
+check(watcher.is_spectator, "spectator without host approval stays a spectator")
+
 print("\n%d/%d Super 4 stop checks passed" % (sum(results), len(results)))
 sys.exit(0 if all(results) else 1)
