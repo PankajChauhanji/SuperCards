@@ -11,7 +11,11 @@ Currently included:
 
 ### 🚀 Play it Live
 
-[![Live Demo](https://img.shields.io/badge/PLAY_NOW-Live_on_Render-6706ce?style=for-the-badge&logo=render&logoColor=white)](https://super-seven.onrender.com)
+[![Live Demo](https://img.shields.io/badge/PLAY_NOW-Live_on_Render-6706ce?style=for-the-badge&logo=render&logoColor=white)](https://super-cards.onrender.com)
+
+> This is the **multi-game platform** deployment (Super Seven + Super Four). The original
+> Super-Seven-only game remains live at [super-seven.onrender.com](https://super-seven.onrender.com),
+> deployed from `master`.
 
 > **💡 Feedback welcome!** If you find a bug or have a feature idea, open an **Issue** — the game is actively evolving.
 
@@ -85,16 +89,17 @@ Ace is 1; number cards use their face value; Jack, Queen, and King are 11, 12, a
    - **Keep:** replace one of your slots. The new card stays hidden; the replaced card is discarded face-up.
    - **Discard:** put the drawn card face-up on the center. A 7–King power activates only when the drawn card is directly discarded.
    - **Match your own card:** if a chosen slot matches the drawn rank, both are discarded; a wrong guess gives you a hidden penalty card.
-3. Every face-up table discard opens a **4-second table-match window**.
+3. Every face-up table discard opens a **table-match window** (up to 10 seconds; it closes early
+   as soon as the next player starts their turn).
 
 ### Table matches
 
 Any player, including the discarder, may react during the match window. Suit does not matter — only rank must match.
 
-- The first fully correct match received by the server wins the reaction.
+- Only the FIRST throw received by the server counts — right or wrong, it resolves the window and everyone else is too late.
 - A player may throw multiple matching cards from their own and/or opponents' slots.
 - For each opponent card removed, the reactor chooses one of their own cards to transfer into that exact opponent slot.
-- A wrong attempt returns all selected cards to their original slots, adds a hidden penalty card to the reactor's last slot/index, and leaves the window open for other players until it expires.
+- A wrong first throw returns all selected cards to their original slots, adds a hidden penalty card to the reactor's last slot/index, and closes the window.
 
 ### Powers
 
@@ -113,6 +118,7 @@ Call **Stop** only at the start of your turn and only after every player has tak
 - Other players: `loss_score` (default **+1**).
 - A Stop caller who is not lowest: `penalty_score` (default **+3**).
 - At `exit_score` (default **10**) a player is eliminated to spectator status.
+- Missing `timeout_limit` turns (default **2**) benches a player to spectator; the host can admit them back for a later round, like any spectator.
 - The game normally lasts `rounds` (default **5**); the lowest cumulative score wins.
 
 Super Four is server-authoritative: hidden card faces are never broadcast in public state, and preview/peek faces are delivered only to the eligible player.

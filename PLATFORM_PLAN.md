@@ -358,8 +358,9 @@ requirements-dev.)
 
 ## Deployment & cutover
 
-- **During Phases 1–3:** deploy the evolving platform as a **new, separate Render service** (new URL).
-  The live `super-seven.onrender.com` service keeps running the untouched `main` folder.
+- **During Phases 1–3:** deploy the evolving platform as a **new, separate Render service** (new URL):
+  `render.yaml` names it **`super-cards`** → `super-cards.onrender.com`, deployed from the platform
+  branch. The live `super-seven.onrender.com` service keeps running the untouched `master` code.
 - **Single-worker rule still absolute:** in-memory room state → `python3 app.py` (eventlet), one
   worker. Never scale to multiple workers.
 - **Cutover (only after Phase 3 is stable):** point the primary domain at the platform service. This

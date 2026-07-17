@@ -58,7 +58,30 @@ def room(code):
     )
 
 
+def _port_already_serving(port: int) -> bool:
+    """True if some process already accepts connections on the port.
+
+    eventlet's listener can share a port with an existing server instead of
+    failing, which silently splits clients between two processes — each with
+    its own in-memory rooms ("Invalid session" spam, "room not exists" for
+    other players). Refuse to start into that trap.
+    """
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+            return True
+    except OSError:
+        return False
+
+
 if __name__ == "__main__":
+    if _port_already_serving(config.PORT):
+        raise SystemExit(
+            f"ERROR: something is already serving port {config.PORT} — a second "
+            "instance would split players across processes and break rooms.\n"
+            f"Find it with:  ss -ltnp | grep :{config.PORT}   and stop it, or "
+            "start this server on another port:  PORT=5001 python3 app.py"
+        )
     socketio.run(
         app,
         host="0.0.0.0",
