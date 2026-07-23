@@ -1,0 +1,54 @@
+  <div class="table-view" id="table-view" style="display:none">
+    <aside class="scoreboard">
+      <h3>Players</h3>
+      <ul id="score-list"></ul>
+      <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
+      <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
+    </aside>
+    <section class="felt">
+      <div class="opponents" id="opponents"></div>
+
+      <div class="center-row">
+        <!-- Target rank prominently displayed -->
+        <div class="target-rank-display" id="target-rank-display" style="display:none; font-size: 1.5rem; font-weight: bold; background: rgba(0,0,0,0.5); padding: 0.5rem 1rem; border-radius: 8px; color: white;">
+          Target: <span id="target-rank-value">None</span>
+        </div>
+        
+        <div class="pile discard" id="center-pile" title="Center pile">
+          <span class="pile-empty" id="center-empty">No cards thrown yet</span>
+          <span class="pile-label">Center (<span id="center-count">0</span>)</span>
+        </div>
+      </div>
+
+      <div class="myhand-wrap">
+        <div class="myseat" id="myseat"></div>
+        <div class="hand" id="hand"></div>
+        <div class="action-bar" id="action-bar">
+          <span class="play-label" id="play-label"></span>
+          
+          <select id="rank-selector" class="rank-selector" style="display:none; padding: 0.5rem; margin-right: 0.5rem;">
+            <option value="" disabled selected>Select Rank</option>
+            <option value="A">A</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="J">J</option>
+            <option value="Q">Q</option>
+            <option value="K">K</option>
+          </select>
+          
+          <div class="action-btns">
+            <button class="btn-throw" id="throw-btn" disabled>Throw</button>
+            <button class="btn-stop" id="pass-btn" disabled>Pass</button>
+            <button class="btn-stop" id="show-btn" disabled style="background-color: #d9534f;">Show!</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
