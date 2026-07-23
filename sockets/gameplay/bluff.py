@@ -130,11 +130,21 @@ def register(socketio, manager):
         _deal_private(room)
 
 
+_bot_act_at: dict = {}
+
 def _tick_room(socketio, room):
     code = room.code
     cur = room.current_turn_id()
     if cur is None:
         return
+
+    cur_player = room.players.get(cur)
+    if cur_player and cur_player.is_bot:
+        _tick_bot(socketio, room, cur)
+        return
+
+    if code in _bot_act_at:
+        _bot_act_at.pop(code, None)
 
     if not room.is_timed_out():
         return
@@ -164,5 +174,54 @@ def _tick_room(socketio, room):
         socketio.emit("your_hand", {"cards": room.hand_for(cur)}, to=sid)
     socketio.emit("table_state", room.public_round_state(), to=code)
 
+def _tick_bot(socketio, room, bot_id: str):
+    import time
+    from game.bluff.ai import decide_move, bot_delay
+
+    code = room.code
+    now = time.time()
+
+    if room.state == STATE_GAME_END:
+        _bot_act_at.pop(code, None)
+        return
+
+    if code not in _bot_act_at:
+        _bot_act_at[code] = now + bot_delay()
+        return
+
+    if now < _bot_act_at[code]:
+        return
+
+    del _bot_act_at[code]
+
+    move = decide_move(room, bot_id)
+    
+    if move["action"] == "pass":
+        room.apply_pass(bot_id)
+        socketio.emit("player_passed", {"by": bot_id}, to=code)
+    
+    elif move["action"] == "show":
+        result = room.apply_show(bot_id)
+        socketio.emit("bluff_show_result", result, to=code)
+        
+        loser_id = result["loser"]
+        loser = room.players.get(loser_id)
+        if loser and loser.connected and loser.sid:
+            socketio.emit("your_hand", {"cards": room.hand_for(loser_id)}, to=loser.sid)
+            
+    elif move["action"] == "play":
+        cards = room.card_objects(bot_id, move["cards"])
+        room.apply_play(bot_id, cards, move["declared_rank"])
+        socketio.emit("cards_played", {
+            "by": bot_id,
+            "count": len(cards),
+            "declared_rank": move["declared_rank"]
+        }, to=code)
+
+    if room.state == STATE_GAME_END:
+        socketio.emit("game_end", room.game_end_payload(), to=code)
+        return
+
+    socketio.emit("table_state", room.public_round_state(), to=code)
 
 director.register_ticker(GAME, _tick_room)
