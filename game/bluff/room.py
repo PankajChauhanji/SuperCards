@@ -199,6 +199,13 @@ class Room:
         # If everyone passed back to the last player who played, clear the table.
         active_count = len([u for u in self.turn_order if not self.players[u].eliminated])
         if self.pass_count >= active_count - 1 and self.last_play:
+            last_actor = self.last_play["user_id"]
+            if not self.players[last_actor].hand:
+                self.winner = last_actor
+                self.game_over = True
+                self.state = STATE_GAME_END
+                return
+                
             self.dead_pile.extend(self.center_pile)
             self.center_pile = []
             self.target_rank = None
