@@ -355,9 +355,6 @@
 
     if (!isHost) {
       const items = [
-        ["Out at", s.max_score + " pts"],
-        ["Stop penalty", "+" + s.stop_penalty],
-        ["Win discount", "\u2212" + s.win_discount],
         ["Turn timer", s.turn_timer + "s"],
         ["Timeouts", s.timeout_limit],
         ["Decks", s.num_decks || 1],
@@ -378,9 +375,6 @@
     // Host: editable before the game starts.
     el.innerHTML = "<h3>Game settings <span class=\"se-hint\">(you can edit these)</span></h3>";
     const fields = [
-      ["max_score", "Max score (out)", 20, 1000],
-      ["stop_penalty", "Stop penalty", 0, 200],
-      ["win_discount", "Win discount", 0, 50],
       ["turn_timer", "Turn timer (s)", 15, 180],
       ["timeout_limit", "Timeouts allowed", 1, 10],
       ["num_decks", "Number of decks", 1, 10],
