@@ -10,13 +10,15 @@
 
       <div class="center-row">
         <!-- Target rank prominently displayed -->
-        <div class="target-rank-display" id="target-rank-display" style="display:none; font-size: 1.5rem; font-weight: bold; background: rgba(0,0,0,0.5); padding: 0.5rem 1rem; border-radius: 8px; color: white;">
-          Target: <span id="target-rank-value">None</span>
+        <div class="target-rank-display" id="target-rank-display" style="display:none; font-size: 1.5rem; font-weight: bold; background: rgba(0,0,0,0.5); padding: 0.5rem 1rem; border-radius: 8px; color: white; text-align: center;">
+          <div>Target: <span id="target-rank-value" style="color: var(--gold);">None</span></div>
+          <div id="last-play-display" style="font-size: 0.9rem; font-weight: normal; margin-top: 0.2rem; color: #ddd;"></div>
         </div>
         
         <div class="pile discard" id="center-pile" title="Center pile">
           <span class="pile-empty" id="center-empty">No cards thrown yet</span>
           <span class="pile-label">Center (<span id="center-count">0</span>)</span>
+          <span class="pile-count" id="center-badge-count" style="display:none">0</span>
         </div>
       </div>
 
