@@ -13,6 +13,8 @@ from game.super_seven.room import Room as SuperSevenRoom
 from game.super_seven import settings as super_seven_settings
 from game.super_four.room import Room as SuperFourRoom
 from game.super_four import settings as super_four_settings
+from game.bluff.room import Room as BluffRoom
+from game.bluff import settings as bluff_settings
 
 # The game selected when a client does not (yet) specify one. Keeps every
 # existing Super Seven code path working unchanged.
@@ -75,3 +77,16 @@ register(
         max_players=super_four_settings.MAX_PLAYERS,
     )
 )
+
+register(
+    GameSpec(
+        key="bluff",
+        display_name="Bluff",
+        room_class=BluffRoom,
+        default_settings=bluff_settings.DEFAULT_SETTINGS,
+        settings_bounds=bluff_settings.SETTINGS_BOUNDS,
+        min_players=bluff_settings.MIN_PLAYERS,
+        max_players=bluff_settings.MAX_PLAYERS,
+    )
+)
+

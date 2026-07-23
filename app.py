@@ -33,7 +33,7 @@ def index():
     # The landing-page picker is driven by the registry. A game is selectable
     # only once its frontend bundle exists; others render as disabled "coming
     # soon" tiles. (Super 4's backend is registered before its UI is built.)
-    ready = {"super_seven", "super_four"}
+    ready = {"super_seven", "super_four", "bluff"}
     games = [
         {"key": spec.key, "display_name": spec.display_name, "ready": spec.key in ready}
         for spec in registry.all_games().values()
