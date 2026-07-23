@@ -91,6 +91,9 @@ class Room:
     def any_human_connected(self) -> bool:
         return any(p.connected and not p.is_bot for p in self.players.values())
 
+    def in_round(self) -> bool:
+        return self.state == STATE_IN_TURN
+
     def public_players(self) -> List[dict]:
         return [p.public_view() for p in self.players.values()]
 
