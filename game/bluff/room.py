@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 
 from game.bluff.settings import MAX_PLAYERS
 from game.core.player import Player
-from game.core.cards import shuffled_deck
+from game.core.cards import shuffled_deck, rank_code
 
 from game.core.states import (
     STATE_LOBBY,
@@ -220,7 +220,7 @@ class Room:
         cards = self.last_play["cards"]
         declared_rank = self.last_play["declared_rank"]
 
-        is_bluff = any(c.rank != declared_rank for c in cards)
+        is_bluff = any(rank_code(c.rank) != declared_rank for c in cards)
         
         loser_id = defender_id if is_bluff else user_id
         winner_id = user_id if is_bluff else defender_id

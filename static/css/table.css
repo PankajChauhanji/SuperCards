@@ -182,9 +182,8 @@
 
 .hand {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0;
 }
 .card.hand-card {
   width: 74px;
@@ -204,7 +203,19 @@
 }
 
 /* ---------- card selection ---------- */
-.card-slot { position: relative; display: inline-block; line-height: 0; }
+.card-slot { 
+  position: relative; 
+  display: inline-block; 
+  line-height: 0;
+  margin-left: -50px;
+  transition: transform 0.2s ease, z-index 0s;
+}
+.card-slot:first-child {
+  margin-left: 0;
+}
+.card-slot:hover {
+  z-index: 10;
+}
 .card-slot .tick {
   position: absolute;
   top: -8px; right: -8px;
