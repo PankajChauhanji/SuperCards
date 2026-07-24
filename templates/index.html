@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Super Seven</title>
+  <title>Super Seven Cards</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -14,120 +14,66 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}" />
 </head>
 <body>
+  {# Per-game presentation for the picker tiles. Falls back gracefully for any
+     game not listed here. #}
+  {% set game_meta = {
+    "super_seven": {"short": "Super 7", "emblem": "7", "desc": "Shed your hand, call Stop", "accent": "#e8593f"},
+    "super_four":  {"short": "Super 4", "emblem": "4", "desc": "Memory, powers & Stop",    "accent": "#57d98a"},
+    "bluff":       {"short": "Bluff",   "emblem": "?", "desc": "Lie, pass & catch it",     "accent": "#a98cf0"}
+  } %}
+
   <main class="home">
     <header>
-      <div class="wordmark"><span class="wordmark-title">SUPER <span class="seven">SEVEN</span></span> <img src="{{ url_for('static', filename='img/super_seven_symbol.svg') }}" alt="Symbol" class="logo-inline-symbol" /></div>
-      <p class="tagline">Dump your hand. Call it before they catch you.</p>
+      <div class="wordmark"><span class="wordmark-title">SUPER <span class="seven">CARDS</span></span> <img src="{{ url_for('static', filename='img/super_cards_symbol.svg') }}" alt="Joker" class="logo-inline-symbol" /></div>
+      <p class="tagline">Pick a game, grab a seat, and play with friends.</p>
     </header>
 
-    <section class="card-panel">
-      <div class="game-picker" id="game-picker">
-        <div class="picker-label">Choose a game</div>
-        <div class="picker-tiles">
-          {% for g in games %}
-          {% if g.ready %}
-          <button type="button" class="game-tile{% if loop.first %} selected{% endif %}" data-game="{{ g.key }}">
-            <span class="gt-name">{{ g.display_name }}</span>
-          </button>
-          {% else %}
-          <button type="button" class="game-tile disabled" disabled title="Coming soon">
-            <span class="gt-name">{{ g.display_name }}</span>
-            <span class="gt-badge">Coming soon</span>
-          </button>
-          {% endif %}
-          {% endfor %}
-        </div>
+    <!-- Step 1 — choose the game (its own panel) -->
+    <section class="card-panel game-select">
+      <div class="step-head"><span class="step-num">1</span><h2>Choose your game</h2></div>
+      <div class="picker-tiles" id="game-picker" role="radiogroup" aria-label="Choose your game">
+        {% for g in games %}
+        {% set m = game_meta.get(g.key, {"short": g.display_name, "emblem": g.display_name[:1], "desc": "", "accent": "#e6b23c"}) %}
+        {% if g.ready %}
+        <button type="button" class="game-tile{% if loop.first %} selected{% endif %}"
+                data-game="{{ g.key }}" role="radio" aria-checked="{{ 'true' if loop.first else 'false' }}"
+                style="--game-accent: {{ m.accent }}">
+          <span class="gt-emblem">{{ m.emblem }}</span>
+          <span class="gt-name">{{ m.short }}</span>
+          <span class="gt-desc">{{ m.desc }}</span>
+        </button>
+        {% else %}
+        <button type="button" class="game-tile disabled" disabled title="Coming soon"
+                style="--game-accent: {{ m.accent }}">
+          <span class="gt-emblem">{{ m.emblem }}</span>
+          <span class="gt-name">{{ m.short }}</span>
+          <span class="gt-badge">Coming soon</span>
+        </button>
+        {% endif %}
+        {% endfor %}
       </div>
-
-      <div class="field">
-        <label for="name">Your name</label>
-        <input type="text" id="name" maxlength="20" autocomplete="off" placeholder="e.g. Riya" />
-      </div>
-
-      <button class="btn-primary" id="create-btn">Create a room</button>
-      <button class="btn-solo" id="solo-btn">Play with Computer</button>
-
-      <div class="game-settings" id="settings-section" data-game="super_seven">
-      <button class="settings-toggle" type="button">Game settings ▸</button>
-      <div class="settings-grid hidden">
-        <div>
-          <label for="set_max_score">Max score (out)</label>
-          <input type="number" id="set_max_score" data-key="max_score" value="100" min="20" max="1000" />
-        </div>
-        <div>
-          <label for="set_stop_penalty">Stop penalty</label>
-          <input type="number" id="set_stop_penalty" data-key="stop_penalty" value="40" min="0" max="200" />
-        </div>
-        <div>
-          <label for="set_win_discount">Win discount</label>
-          <input type="number" id="set_win_discount" data-key="win_discount" value="5" min="0" max="50" />
-        </div>
-        <div>
-          <label for="set_turn_timer">Turn timer (s)</label>
-          <input type="number" id="set_turn_timer" data-key="turn_timer" value="40" min="15" max="180" />
-        </div>
-        <div>
-          <label for="set_timeout_limit">Timeouts allowed</label>
-          <input type="number" id="set_timeout_limit" data-key="timeout_limit" value="3" min="1" max="10" />
-        </div>
-        <div>
-          <label for="set_num_decks">Number of decks</label>
-          <input type="number" id="set_num_decks" data-key="num_decks" value="1" min="1" max="10" />
-        </div>
-      </div>
-      </div><!-- /super_seven settings -->
-
-      <div class="game-settings" data-game="super_four" style="display:none">
-      <button class="settings-toggle" type="button">Game settings ▸</button>
-      <div class="settings-grid hidden">
-        <div>
-          <label for="s4_turn_timer">Turn time (s)</label>
-          <input type="number" id="s4_turn_timer" data-key="turn_timer" value="30" min="15" max="180" />
-        </div>
-        <div>
-          <label for="s4_match_window">Match window (s)</label>
-          <input type="number" id="s4_match_window" data-key="match_window" value="4" min="0" max="15" />
-        </div>
-        <div>
-          <label for="s4_preview_seconds">Preview (s)</label>
-          <input type="number" id="s4_preview_seconds" data-key="preview_seconds" value="30" min="3" max="30" />
-        </div>
-        <div>
-          <label for="s4_rounds">Rounds</label>
-          <input type="number" id="s4_rounds" data-key="rounds" value="5" min="1" max="20" />
-        </div>
-        <div>
-          <label for="s4_exit_score">Exit score (out)</label>
-          <input type="number" id="s4_exit_score" data-key="exit_score" value="10" min="3" max="100" />
-        </div>
-        <div>
-          <label for="s4_win_score">Stop win (caller)</label>
-          <input type="number" id="s4_win_score" data-key="win_score" value="-1" min="-20" max="0" />
-        </div>
-        <div>
-          <label for="s4_stop_loss_score">Others on won Stop</label>
-          <input type="number" id="s4_stop_loss_score" data-key="stop_loss_score" value="2" min="0" max="20" />
-        </div>
-        <div>
-          <label for="s4_loss_score">Loss (other rounds)</label>
-          <input type="number" id="s4_loss_score" data-key="loss_score" value="1" min="0" max="20" />
-        </div>
-        <div>
-          <label for="s4_penalty_score">Caught-Stop penalty</label>
-          <input type="number" id="s4_penalty_score" data-key="penalty_score" value="4" min="0" max="40" />
-        </div>
-      </div>
-      </div><!-- /super_four settings -->
     </section>
 
-    <p class="divider">or join one</p>
-
+    <!-- Step 2 — name + start -->
     <section class="card-panel">
+      <div class="step-head"><span class="step-num">2</span><h2>Your name</h2></div>
       <div class="field">
-        <label for="code">Room code</label>
-        <input type="text" id="code" class="code-input" maxlength="4" autocomplete="off" placeholder="ABCD" />
+        <input type="text" id="name" maxlength="20" autocomplete="off" placeholder="e.g. Riya" aria-label="Your name" />
       </div>
-      <button class="btn-ghost" id="join-btn">Join room</button>
+      <div class="action-row">
+        <button class="btn-primary" id="create-btn">Create room</button>
+        <button class="btn-solo" id="solo-btn">Play with computer</button>
+      </div>
+      <p class="hint">Round settings can be tuned in the lobby before you start.</p>
+    </section>
+
+    <p class="divider">or join a room</p>
+
+    <section class="card-panel join-panel">
+      <div class="join-row">
+        <input type="text" id="code" class="code-input" maxlength="4" autocomplete="off" placeholder="ABCD" aria-label="Room code" />
+        <button class="btn-ghost" id="join-btn">Join</button>
+      </div>
     </section>
   </main>
 
