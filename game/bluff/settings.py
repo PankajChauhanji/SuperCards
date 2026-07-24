@@ -1,4 +1,8 @@
-"""Bluff gameplay settings."""
+"""Bluff gameplay settings.
+
+Keep in sync when any default changes: bluff_rules.md and
+static/rules/bluff/en.html.
+"""
 
 # ---- Room / table limits ----
 MIN_PLAYERS = 2

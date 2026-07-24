@@ -164,7 +164,6 @@ class Room:
         # Reset per-round player state
         for player in self.players.values():
             player.hand = []
-            player.is_safe = False
 
         # Deal evenly
         while deck:
