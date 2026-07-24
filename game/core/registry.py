@@ -69,7 +69,7 @@ register(
 register(
     GameSpec(
         key="super_four",
-        display_name="Super 4",
+        display_name="Super Four",
         room_class=SuperFourRoom,
         default_settings=super_four_settings.DEFAULT_SETTINGS,
         settings_bounds=super_four_settings.SETTINGS_BOUNDS,

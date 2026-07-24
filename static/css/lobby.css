@@ -191,7 +191,7 @@
 .picker-tiles { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
 .game-tile {
   flex: 1 1 130px; max-width: 170px; min-width: 120px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 0.35rem; padding: 0.85rem 0.9rem; cursor: pointer;
+  align-items: center; justify-content: center; gap: 0.35rem; padding: 0.65rem 0.9rem; cursor: pointer;
   border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
   background: rgba(255,255,255,0.04); color: inherit; text-align: center;
   transition: border-color 0.15s, background 0.15s, transform 0.05s;
