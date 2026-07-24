@@ -115,9 +115,9 @@ def register(socketio, manager):
         loser_id = result["loser"]
         loser = room.players.get(loser_id)
         if loser and loser.connected and loser.sid:
-            emit("your_hand", {"cards": room.hand_for(loser_id)}, to=loser.sid)
+            socketio.emit("your_hand", {"cards": room.hand_for(loser_id)}, to=loser.sid)
 
-        emit("table_state", room.public_round_state(), to=room.code)
+        socketio.emit("table_state", room.public_round_state(), to=room.code)
 
     @socketio.on("next_round")
     def on_next_round(data):
