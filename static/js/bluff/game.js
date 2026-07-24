@@ -169,10 +169,28 @@
     const chName = challenger ? challenger.name : "Someone";
     const defName = defender ? defender.name : "Someone";
     
+    // Visually reveal the cards on the table
+    if (window.Table && window.Table.showRevealed) {
+      window.Table.showRevealed(data.revealed_cards);
+    }
+    
+    // Also use the play-status label if available
+    const label = document.getElementById("play-status");
+    
     if (data.is_bluff) {
-      showToast(`${chName} caught ${defName}'s bluff!`);
+      const msg = `${chName} caught ${defName}'s bluff! ${defName} takes the pile!`;
+      showToast(msg);
+      if (label) {
+        label.textContent = msg;
+        label.className = "play-label bad";
+      }
     } else {
-      showToast(`${defName} told the truth! ${chName} was wrong.`);
+      const msg = `${defName} told the truth! ${chName} was wrong and takes the pile!`;
+      showToast(msg);
+      if (label) {
+        label.textContent = msg;
+        label.className = "play-label bad";
+      }
     }
   });
 

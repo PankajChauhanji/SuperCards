@@ -31,6 +31,9 @@ def register(socketio, manager):
         if room.state != STATE_IN_TURN:
             error("The game is not in play.")
             return None, None
+        if getattr(room, "is_showing", False):
+            error("Cards are being revealed.")
+            return None, None
         if room.current_turn_id() != user_id:
             error("It's not your turn.")
             return None, None
@@ -97,10 +100,16 @@ def register(socketio, manager):
         if not room.last_play:
             return error("There's nothing to show!")
             
-        # The immediate next player is the current turn ID, which must be user_id.
         result = room.apply_show(user_id)
+        room.is_showing = True
 
         emit("bluff_show_result", result, to=room.code)
+        
+        import eventlet
+        eventlet.sleep(3)
+        
+        room.resolve_show(result)
+        room.is_showing = False
         
         # Give the loser their new hand
         loser_id = result["loser"]
@@ -134,6 +143,9 @@ _bot_act_at: dict = {}
 
 def _tick_room(socketio, room):
     code = room.code
+    if getattr(room, "is_showing", False):
+        return
+
     cur = room.current_turn_id()
     if cur is None:
         return
@@ -202,7 +214,14 @@ def _tick_bot(socketio, room, bot_id: str):
     
     elif move["action"] == "show":
         result = room.apply_show(bot_id)
+        room.is_showing = True
         socketio.emit("bluff_show_result", result, to=code)
+        
+        import eventlet
+        eventlet.sleep(3)
+        
+        room.resolve_show(result)
+        room.is_showing = False
         
         loser_id = result["loser"]
         loser = room.players.get(loser_id)

@@ -189,5 +189,21 @@
       renderMySeat(state);
       renderHand(state);
     },
+    showRevealed(cards) {
+      const discard = document.getElementById("center-pile");
+      const empty = document.getElementById("center-empty");
+      const badgeCount = document.getElementById("center-badge-count");
+      
+      discard.querySelectorAll(".card").forEach((el) => el.remove());
+      if (empty) empty.style.display = "none";
+      if (badgeCount) badgeCount.style.display = "none";
+      
+      (cards || []).forEach((card, i) => {
+        const img = cardImg(card, "center-card");
+        img.style.marginLeft = i === 0 ? "0" : "-34px";
+        img.style.zIndex = i;
+        discard.appendChild(img);
+      });
+    },
   };
 })();

@@ -45,6 +45,7 @@ class Room:
         
         self.game_over = False
         self.winner: Optional[str] = None
+        self.is_showing = False
 
     # ---- registration / attachment ----
     def register_player(self, user_id: str, name: str) -> Player:
@@ -219,7 +220,7 @@ class Room:
         self.advance_turn()
 
     def apply_show(self, user_id: str) -> dict:
-        """Player calls Show. Returns the result."""
+        """Player calls Show. Determines the result, but doesn't alter piles yet."""
         if not self.last_play:
             return {}
 
@@ -232,18 +233,6 @@ class Room:
         loser_id = defender_id if is_bluff else user_id
         winner_id = user_id if is_bluff else defender_id
 
-        # Loser picks up the entire center pile
-        self.players[loser_id].hand.extend(self.center_pile)
-        
-        self.center_pile = []
-        self.target_rank = None
-        self.pass_count = 0
-        self.last_play = None
-
-        # The winner of the challenge gets to start the next round
-        self.turn_index = self.turn_order.index(winner_id)
-        self.turn_start_ts = time.time()
-
         return {
             "challenger": user_id,
             "defender": defender_id,
@@ -252,6 +241,22 @@ class Room:
             "loser": loser_id,
             "winner": winner_id,
         }
+
+    def resolve_show(self, result: dict) -> None:
+        """Applies the consequence of a show after the delay."""
+        loser_id = result["loser"]
+        winner_id = result["winner"]
+
+        # Loser picks up the entire center pile
+        self.players[loser_id].hand.extend(self.center_pile)
+        
+        self.center_pile = []
+        self.target_rank = None
+        self.pass_count = 0
+        self.last_play = None
+
+        self.turn_index = self.turn_order.index(winner_id)
+        self.turn_start_ts = time.time()
 
     def advance_turn(self) -> None:
         n = len(self.turn_order)
