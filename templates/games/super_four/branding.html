@@ -1,2 +1,7 @@
-{# Super 4 wordmark shown in the game topbar. #}
-    <div class="wordmark"><a href="/" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center;"><span class="wordmark-title">SUPER <span class="seven">4</span></span></a></div>
+{# Super 4 topbar brand — name first, then the card symbol. #}
+<div class="game-brand">
+  <a href="/" class="brand-link">
+    <span class="brand-name">Super 4</span>
+    <img class="brand-symbol" src="{{ url_for('static', filename='img/super_four_symbol.svg') }}" alt="Super 4" />
+  </a>
+</div>
