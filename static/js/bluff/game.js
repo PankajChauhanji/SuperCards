@@ -231,7 +231,7 @@
 
   socket.on("settings_updated", (data) => {
     if (data.settings) view.settings = data.settings;
-    if (view.state !== "IN_TURN") renderLobby();
+    if (view.state !== "IN_TURN") window.SS.Lobby.render(view);
     showToast("Host updated the game settings");
   });
 
@@ -310,136 +310,19 @@
     if (inRound) {
       Table.render(view);
     } else {
-      renderLobby();
+      window.SS.Lobby.render(view);
     }
   }
 
-  // ---- lobby rendering ----
-  const LOBBY_PALETTE = ["#4ea1ff", "#ff9f43", "#a98cf0", "#f06ea9", "#43c6c6", "#d6c04a"];
-
-  function renderLobby() {
-    rosterEl.innerHTML = "";
-    view.players.forEach((p) => {
-      const li = document.createElement("li");
-      const who = document.createElement("div");
-      who.className = "who";
-      const sw = document.createElement("span");
-      sw.className = "swatch";
-      sw.style.background = LOBBY_PALETTE[(p.color || 0) % LOBBY_PALETTE.length];
-      const dot = document.createElement("span");
-      dot.className = "dot" + (p.connected ? " on" : "");
-      const name = document.createElement("span");
-      name.className = "name";
-      name.textContent = p.name;
-      who.appendChild(sw);
-      who.appendChild(dot);
-      who.appendChild(name);
-
-      const tags = document.createElement("div");
-      tags.className = "roster-tags";
-      if (p.user_id === view.hostId) tags.appendChild(makeBadge("Host", "host"));
-      if (p.user_id === youId) tags.appendChild(makeBadge("You", "you"));
-      if (youId === view.hostId && p.user_id !== youId) {
-        const kick = document.createElement("button");
-        kick.className = "kick-btn";
-        kick.textContent = "\u2715";
-        kick.title = "Remove " + p.name;
-        kick.addEventListener("click", () => {
-          if (confirm("Remove " + p.name + " from the room?")) {
-            socket.emit("kick_player", { code, user_id: youId, target: p.user_id });
-          }
-        });
-        tags.appendChild(kick);
-      }
-
-      li.appendChild(who);
-      li.appendChild(tags);
-      rosterEl.appendChild(li);
-    });
-
-    renderLobbySettings();
-
-    const n = view.players.length;
-    metaEl.textContent = n + (n === 1 ? " player" : " players") + " in the room";
-
-    const isHost = youId === view.hostId;
-    startRow.innerHTML = "";
-    if (isHost) {
-      const btn = document.createElement("button");
-      btn.className = "btn-primary";
-      btn.textContent = "Start game";
-      btn.addEventListener("click", () => {
-        socket.emit("start_game", { code, user_id: youId });
-      });
-      startRow.appendChild(btn);
-    } else {
-      const p = document.createElement("p");
-      p.className = "waiting";
-      p.textContent = "Waiting for the host to start\u2026";
-      startRow.appendChild(p);
-    }
-  }
-
-  function renderLobbySettings() {
-    const el = document.getElementById("lobby-settings");
-    if (!el) return;
-    const s = view.settings;
-    if (!s) { el.innerHTML = ""; return; }
-    const isHost = youId === view.hostId;
-
-    if (!isHost) {
-      const items = [
-        ["Turn timer", s.turn_timer + "s"],
-        ["Timeouts", s.timeout_limit],
-        ["Decks", s.num_decks || 1],
-      ];
-      el.innerHTML = "<h3>Game settings</h3>";
-      const grid = document.createElement("div");
-      grid.className = "settings-readout";
-      items.forEach(([k, v]) => {
-        const row = document.createElement("div");
-        row.className = "sr-item";
-        row.innerHTML = "<span>" + k + "</span><strong>" + v + "</strong>";
-        grid.appendChild(row);
-      });
-      el.appendChild(grid);
-      return;
-    }
-
-    // Host: editable before the game starts.
-    el.innerHTML = "<h3>Game settings <span class=\"se-hint\">(you can edit these)</span></h3>";
-    const fields = [
-      ["turn_timer", "Turn timer (s)", 15, 180],
-      ["timeout_limit", "Timeouts allowed", 1, 10],
-      ["num_decks", "Number of decks", 1, 10],
-    ];
-    const grid = document.createElement("div");
-    grid.className = "settings-edit";
-    fields.forEach(([key, label, lo, hi]) => {
-      const wrap = document.createElement("div");
-      wrap.className = "se-item";
-      const lab = document.createElement("label");
-      lab.textContent = label;
-      const inp = document.createElement("input");
-      inp.type = "number"; inp.min = lo; inp.max = hi; inp.value = s[key];
-      inp.dataset.key = key;
-      wrap.appendChild(lab); wrap.appendChild(inp);
-      grid.appendChild(wrap);
-    });
-    el.appendChild(grid);
-
-    const save = document.createElement("button");
-    save.className = "btn-ghost se-save";
-    save.textContent = "Save settings";
-    save.addEventListener("click", () => {
-      const out = {};
-      grid.querySelectorAll("input").forEach((i) => {
-        out[i.dataset.key] = parseInt(i.value, 10);
-      });
-      socket.emit("update_settings", { code, user_id: youId, settings: out });
-    });
-    el.appendChild(save);
-  }
+  // ---- lobby (shared renderer: static/js/core/lobby.js) ----
+  window.SS.Lobby.init({
+    youId,
+    fields: [
+      { key: "turn_timer", label: "Turn timer (s)", min: 15, max: 180 },
+      { key: "timeout_limit", label: "Timeouts allowed", min: 1, max: 10 },
+      { key: "num_decks", label: "Number of decks", min: 1, max: 5 },
+    ],
+  });
 
   function makeBadge(text, kind) {
     const b = document.createElement("span");
@@ -485,7 +368,6 @@
       name.className = "re-name";
       name.textContent = r.name;
       if (r.user_id === data.caller) name.appendChild(makeBadge("Caller", "host"));
-      if (r.is_safe) name.appendChild(makeBadge("Safe", "safe"));
       const score = document.createElement("span");
       score.className = "re-score";
       score.textContent = "+" + r.round_score + "  \u2192  " + r.total_score;
@@ -616,308 +498,23 @@
     modal.classList.add("open");
   }
 
-  // ---- reactions ----
-  const rxDock = document.getElementById("reaction-dock");
-  const rxFab = document.getElementById("reaction-fab");
-  const rxPanel = document.getElementById("reaction-panel");
-  const rxRecentContainer = document.getElementById("rx-recent-container");
-  const rxRecentGrid = document.getElementById("rx-recent-grid");
-
-  function getRecentReactions() {
-    try {
-      return JSON.parse(localStorage.getItem("super_seven_recent_rx")) || [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function addRecentReaction(emoji) {
-    let recent = getRecentReactions();
-    recent = recent.filter(e => e !== emoji);
-    recent.unshift(emoji);
-    if (recent.length > 5) recent.pop();
-    localStorage.setItem("super_seven_recent_rx", JSON.stringify(recent));
-    updateRecentGrid();
-  }
-
-  function updateRecentGrid() {
-    if (!rxRecentContainer || !rxRecentGrid) return;
-    const recent = getRecentReactions();
-    if (rxFab && recent.length > 0) {
-      rxFab.textContent = recent[0];
-    }
-    if (recent.length === 0) {
-      rxRecentContainer.style.display = "none";
-      return;
-    }
-    rxRecentContainer.style.display = "flex";
-    rxRecentGrid.innerHTML = "";
-    recent.forEach((emoji) => {
-      const btn = document.createElement("button");
-      btn.className = "rx";
-      btn.dataset.e = emoji;
-      btn.title = emoji;
-      btn.textContent = emoji;
-      btn.addEventListener("click", () => {
-        socket.emit("reaction", { code, user_id: youId, emoji });
-        addRecentReaction(emoji);
-      });
-      rxRecentGrid.appendChild(btn);
-    });
-  }
-
-  if (rxFab && rxPanel) {
-    let lastFabClickTime = 0;
-    let fabClickTimeout = null;
-
-    rxFab.addEventListener("click", (e) => {
-      const now = Date.now();
-      const diff = now - lastFabClickTime;
-      lastFabClickTime = now;
-
-      if (diff < 300) {
-        // Double click / rapid-fire spam
-        if (fabClickTimeout) {
-          clearTimeout(fabClickTimeout);
-          fabClickTimeout = null;
-        }
-        const recent = getRecentReactions();
-        const emoji = recent[0] || "🤡";
-        socket.emit("reaction", { code, user_id: youId, emoji });
-        addRecentReaction(emoji);
-      } else {
-        // Single click (detecting double click first)
-        fabClickTimeout = setTimeout(() => {
-          fabClickTimeout = null;
-          rxPanel.hidden = !rxPanel.hidden;
-          if (!rxPanel.hidden) {
-            updateRecentGrid();
-          }
-        }, 220);
-      }
-    });
-
-    rxPanel.querySelectorAll("#rx-main-grid .rx").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const emoji = btn.dataset.e;
-        socket.emit("reaction", { code, user_id: youId, emoji });
-        addRecentReaction(emoji);
-      });
-    });
-
-    document.addEventListener("click", (e) => {
-      if (rxDock && !rxDock.contains(e.target)) rxPanel.hidden = true;
-    });
-
-    // Initialize recent grid
-    updateRecentGrid();
-  }
-
-  socket.on("reaction", (data) => floatReaction(data.emoji, data.name));
-
-  function floatReaction(emoji, name) {
-    const layer = document.getElementById("reactions-layer");
-    if (!layer) return;
-    const el = document.createElement("div");
-    el.className = "rx-float";
-    el.textContent = emoji;
-    if (name) {
-      const tag = document.createElement("span");
-      tag.className = "rx-name";
-      tag.textContent = name;
-      el.appendChild(tag);
-    }
-    // Random-ish horizontal start in the lower-middle of the screen.
-    el.style.left = (10 + Math.random() * 70) + "%";
-    el.style.setProperty("--drift", (Math.random() * 60 - 30) + "px");
-    layer.appendChild(el);
-    setTimeout(() => el.remove(), 3900);
-  }
+  // ---- reactions ---- (shared: static/js/core/reactions.js)
 
   // ---- selection / actions ----
   if (window.Selection) {
     window.Selection.init({ socket, code, you: youId });
   }
 
-  // ---- rules modal ----
-  const modal = document.getElementById("rules-modal");
-  document.getElementById("rules-btn").addEventListener("click", () => modal.classList.add("open"));
-  document.getElementById("rules-close").addEventListener("click", () => modal.classList.remove("open"));
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) modal.classList.remove("open");
-  });
+  // ---- rules modal, mute, copy, spectator admit ----
+  // All shared now: static/js/core/{rules_modal,chrome}.js
 
-  const rulesContainer = document.getElementById('rules-content-container');
-  const rulesTitle = document.getElementById('rules-title');
-  const langBtns = document.querySelectorAll('.lang-btn');
-  const rulesCache = {};
-
-  function loadRules(lang) {
-    if (!rulesContainer || !rulesTitle) return;
-    
-    langBtns.forEach(btn => {
-      if(btn.dataset.lang === lang) {
-        btn.style.background = '#6706ce';
-        btn.style.color = 'white';
-      } else {
-        btn.style.background = 'transparent';
-        btn.style.color = 'inherit';
-      }
-    });
-
-    rulesTitle.innerText = lang === 'hi' ? '📖 नियम पुस्तिका' : '📖 Rule Book';
-
-    if (rulesCache[lang]) {
-      rulesContainer.innerHTML = rulesCache[lang];
-    } else {
-      rulesContainer.innerHTML = '<p>Loading rules...</p>';
-      const gameType = window.GAME_TYPE || 'super_seven';
-      fetch(`/static/rules/${gameType}/${lang}.html`)
-        .then(res => {
-          if (!res.ok) throw new Error('Network response was not ok');
-          return res.text();
-        })
-        .then(html => {
-          rulesCache[lang] = html;
-          rulesContainer.innerHTML = html;
-        })
-        .catch(err => {
-          rulesContainer.innerHTML = '<p>Error loading rules. Please try again.</p>';
-        });
-    }
-  }
-
-  langBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      loadRules(e.target.dataset.lang);
-    });
-  });
-
-  if (rulesContainer) {
-    loadRules('en');
-  }
-
-  // ---- spectator admit modal ----
-  let admitTargetId = null;
-  const specModal = document.getElementById("spectator-modal");
-  const specCancel = document.getElementById("admit-cancel");
-  const specConfirm = document.getElementById("admit-confirm");
-
-  window.SS.openSpectatorModal = function(targetId, name) {
-    if (!specModal) return;
-    admitTargetId = targetId;
-    document.getElementById("admit-name").textContent = name;
-    document.getElementById("admit-penalty").value = "0";
-    specModal.classList.add("open");
-  };
-
-  if (specCancel) {
-    specCancel.addEventListener("click", () => {
-      specModal.classList.remove("open");
-      admitTargetId = null;
-    });
-  }
-  
-  if (specConfirm) {
-    specConfirm.addEventListener("click", () => {
-      if (admitTargetId) {
-        const penalty = parseInt(document.getElementById("admit-penalty").value, 10) || 0;
-        socket.emit("admit_spectator", { code, user_id: youId, target_id: admitTargetId, penalty: penalty });
-      }
-      specModal.classList.remove("open");
-      admitTargetId = null;
-    });
-  }
-
-  // ---- mute toggle ----
-  const muteBtn = document.getElementById("mute-btn");
-  if (muteBtn && window.SS.sound) {
-    const paint = () => { muteBtn.textContent = window.SS.sound.muted() ? "\uD83D\uDD07" : "\uD83D\uDD0A"; };
-    paint();
-    muteBtn.addEventListener("click", () => {
-      window.SS.sound.toggleMute();
-      paint();
-    });
-  }
-
-  // ---- copy code ----
-  const copyBtn = document.getElementById("copy-btn");
-  if (copyBtn) {
-    copyBtn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(code);
-        showToast("Room code copied.");
-      } catch (_) {
-        showToast("Code: " + code);
-      }
-    });
-  }
-
-  // ---- Table Theme Selector ----
-  const themeSelectWrap = document.getElementById("theme-select-wrap");
-  const themeSelectBtn = document.getElementById("theme-select-btn");
-  const themeDropdown = document.getElementById("theme-dropdown");
-
-  if (themeSelectBtn && themeDropdown) {
-    themeSelectBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const isHidden = themeDropdown.hasAttribute("hidden");
-      if (isHidden) {
-        themeDropdown.removeAttribute("hidden");
-        themeDropdown.setAttribute("aria-hidden", "false");
-      } else {
-        themeDropdown.setAttribute("hidden", "");
-        themeDropdown.setAttribute("aria-hidden", "true");
-      }
-    });
-
-    themeDropdown.querySelectorAll(".theme-opt").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const theme = btn.dataset.t;
-        socket.emit("change_table_theme", { code, user_id: youId, theme });
-        themeDropdown.setAttribute("hidden", "");
-        themeDropdown.setAttribute("aria-hidden", "true");
-      });
-    });
-
-    document.addEventListener("click", () => {
-      if (themeDropdown) {
-        themeDropdown.setAttribute("hidden", "");
-        themeDropdown.setAttribute("aria-hidden", "true");
-      }
-    });
-  }
-
+  // ---- table theme (shared impl: static/js/core/themes.js) ----
   function syncThemeSelectorVisibility() {
-    if (!themeSelectWrap) return;
-    const isHost = view.hostId === youId;
-    themeSelectWrap.style.display = isHost ? "inline-flex" : "none";
+    if (window.SS.themes) window.SS.themes.syncVisibility(view.hostId === youId);
   }
-
   function syncTableTheme() {
-    const theme = view.tableTheme || "default";
-    document.body.classList.remove("theme-default", "theme-casino", "theme-cyberpunk", "theme-marble", "theme-red_casino");
-    if (theme !== "default") {
-      document.body.classList.add("theme-" + theme);
-    }
-
-    const currentIcon = document.getElementById("current-theme-icon");
-    const currentName = document.getElementById("current-theme-name");
-    if (currentIcon && currentName) {
-      const themeMap = {
-        "default": { icon: "🟢", name: "Default" },
-        "casino": { icon: "🎰", name: "Casino Felt" },
-        "cyberpunk": { icon: "👾", name: "Cyberpunk" },
-        "marble": { icon: "🏛️", name: "Marble Luxury" },
-        "red_casino": { icon: "🍒", name: "Red Casino" }
-      };
-      const active = themeMap[theme] || themeMap["default"];
-      currentIcon.textContent = active.icon;
-      currentName.textContent = active.name;
-    }
+    if (window.SS.themes) window.SS.themes.apply(view.tableTheme || "default");
   }
-
   socket.on("table_theme_updated", (data) => {
     view.tableTheme = data.theme;
     syncTableTheme();
