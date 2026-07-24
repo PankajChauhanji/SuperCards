@@ -95,6 +95,65 @@ class Room:
     def remove_player(self, user_id: str) -> None:
         self.players.pop(user_id, None)
 
+    def remove_participant(self, user_id: str) -> None:
+        """Voluntary quit — remove the player entirely, keeping the game valid.
+
+        Works in the lobby, mid-round, and between rounds. Mid-round it also
+        repairs the turn rotation, hands over the host if the quitter held it,
+        and ends the round/game when the removal leaves too few players.
+        """
+        if user_id not in self.players:
+            return
+        was_host = self.is_host(user_id)
+        in_play = self.state == STATE_IN_TURN
+
+        if in_play and user_id in self.turn_order:
+            was_current = self.current_turn_id() == user_id
+            idx = self.turn_order.index(user_id)
+            self.turn_order.pop(idx)
+            # Keep the turn pointer aimed at the same upcoming player.
+            if idx < self.turn_index:
+                self.turn_index -= 1
+            self.turn_index = (self.turn_index % len(self.turn_order)) if self.turn_order else 0
+            # One fewer player was dealt this round — keep orbit accounting sane.
+            if not self.first_orbit_complete and self.initial_active > 0:
+                self.initial_active -= 1
+                if self.turns_completed >= self.initial_active:
+                    self.first_orbit_complete = True
+            if was_current:
+                # The quitter was mid-turn; drop any owed draw and restart the
+                # clock on whoever is now up.
+                self.awaiting_draw = False
+                self.turn_start_ts = time.time()
+                self._skip_to_playable()
+
+        self.players.pop(user_id, None)
+
+        if was_host:
+            self.migrate_host()
+
+        if in_play:
+            remaining = self.non_eliminated()
+            if len(remaining) <= 1:
+                self.game_over = True
+                self.winner = remaining[0] if remaining else None
+                self.state = STATE_GAME_END
+            elif self.active_count() <= 1:
+                # Nobody left holding cards who can act — settle the round.
+                self.end_round(None)
+
+    def _skip_to_playable(self) -> None:
+        """Advance turn_index to the next player able to act (no counters bumped)."""
+        n = len(self.turn_order)
+        if n == 0:
+            return
+        for _ in range(n):
+            p = self.players.get(self.turn_order[self.turn_index % n])
+            if p and not p.is_safe and not p.eliminated:
+                self.turn_index %= n
+                return
+            self.turn_index = (self.turn_index + 1) % n
+
     # ---- queries ----
     def is_full(self) -> bool:
         return len(self.players) >= MAX_PLAYERS

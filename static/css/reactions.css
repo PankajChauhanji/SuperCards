@@ -123,6 +123,23 @@
 .rules-btn:hover { background: rgba(230,178,60,0.22); }
 .rules-btn .rb-ico { font-size: 1.05rem; }
 
+/* quit button — sits to the right of Rules; red to read as "leave" */
+.quit-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  border: 1px solid rgba(239,68,68,0.75);
+  background: rgba(239,68,68,0.12);
+  color: #ff6b6b;
+  font-family: var(--display); font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  min-height: 40px;
+  transition: background 0.15s ease;
+}
+.quit-btn:hover { background: rgba(239,68,68,0.24); }
+.quit-btn .qb-ico { font-size: 0.95rem; }
+
 /* compact footer */
 .site-footer.compact { padding: 0.6rem 1rem; min-height: unset; }
 .site-footer.compact .footer-links { margin: 0; flex-wrap: wrap; gap: 1rem; }
@@ -149,6 +166,8 @@
   .topbar-right { flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
   .rules-btn { font-size: 0.8rem; padding: 0.4rem 0.7rem; min-height: 36px; }
   .rules-btn .rb-ico { display: none; }
+  .quit-btn { font-size: 0.8rem; padding: 0.4rem 0.7rem; min-height: 36px; }
+  .quit-btn .qb-ico { display: none; }
   .icon-btn { width: 36px; height: 36px; font-size: 1rem; }
   .round-chip, .turn-timer { font-size: 0.75rem; padding: 0.25rem 0.55rem; }
 

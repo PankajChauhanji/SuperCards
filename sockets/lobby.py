@@ -10,12 +10,12 @@ Only enter_room binds the sid and joins the Socket.IO room, so navigating away
 from the index page never marks anyone disconnected.
 """
 from flask import request
-from flask_socketio import join_room as sio_join, emit
+from flask_socketio import join_room as sio_join, leave_room as sio_leave, emit
 
 from game.core import registry
 from game.core.states import STATE_LOBBY, STATE_ROUND_END, STATE_GAME_END
 from sockets import presenter
-from sockets.common import bind_sid, error
+from sockets.common import bind_sid, unbind_sid, error
 
 NAME_MAX = 20
 
@@ -259,6 +259,50 @@ def register(socketio, manager):
             {"players": room.public_players(), "host_id": room.host_id},
             to=code,
         )
+
+    @socketio.on("quit_game")
+    def on_quit(data):
+        """A player voluntarily leaves the room.
+
+        Only that player is removed — their instance and scores are dropped and
+        the game continues for everyone else. If the host quits, a new host is
+        promoted; if the removal leaves one (or zero) players, the game ends and
+        the survivor is declared the winner. Works in the lobby and mid-game, in
+        every variant, via the game-agnostic Room.remove_participant().
+        """
+        data = data or {}
+        code = (data.get("code") or "").strip().upper()
+        user_id = data.get("user_id")
+        room = manager.get_room(code)
+        if room is None or user_id not in room.players:
+            emit("quit_ok")   # nothing to leave; let the client navigate away
+            return
+
+        in_game = room.state != STATE_LOBBY
+        room.remove_participant(user_id)
+
+        # This socket is done with the room: drop its sid mapping so a later
+        # disconnect for the same sid is a no-op rather than re-processing a
+        # player who is already gone.
+        unbind_sid(request.sid)
+        sio_leave(code)
+
+        # Acknowledge to the quitter so their client can navigate home.
+        emit("quit_ok")
+
+        if not room.any_connected():
+            return   # empty room; the manager's reaper will clean it up
+
+        # Everyone else re-syncs their roster / scoreboard...
+        emit(
+            "player_list",
+            {"players": room.public_players(), "host_id": room.host_id},
+            to=code,
+        )
+        # ...and, if a game was in progress, the current public game state
+        # (updated turn order, or a round/game end triggered by the removal).
+        if in_game:
+            presenter.refresh(room)
 
     @socketio.on("update_settings")
     def on_update_settings(data):

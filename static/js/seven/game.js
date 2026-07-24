@@ -30,6 +30,12 @@
   };
   window.SS.view = view; // selection.js reads this live reference
 
+  // Resolve a player's stable colour index (for colouring names in the feed).
+  function colorIndexOf(uid) {
+    const p = view.players.find((x) => x.user_id === uid);
+    return p ? p.color : -1;
+  }
+
   let prevTurn = null;   // for the your-turn sound cue
   let drawnTimer = null; // clears the just-drawn highlight
 
@@ -164,13 +170,16 @@
       match: "matched the table",
     }[data.action_type] || "made a move";
     const msg = who + " " + verb;
-    if (window.ActionLog) window.ActionLog.push(msg, "play");
+    if (window.ActionLog) window.ActionLog.push(msg, "play", { actor: who, colorIndex: p ? p.color : -1 });
     if (data.by !== youId) showToast(msg);
   });
 
   socket.on("auto_picked", (data) => {
-    const msg = data.user_id === youId ? "Auto-picked a card for you" : data.name + " was dealt a card";
-    if (window.ActionLog) window.ActionLog.push(msg, "info");
+    const isYou = data.user_id === youId;
+    const msg = isYou ? "Auto-picked a card for you" : data.name + " was dealt a card";
+    if (window.ActionLog) {
+      window.ActionLog.push(msg, "info", isYou ? {} : { actor: data.name, colorIndex: colorIndexOf(data.user_id) });
+    }
     showToast(msg);
   });
 
@@ -179,13 +188,13 @@
   socket.on("player_timed_out", (data) => {
     if (data.removed) return;
     const msg = data.name + " ran out of time";
-    if (window.ActionLog) window.ActionLog.push(msg, "system");
+    if (window.ActionLog) window.ActionLog.push(msg, "system", { actor: data.name, colorIndex: colorIndexOf(data.user_id) });
     showToast(msg);
   });
 
   socket.on("player_eliminated", (data) => {
     const msg = data.name + " is out of the game";
-    if (window.ActionLog) window.ActionLog.push(msg, "system");
+    if (window.ActionLog) window.ActionLog.push(msg, "system", { actor: data.name, colorIndex: colorIndexOf(data.user_id) });
     showToast(msg);
   });
 

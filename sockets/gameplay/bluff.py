@@ -14,7 +14,15 @@ def _deal_private(room, user_id=None):
             continue
         emit("your_hand", {"cards": room.hand_for(player.user_id)}, to=player.sid)
 
+def _refresh_public(room):
+    """Re-broadcast public state after a structural change such as a quit."""
+    if room.state == STATE_GAME_END:
+        emit("game_end", room.game_end_payload(), to=room.code)
+    else:
+        emit("table_state", room.public_round_state(), to=room.code)
+
 presenter.register(GAME, _deal_private)
+presenter.register_refresh(GAME, _refresh_public)
 
 def register(socketio, manager):
 

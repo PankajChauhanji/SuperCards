@@ -9,38 +9,53 @@
   align-items: flex-start;
 }
 
+/* The scoreboard is a fixed-height column (top:1rem → bottom:2rem) holding TWO
+   independent cards: Scores and Action History. It is just a transparent
+   flex container — the visible panels are its two children. */
 .scoreboard {
   position: absolute;
   top: 1rem;
   bottom: 2rem;
   left: 1.5rem;
   width: 280px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
   padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.8rem;
+  background: transparent;
+  border: 0;
   overflow: hidden;
 }
 
-/* --- Players section (top, max 70%) --- */
+/* --- Scores card (top) ---------------------------------------------------
+   Sized by its OWN content (player count), never squeezed by the chat below:
+   flex-shrink 0 keeps it stable. It only grows up to 60% of the column, after
+   which it scrolls internally. `calc(... - 0.4rem)` reserves half the flex gap
+   so Scores(≤60%) + gap + Action History(≥40%) can never overflow the column. */
 .sb-players {
-  max-height: 70%;
+  flex: 0 0 auto;
+  max-height: calc(60% - 0.4rem);
   overflow-y: auto;
-  padding: 1rem 1rem 0.5rem;
-  flex: 0 1 auto;
+  padding: 0.85rem 1rem 0.7rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
 }
-.sb-players::-webkit-scrollbar { width: 4px; }
+.sb-players::-webkit-scrollbar { width: 5px; }
 .sb-players::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
 
-/* --- Action History section (bottom, min 30%) --- */
+/* --- Action History card (bottom) ----------------------------------------
+   Takes ALL the space Scores leaves, with a hard 40% floor. flex-basis 0 means
+   its own message count never inflates it or pushes on Scores — overflow just
+   scrolls inside the list. */
 .action-log {
-  min-height: 30%;
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-height: calc(40% - 0.4rem);
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--line);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   overflow: hidden;
 }
 .action-log h3 {
@@ -50,7 +65,8 @@
   text-transform: uppercase;
   color: var(--muted);
   margin: 0;
-  padding: 0.6rem 1rem 0.4rem;
+  padding: 0.7rem 1rem 0.45rem;
+  border-bottom: 1px solid var(--line);
   flex: 0 0 auto;
 }
 #action-log-list {
@@ -68,19 +84,26 @@
 
 .al-entry {
   display: flex;
-  align-items: flex-start;
-  gap: 0.35rem;
-  font-size: 0.75rem;
+  align-items: baseline;
+  gap: 0.4rem;
+  /* clean, legible handwritten style — Patrick Hand stays readable at small
+     sizes, unlike a heavy cursive; a gentle slant gives the italic feel. */
+  font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive;
+  font-style: italic;
+  font-size: 0.98rem;
+  letter-spacing: 0.01em;
   line-height: 1.3;
-  padding: 0.3rem 0.4rem;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.03);
+  padding: 0.34rem 0.55rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
   animation: al-fadein 0.25s ease;
 }
 @keyframes al-fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.al-icon { flex: 0 0 auto; font-size: 0.72rem; }
+.al-icon { flex: 0 0 auto; font-size: 0.95rem; font-style: normal; line-height: 1.3; }
 .al-text { flex: 1 1 auto; color: var(--text); word-break: break-word; }
-.al-time { flex: 0 0 auto; color: var(--muted); font-size: 0.65rem; opacity: 0.6; }
+.al-actor { font-weight: 700; font-style: italic; margin-right: 0.15rem; }
+/* timestamps carry no meaning in the feed — hidden if ever emitted */
+.al-time { display: none; }
 
 /* type-specific accents */
 .al-play    { border-left: 2px solid var(--gold); }
@@ -271,10 +294,11 @@
 
 @media (max-width: 720px) {
   .table-view { flex-direction: column; }
-  .scoreboard { position: static; width: 100%; top: auto; bottom: auto; left: auto; max-height: 280px; flex-direction: row; }
+  .scoreboard { position: static; width: 100%; top: auto; bottom: auto; left: auto; max-height: 280px; flex-direction: row; gap: 0.6rem; }
   .felt { margin-left: 0; width: 100%; }
-  .sb-players { max-height: 100%; flex: 1 1 60%; border-right: 1px solid var(--line); border-bottom: none; }
-  .action-log { min-height: 100%; flex: 1 1 40%; border-top: none; }
+  /* side-by-side cards on narrow screens */
+  .sb-players { max-height: 100%; flex: 1 1 55%; }
+  .action-log { min-height: 0; flex: 1 1 45%; }
   .center-row { gap: 1.5rem; }
 }
 

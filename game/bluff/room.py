@@ -76,6 +76,61 @@ class Room:
     def remove_player(self, user_id: str) -> None:
         self.players.pop(user_id, None)
 
+    def remove_participant(self, user_id: str) -> None:
+        """Voluntary quit — remove the player entirely, keeping the game valid.
+
+        Mid-game this repairs the turn rotation, clears the centre pile if the
+        quitter owned the live play, migrates the host if needed, and ends the
+        game if one (or zero) players remain.
+        """
+        if user_id not in self.players:
+            return
+        was_host = self.is_host(user_id)
+        in_play = self.state == STATE_IN_TURN
+
+        if in_play and user_id in self.turn_order:
+            was_current = self.current_turn_id() == user_id
+            idx = self.turn_order.index(user_id)
+            self.turn_order.pop(idx)
+            if idx < self.turn_index:
+                self.turn_index -= 1
+            self.turn_index = (self.turn_index % len(self.turn_order)) if self.turn_order else 0
+            # If the quitter was the one being (potentially) challenged, retire
+            # the live pile so no one can call Show on a player who's gone.
+            if self.last_play and self.last_play.get("user_id") == user_id:
+                self.dead_pile.extend(self.center_pile)
+                self.center_pile = []
+                self.target_rank = None
+                self.last_play = None
+                self.pass_count = 0
+            if was_current:
+                self.turn_start_ts = time.time()
+                self._skip_to_playable()
+
+        self.players.pop(user_id, None)
+
+        if was_host:
+            self.migrate_host()
+
+        if in_play:
+            active = [u for u in self.turn_order if not self.players[u].eliminated]
+            if len(active) <= 1:
+                self.game_over = True
+                self.winner = active[0] if active else None
+                self.state = STATE_GAME_END
+
+    def _skip_to_playable(self) -> None:
+        """Advance turn_index to the next non-eliminated player (no side effects)."""
+        n = len(self.turn_order)
+        if n == 0:
+            return
+        for _ in range(n):
+            p = self.players.get(self.turn_order[self.turn_index % n])
+            if p and not p.eliminated:
+                self.turn_index %= n
+                return
+            self.turn_index = (self.turn_index + 1) % n
+
     # ---- queries ----
     def is_full(self) -> bool:
         return len(self.players) >= MAX_PLAYERS

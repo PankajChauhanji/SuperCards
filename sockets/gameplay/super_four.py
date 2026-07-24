@@ -494,5 +494,18 @@ def _tick_room(socketio, room):
         _emit_state(socketio, room)
 
 
+def _refresh_public(room):
+    """Re-broadcast public + private state after a structural change such as a
+    player quitting mid-game (updated turn order, or a round/game end)."""
+    _femit("s4_state", room.public_round_state(), to=room.code)
+    for p in room.connected_players():
+        if p.is_bot or not p.sid:
+            continue
+        _femit("your_view", room.private_view(p.user_id), to=p.sid)
+    if room.state in (STATE_ROUND_END, STATE_GAME_END):
+        _femit("s4_round_end", room.round_end_payload(), to=room.code)
+
+
 director.register_ticker(GAME, _tick_room)
 presenter.register(GAME, _deal_private)
+presenter.register_refresh(GAME, _refresh_public)

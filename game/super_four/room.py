@@ -104,6 +104,43 @@ class Room:
     def remove_player(self, user_id: str) -> None:
         self.players.pop(user_id, None)
 
+    def remove_participant(self, user_id: str) -> None:
+        """Voluntary quit — remove the player entirely, keeping the game valid.
+
+        Mid-round this reuses _remove_from_round (which extracts the player from
+        the rotation and finalizes the round if too few players are left), then
+        purges the quitter's slots and every viewer's knowledge of them. The host
+        migrates if the quitter held it, and a between-rounds quit that leaves one
+        (or zero) players in play ends the game.
+        """
+        if user_id not in self.players:
+            return
+        was_host = self.is_host(user_id)
+
+        if self.state == STATE_IN_TURN:
+            # Cleanly drop them from the running round (may finalize the round).
+            self._remove_from_round(user_id)
+
+        # Purge slots and all per-viewer knowledge tied to the quitter.
+        self.slots.pop(user_id, None)
+        self.known.pop(user_id, None)
+        for viewer in list(self.known):
+            self.known[viewer] = {(o, s) for (o, s) in self.known[viewer] if o != user_id}
+
+        self.players.pop(user_id, None)
+
+        if was_host:
+            self.migrate_host()
+
+        # A quit between rounds can also drop the table below the play minimum.
+        if self.state == STATE_ROUND_END:
+            remaining = [uid for uid, p in self.players.items()
+                         if not p.eliminated and not p.is_spectator]
+            if len(remaining) <= 1:
+                self.game_over = True
+                self.winner = self._lowest_cumulative()
+                self.state = STATE_GAME_END
+
     def migrate_host(self) -> Optional[str]:
         """Promote another connected human to host; returns the new host id."""
         if self.players.get(self.host_id) and self.players[self.host_id].connected:

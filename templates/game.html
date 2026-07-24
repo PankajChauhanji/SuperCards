@@ -6,7 +6,7 @@
   <title>{{ display_name }} · {{ code }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/lobby.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}" />
@@ -52,6 +52,8 @@
       </div>
 
       <button class="rules-btn" id="rules-btn" title="How to play" aria-label="How to play"><span class="rb-ico">&#9432;</span> Rules</button>
+
+      <button class="quit-btn" id="quit-btn" title="Quit game" aria-label="Quit game"><span class="qb-ico">&#10006;</span> Quit</button>
     </div>
   </div>
 
@@ -184,6 +186,7 @@
   <script src="{{ url_for('static', filename='js/core/socket.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/sound.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/action_log.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/quit.js') }}"></script>
   <!-- Variant gameplay bundle, selected by game_type -->
   {% include 'games/' + game_type + '/scripts.html' %}
 </body>

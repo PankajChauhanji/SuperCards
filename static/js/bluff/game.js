@@ -30,6 +30,12 @@
   };
   window.SS.view = view; // selection.js reads this live reference
 
+  // Resolve a player's stable colour index (for colouring names in the feed).
+  function colorIndexOf(uid) {
+    const p = view.players.find((x) => x.user_id === uid);
+    return p ? p.color : -1;
+  }
+
   let prevTurn = null;   // for the your-turn sound cue
   let drawnTimer = null; // clears the just-drawn highlight
 
@@ -155,7 +161,7 @@
     const p = view.players.find((x) => x.user_id === data.by);
     const who = p ? p.name : (data.by === youId ? "You" : "Someone");
     const msg = `${who} threw ${data.count} card(s) as ${data.declared_rank}`;
-    if (window.ActionLog) window.ActionLog.push(msg, "play");
+    if (window.ActionLog) window.ActionLog.push(msg, "play", { actor: who, colorIndex: p ? p.color : -1 });
     if (data.by !== youId) showToast(msg);
   });
 
@@ -163,7 +169,7 @@
     const p = view.players.find((x) => x.user_id === data.by);
     const who = p ? p.name : "Someone";
     const msg = `${who} passed`;
-    if (window.ActionLog) window.ActionLog.push(msg, "pass");
+    if (window.ActionLog) window.ActionLog.push(msg, "pass", { actor: who, colorIndex: p ? p.color : -1 });
     showToast(msg);
   });
 

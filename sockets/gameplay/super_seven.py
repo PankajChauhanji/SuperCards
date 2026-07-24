@@ -32,7 +32,19 @@ def _deal_private(room, user_id=None):
         emit("your_hand", {"cards": room.hand_for(player.user_id)}, to=player.sid)
 
 
+def _refresh_public(room):
+    """Re-broadcast the current public state after a structural change such as a
+    player quitting mid-game (updated turn order, or a round/game end)."""
+    if room.state == STATE_GAME_END:
+        emit("game_end", room.game_end_payload(), to=room.code)
+    elif room.state == STATE_ROUND_END and getattr(room, "_last_result", None):
+        emit("round_end", room.round_end_payload(room._last_result), to=room.code)
+    else:
+        emit("table_state", room.public_round_state(), to=room.code)
+
+
 presenter.register(GAME, _deal_private)
+presenter.register_refresh(GAME, _refresh_public)
 
 
 def register(socketio, manager):
