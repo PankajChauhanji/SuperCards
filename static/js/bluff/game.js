@@ -88,6 +88,7 @@
     applyTable(data);
     document.getElementById("roundend-modal").classList.remove("open");
     if (window.Selection) window.Selection.reset();
+    if (window.ActionLog) { window.ActionLog.clear(); window.ActionLog.push("Round " + (view.roundNumber || 1) + " started. Cards dealt!", "system"); }
     sync();
     syncTimer();
   });
@@ -151,16 +152,19 @@
   });
 
   socket.on("cards_played", (data) => {
-    if (data.by === youId) return;
     const p = view.players.find((x) => x.user_id === data.by);
-    const who = p ? p.name : "Someone";
-    showToast(`${who} threw ${data.count} card(s) as ${data.declared_rank}`);
+    const who = p ? p.name : (data.by === youId ? "You" : "Someone");
+    const msg = `${who} threw ${data.count} card(s) as ${data.declared_rank}`;
+    if (window.ActionLog) window.ActionLog.push(msg, "play");
+    if (data.by !== youId) showToast(msg);
   });
 
   socket.on("player_passed", (data) => {
     const p = view.players.find((x) => x.user_id === data.by);
     const who = p ? p.name : "Someone";
-    showToast(`${who} passed`);
+    const msg = `${who} passed`;
+    if (window.ActionLog) window.ActionLog.push(msg, "pass");
+    showToast(msg);
   });
 
   socket.on("bluff_show_result", (data) => {
@@ -177,9 +181,12 @@
     // Also use the play-status label if available
     const label = document.getElementById("play-status");
     
+    if (window.ActionLog) window.ActionLog.push(`${chName} called Show on ${defName}!`, "challenge");
+    
     if (data.is_bluff) {
       const msg = `${chName} caught ${defName}'s bluff! ${defName} takes the pile!`;
       showToast(msg);
+      if (window.ActionLog) window.ActionLog.push(msg, "challenge");
       if (label) {
         label.textContent = msg;
         label.className = "play-label bad";
@@ -187,6 +194,7 @@
     } else {
       const msg = `${defName} told the truth! ${chName} was wrong and takes the pile!`;
       showToast(msg);
+      if (window.ActionLog) window.ActionLog.push(msg, "challenge");
       if (label) {
         label.textContent = msg;
         label.className = "play-label bad";
@@ -242,6 +250,8 @@
     if (data.host_id) view.hostId = data.host_id;
     if (data.players) view.players = data.players;
     syncTimer();
+    const wp = view.players.find(p => p.user_id === data.winner);
+    if (window.ActionLog) window.ActionLog.push(`🎉 ${wp ? wp.name : "Someone"} wins the game!`, "win");
     showGameOver(data.winner, data.standings);
   });
 

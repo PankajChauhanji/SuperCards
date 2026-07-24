@@ -82,7 +82,9 @@
   // ---- gameplay events ----
   socket.on("round_start", (d) => {
     applyState(d); closeModal("roundend-modal");
-    view.interaction = null; view.kingLook = null; sync();
+    view.interaction = null; view.kingLook = null;
+    if (window.ActionLog) { window.ActionLog.clear(); window.ActionLog.push("Round " + (view.roundNumber || 1) + " started!", "system"); }
+    sync();
   });
   socket.on("s4_state", (d) => {
     applyState(d);
@@ -100,7 +102,9 @@
     _flash(d.owner, d.slot, d.card);       // shown briefly, then you must remember
     renderTable();
     const who = d.owner === youId ? "your card" : nameOf(d.owner) + "'s card";
-    showToast(`Peeked ${who}: ${d.card.code}${SUIT[d.card.suit] || ""}`);
+    const msg = `Peeked ${who}: ${d.card.code}${SUIT[d.card.suit] || ""}`;
+    if (window.ActionLog) window.ActionLog.push(msg, "info");
+    showToast(msg);
   });
   socket.on("s4_king_look", (d) => {
     view.kingLook = d.looked || [];
@@ -115,11 +119,16 @@
   socket.on("s4_timeout", (d) => {
     // Room-wide announcements come from the server; this is your personal note.
     if (d.user_id !== youId) return;
-    showToast(d.removed
+    const msg = d.removed
       ? "You missed too many turns — you're spectating now. Ask the host to admit you back."
-      : "You ran out of time — your turn was auto-played", 3200);
+      : "You ran out of time — your turn was auto-played";
+    if (window.ActionLog) window.ActionLog.push(msg, "system");
+    showToast(msg, 3200);
   });
-  socket.on("toast", (d) => showToast(d.message, d.ms));
+  socket.on("toast", (d) => {
+    if (window.ActionLog) window.ActionLog.push(d.message, "info");
+    showToast(d.message, d.ms);
+  });
   socket.on("reaction", (d) => floatReaction(d.emoji, d.name));
 
   function applyState(d) {

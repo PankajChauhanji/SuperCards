@@ -88,6 +88,7 @@
     applyTable(data);
     document.getElementById("roundend-modal").classList.remove("open");
     if (window.Selection) window.Selection.reset();
+    if (window.ActionLog) { window.ActionLog.clear(); window.ActionLog.push("Round " + (view.roundNumber || 1) + " started!", "system"); }
     sync();
     syncTimer();
   });
@@ -153,9 +154,8 @@
   });
 
   socket.on("cards_played", (data) => {
-    if (data.by === youId) return; // your own action shows via your_hand
     const p = view.players.find((x) => x.user_id === data.by);
-    const who = p ? p.name : "Someone";
+    const who = p ? p.name : (data.by === youId ? "You" : "Someone");
     const verb = {
       single: "made a move",
       pair: "dropped a pair",
@@ -163,23 +163,30 @@
       sequence: "ran a sequence",
       match: "matched the table",
     }[data.action_type] || "made a move";
-    showToast(who + " " + verb);
+    const msg = who + " " + verb;
+    if (window.ActionLog) window.ActionLog.push(msg, "play");
+    if (data.by !== youId) showToast(msg);
   });
 
   socket.on("auto_picked", (data) => {
-    if (data.user_id === youId) showToast("Auto-picked a card for you");
-    else showToast(data.name + " was dealt a card");
+    const msg = data.user_id === youId ? "Auto-picked a card for you" : data.name + " was dealt a card";
+    if (window.ActionLog) window.ActionLog.push(msg, "info");
+    showToast(msg);
   });
 
   socket.on("deck_reshuffled", () => showToast("Deck reshuffled"));
 
   socket.on("player_timed_out", (data) => {
-    if (data.removed) return; // an elimination toast follows
-    showToast(data.name + " ran out of time");
+    if (data.removed) return;
+    const msg = data.name + " ran out of time";
+    if (window.ActionLog) window.ActionLog.push(msg, "system");
+    showToast(msg);
   });
 
   socket.on("player_eliminated", (data) => {
-    showToast(data.name + " is out of the game");
+    const msg = data.name + " is out of the game";
+    if (window.ActionLog) window.ActionLog.push(msg, "system");
+    showToast(msg);
   });
 
   socket.on("kicked", () => {

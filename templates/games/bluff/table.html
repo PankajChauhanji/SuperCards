@@ -1,9 +1,15 @@
   <div class="table-view" id="table-view" style="display:none">
     <aside class="scoreboard">
-      <h3>Players</h3>
-      <ul id="score-list"></ul>
-      <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
-      <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
+      <div class="sb-players">
+        <h3>Players</h3>
+        <ul id="score-list"></ul>
+        <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
+        <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
+      </div>
+      <div class="action-log">
+        <h3>Action History</h3>
+        <ul id="action-log-list"></ul>
+      </div>
     </aside>
     <section class="felt">
       <div class="opponents" id="opponents"></div>
