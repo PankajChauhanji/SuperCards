@@ -81,7 +81,7 @@ body {
 
 /* ---------- home ---------- */
 .home {
-  max-width: 460px;
+  max-width: 480px;
   margin: 0 auto;
   padding: clamp(2rem, 6vh, 5rem) 1.25rem 3rem;
 }

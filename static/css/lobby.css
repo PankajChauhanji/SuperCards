@@ -172,7 +172,24 @@
 }
 
 /* ---------- topbar extras ---------- */
-.topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+/* Controls stay on ONE line at every width; they compact rather than wrap. */
+.topbar-right { display: flex; align-items: center; gap: 0.55rem; flex-wrap: nowrap; }
+
+/* per-game brand (card emblem + name), accent supplied inline by branding.html */
+.game-brand { min-width: 0; }
+.game-brand .brand-link {
+  text-decoration: none; color: inherit;
+  display: inline-flex; align-items: center; gap: 0.5rem; min-width: 0;
+}
+.brand-name {
+  font-family: var(--display); font-weight: 700; font-size: 1.2rem;
+  letter-spacing: 0.02em; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.brand-symbol {
+  flex: none; height: 34px; width: auto; display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
 .round-chip {
   font-family: var(--display);
   font-weight: 600;
@@ -185,19 +202,117 @@
   border-radius: 999px;
 }
 
-/* Game picker (landing page) */
-.game-picker { margin-bottom: 1.25rem; }
-.picker-label { font-size: 0.85rem; opacity: 0.75; margin-bottom: 0.5rem; text-align: center; }
-.picker-tiles { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
-.game-tile {
-  flex: 1 1 130px; max-width: 170px; min-width: 120px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 0.35rem; padding: 0.65rem 0.9rem; cursor: pointer;
-  border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.04); color: inherit; text-align: center;
-  transition: border-color 0.15s, background 0.15s, transform 0.05s;
+/* ---------- lobby: Players / Settings tabs ---------- */
+.lobby-tabs {
+  display: flex; gap: 0.35rem;
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 12px; padding: 0.3rem; margin-bottom: 1.1rem;
 }
-.game-tile:hover:not(.disabled) { border-color: rgba(103,6,206,0.7); background: rgba(103,6,206,0.12); transform: translateY(-1px); }
-.game-tile.selected { border-color: #6706ce; background: rgba(103,6,206,0.2); box-shadow: 0 0 0 1px #6706ce inset; }
-.game-tile .gt-name { font-weight: 600; font-size: 1.05rem; }
-.game-tile .gt-badge { font-size: 0.75rem; opacity: 0.7; }
+.lobby-tab {
+  flex: 1; background: transparent; border: none; color: var(--muted);
+  font-family: var(--display); font-weight: 600; font-size: 0.9rem;
+  padding: 0.55rem 0.5rem; border-radius: 9px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  transition: background 0.15s, color 0.15s;
+}
+.lobby-tab:hover { color: var(--text); }
+.lobby-tab.active { background: var(--panel); color: var(--text); }
+.tab-count {
+  font-size: 0.72rem; min-width: 20px; height: 20px; padding: 0 0.35rem;
+  border-radius: 999px; background: var(--panel-2); color: var(--muted);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.lobby-tab.active .tab-count { background: var(--gold); color: var(--ink); }
+.lobby-panel.hidden { display: none; }
+
+/* ---------- lobby: reusable settings panel (all games share this) ---------- */
+.settings-note { color: var(--muted); font-size: 0.8rem; margin: 0 0 0.95rem; }
+.lobby-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.65rem 0.85rem;
+}
+.set-item {
+  display: flex; flex-direction: column; gap: 0.3rem;
+  margin: 0; text-transform: none;
+}
+.set-label {
+  font-size: 0.72rem; color: var(--muted);
+  text-transform: none; letter-spacing: 0; margin: 0;
+}
+.set-item input {
+  width: 100%; background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 0.45rem 0.55rem; color: var(--text);
+  font: inherit; font-size: 0.95rem;
+}
+.set-val { font-family: var(--display); font-weight: 600; color: var(--text); font-size: 1rem; }
+.set-save { margin-top: 1rem; width: auto; padding: 0.5rem 1.1rem; }
+
+/* ---------- landing page: step headers ---------- */
+.step-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.1rem; }
+.step-num {
+  flex: none; width: 24px; height: 24px; border-radius: 999px;
+  background: var(--gold); color: var(--ink);
+  font-family: var(--display); font-weight: 700; font-size: 0.82rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.step-head h2 { margin: 0; }
+
+/* ---------- landing page: game picker ---------- */
+.picker-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem;
+}
+.game-tile {
+  --game-accent: var(--gold);
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 0.95rem 0.45rem 0.85rem; cursor: pointer;
+  border-radius: 12px; border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03); color: inherit; text-align: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.06s, box-shadow 0.15s;
+}
+.game-tile:hover:not(.disabled) {
+  transform: translateY(-2px);
+  border-color: var(--game-accent);
+  background: rgba(255, 255, 255, 0.06);
+}
+.game-tile.selected {
+  border-color: var(--game-accent);
+  background: color-mix(in srgb, var(--game-accent) 14%, transparent);
+  box-shadow: 0 0 0 1px var(--game-accent) inset, 0 12px 26px -16px var(--game-accent);
+}
+.gt-emblem {
+  width: 46px; height: 62px; border-radius: 9px;
+  background: var(--cream); color: var(--game-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-weight: 700; font-size: 1.9rem; line-height: 1;
+  box-shadow: 0 5px 12px -5px rgba(0, 0, 0, 0.55);
+}
+.gt-name { font-weight: 600; font-size: 1rem; letter-spacing: 0.01em; }
+.gt-desc { font-size: 0.7rem; color: var(--muted); line-height: 1.25; }
+.gt-badge {
+  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0.1rem 0.45rem;
+}
 .game-tile.disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* ---------- landing page: actions + join ---------- */
+.action-row { display: flex; gap: 0.6rem; }
+.action-row .btn-primary,
+.action-row .btn-solo { width: auto; flex: 1; margin-top: 0; }
+.hint { color: var(--muted); font-size: 0.75rem; text-align: center; margin: 0.85rem 0 0; }
+
+.join-row { display: flex; gap: 0.6rem; align-items: stretch; }
+.join-row .code-input { flex: 1; margin: 0; }
+.join-row .btn-ghost { width: auto; padding-left: 1.4rem; padding-right: 1.4rem; }
+
+/* ---------- landing page: mobile ---------- */
+@media (max-width: 400px) {
+  .card-panel { padding: 1.15rem; }
+  .action-row { flex-direction: column; }
+  .gt-emblem { width: 40px; height: 54px; font-size: 1.55rem; }
+  .gt-name { font-size: 0.9rem; }
+  .gt-desc { font-size: 0.64rem; }
+  .picker-tiles { gap: 0.5rem; }
+}
