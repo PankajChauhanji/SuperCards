@@ -1,4 +1,11 @@
-"""Super 4 gameplay settings (variant-owned; surfaced via the game registry)."""
+"""Super 4 gameplay settings (variant-owned; surfaced via the game registry).
+
+Sources of truth for rules/scoring, keep in sync when any default below changes:
+  - this file (the running behavior)
+  - DESIGN.md (design decisions / rationale)
+  - README.md "Super Four rule book"
+  - static/rules/super_four/{en,hi}.html (player-facing rules)
+"""
 
 # ---- Room / table limits ----
 MIN_PLAYERS = 2

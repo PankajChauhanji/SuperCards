@@ -5,6 +5,9 @@ and the server-only match-draw toggle). They live with the variant, not in the
 shared config.py, so each game owns its own settings. The registry exposes
 DEFAULT_SETTINGS / SETTINGS_BOUNDS / MIN_PLAYERS / MAX_PLAYERS to the shared
 lobby via the game's GameSpec.
+
+Keep in sync when any default changes: README.md "Super Seven rule book" and
+static/rules/super_seven/{en,hi}.html.
 """
 
 # ---- Room / table limits ----
