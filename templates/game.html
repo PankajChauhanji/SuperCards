@@ -51,9 +51,9 @@
         </div>
       </div>
 
-      <button class="rules-btn" id="rules-btn" title="How to play" aria-label="How to play"><span class="rb-ico">&#9432;</span> Rules</button>
+      <button class="rules-btn" id="rules-btn" title="How to play" aria-label="How to play"><span class="rb-ico">&#9432;</span><span class="btn-label">Rules</span></button>
 
-      <button class="quit-btn" id="quit-btn" title="Quit game" aria-label="Quit game"><span class="qb-ico">&#10006;</span> Quit</button>
+      <button class="quit-btn" id="quit-btn" title="Quit game" aria-label="Quit game"><span class="qb-ico">&#10006;</span><span class="btn-label">Quit</span></button>
     </div>
   </div>
 
@@ -65,9 +65,21 @@
       <button class="copy-hint" id="copy-btn">Tap to copy &amp; share</button>
     </div>
 
-    <ul class="roster" id="roster"></ul>
-    <div class="lobby-settings" id="lobby-settings"></div>
-    <p class="meta" id="lobby-meta">Connecting…</p>
+    <div class="lobby-tabs" role="tablist">
+      <button class="lobby-tab active" data-tab="players" role="tab" aria-selected="true">
+        Players <span class="tab-count" id="players-count"></span>
+      </button>
+      <button class="lobby-tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
+    </div>
+
+    <div class="lobby-panel" data-panel="players">
+      <ul class="roster" id="roster"></ul>
+      <p class="meta" id="lobby-meta">Connecting…</p>
+    </div>
+    <div class="lobby-panel hidden" data-panel="settings">
+      <div class="lobby-settings" id="lobby-settings"></div>
+    </div>
+
     <div class="start-row" id="start-row"></div>
   </main>
 
@@ -180,13 +192,19 @@
     window.SS_ROOM_CODE = {{ code | tojson }};
     window.GAME_TYPE = {{ game_type | tojson }};
   </script>
-  <!-- Shared core: socket transport, identity, sound -->
+  <!-- Shared core: socket transport, identity, sound, and reusable chrome -->
   <script src="{{ url_for('static', filename='js/vendor/socket.io.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/identity.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/socket.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/sound.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/action_log.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/quit.js') }}"></script>
+  <!-- Shared chrome (reactions, themes, rules modal, mute/copy/spectator) -->
+  <script src="{{ url_for('static', filename='js/core/reactions.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/themes.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/rules_modal.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/chrome.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/lobby.js') }}"></script>
   <!-- Variant gameplay bundle, selected by game_type -->
   {% include 'games/' + game_type + '/scripts.html' %}
 </body>
