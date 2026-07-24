@@ -521,7 +521,7 @@
       btn.textContent = "Next round";
       btn.addEventListener("click", () => {
         btn.disabled = true;
-        socket.emit("next_round", { code, user_id: youId });
+        socket.emit("bluff_next_round", { code, user_id: youId });
       });
       footer.appendChild(btn);
     } else {

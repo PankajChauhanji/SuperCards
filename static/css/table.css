@@ -278,14 +278,18 @@
   position: relative; 
   display: inline-block; 
   line-height: 0;
-  margin-left: -50px;
   transition: transform 0.2s ease, z-index 0s;
-}
-.card-slot:first-child {
-  margin-left: 0;
 }
 .card-slot:hover {
   z-index: 10;
+}
+
+/* Bluff-only: overlap cards since hands can be 52+ cards */
+.bluff-hand .card-slot {
+  margin-left: -50px;
+}
+.bluff-hand .card-slot:first-child {
+  margin-left: 0;
 }
 .card-slot .tick {
   position: absolute;

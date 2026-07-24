@@ -119,7 +119,7 @@ def register(socketio, manager):
 
         socketio.emit("table_state", room.public_round_state(), to=room.code)
 
-    @socketio.on("next_round")
+    @socketio.on("bluff_next_round")
     def on_next_round(data):
         data = data or {}
         code = (data.get("code") or "").strip().upper()
