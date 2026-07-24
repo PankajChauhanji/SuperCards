@@ -86,12 +86,21 @@ jobs:
           }
 
           # ── Core game engine (room state, rules, scoring, manager) ──
-          remove_file game/manager.py
-          remove_file game/room.py
+          remove_file game/core/manager.py
+          remove_file game/core/room_base.py
+          remove_file game/core/states.py
+          remove_file game/core/player.py
 
           # ── Core socket handlers (game flow, lobby, director loop) ──
-          remove_file sockets/gameplay.py
+          remove_file sockets/director.py
           remove_file sockets/lobby.py
+          remove_file sockets/connection.py
+          remove_file sockets/common.py
+
+          # UI JS files (internal logic, not needed for public) ──
+          remove_file sockets/static/js/core/socket.js
+          remove_file sockets/static/js/core/rules_modal.js
+          remove_file sockets/static/js/core/identity.js
 
           # ── Test files (expose internal logic and edge cases) ──
 
