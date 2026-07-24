@@ -63,7 +63,7 @@
         }
       });
     }
-    if (view.state === "IN_TURN") renderTable(); else renderLobby();
+    if (view.state === "IN_TURN") renderTable(); else window.SS.Lobby.render(view);
     syncThemeSelectorVisibility();
   });
   socket.on("room_reset", (d) => {
@@ -75,7 +75,7 @@
   });
   socket.on("settings_updated", (d) => {
     if (d.settings) view.settings = d.settings;
-    if (view.state !== "IN_TURN") renderLobby();
+    if (view.state !== "IN_TURN") window.SS.Lobby.render(view);
   });
   socket.on("kicked", () => { alert("You were removed by the host."); window.location.href = "/"; });
 
@@ -129,7 +129,6 @@
     if (window.ActionLog) window.ActionLog.push(d.message, "info");
     showToast(d.message, d.ms);
   });
-  socket.on("reaction", (d) => floatReaction(d.emoji, d.name));
 
   function applyState(d) {
     if (d.state) view.state = d.state;
@@ -175,116 +174,28 @@
     tableView.style.display = inRound ? "flex" : "none";
     const dock = $("reaction-dock");
     if (dock) dock.style.display = inRound ? "flex" : "none";
-    if (inRound) renderTable(); else renderLobby();
+    if (inRound) renderTable(); else window.SS.Lobby.render(view);
     syncRoundChip();
     syncThemeSelectorVisibility();
   }
 
   // ================= lobby =================
-  const PALETTE = ["#4ea1ff", "#ff9f43", "#a98cf0", "#f06ea9", "#43c6c6", "#d6c04a"];
-  function renderLobby() {
-    rosterEl.innerHTML = "";
-    view.players.forEach((p) => {
-      const li = document.createElement("li");
-      const who = document.createElement("div"); who.className = "who";
-      const sw = document.createElement("span"); sw.className = "swatch";
-      sw.style.background = PALETTE[(p.color || 0) % PALETTE.length];
-      const dot = document.createElement("span"); dot.className = "dot" + (p.connected ? " on" : "");
-      const nm = document.createElement("span"); nm.className = "name"; nm.textContent = p.name;
-      who.append(sw, dot, nm);
-      const tags = document.createElement("div"); tags.className = "roster-tags";
-      if (p.user_id === view.hostId) tags.appendChild(badge("Host", "host"));
-      if (p.user_id === youId) tags.appendChild(badge("You", "you"));
-      if (p.is_spectator) tags.appendChild(badge(p.pending_join ? "Joining next" : "Spectator", "spec"));
-      if (youId === view.hostId && p.user_id !== youId) {
-        const kick = document.createElement("button"); kick.className = "kick-btn";
-        kick.textContent = "✕"; kick.title = "Remove " + p.name;
-        kick.addEventListener("click", () => {
-          if (confirm("Remove " + p.name + "?")) socket.emit("kick_player", { code, user_id: youId, target: p.user_id });
-        });
-        tags.appendChild(kick);
-      }
-      li.append(who, tags); rosterEl.appendChild(li);
-    });
-
-    renderLobbySettings();
-
-    const n = view.players.length;
-    metaEl.textContent = n + (n === 1 ? " player" : " players") + " in the room";
-
-    startRow.innerHTML = "";
-    if (youId === view.hostId) {
-      const btn = document.createElement("button");
-      btn.className = "btn-primary"; btn.textContent = "Start game";
-      btn.addEventListener("click", () => socket.emit("start_game", { code, user_id: youId }));
-      startRow.appendChild(btn);
-    } else {
-      const p = document.createElement("p"); p.className = "meta";
-      p.textContent = "Waiting for the host to start…"; startRow.appendChild(p);
-    }
-  }
-  const S4_FIELDS = [
-    ["turn_timer", "Turn time (s)"], ["match_window", "Match window (s)"],
-    ["preview_seconds", "Preview (s)"], ["rounds", "Rounds"],
-    ["exit_score", "Exit score (out)"], ["win_score", "Stop win (caller)"],
-    ["stop_loss_score", "Others on won Stop"], ["loss_score", "Loss (other rounds)"],
-    ["penalty_score", "Caught-Stop penalty"], ["timeout_limit", "Missed turns (out)"],
-  ];
-  function renderLobbySettings() {
-    if (!lobbySettings) return;
-    const s = view.settings || {};
-    const isHost = youId === view.hostId;
-    const mode = isHost ? "host" : "guest";
-    // Build the panel once per role; later renders only sync the values, so the
-    // host's in-progress edits are never wiped by a roster refresh.
-    if (lobbySettings.dataset.mode !== mode) {
-      lobbySettings.dataset.mode = mode;
-      let h = '<div style="font-size:.8rem;opacity:.7;margin-bottom:.3rem">Game settings' +
-        (isHost ? "" : " (set by the host)") + "</div>" +
-        '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.35rem;font-size:.8rem">';
-      S4_FIELDS.forEach(([k, label]) => {
-        h += '<label style="display:flex;justify-content:space-between;gap:.4rem;align-items:center">' +
-          `<span>${label}</span>` +
-          (isHost
-            ? `<input type="number" data-key="${k}" style="width:60px" />`
-            : `<span data-key="${k}" style="font-weight:600"></span>`) +
-          "</label>";
-      });
-      h += "</div>";
-      if (isHost) {
-        h += '<button class="btn-ghost" id="s4-save-settings" style="margin-top:.5rem;width:auto;padding:.3rem .8rem">Save settings</button>';
-      }
-      lobbySettings.innerHTML = h;
-      if (isHost) {
-        lobbySettings.querySelectorAll("input[data-key]").forEach((el) => {
-          el.addEventListener("input", () => { el.dataset.dirty = "1"; });
-        });
-        $("s4-save-settings").addEventListener("click", () => {
-          const out = {};
-          lobbySettings.querySelectorAll("input[data-key]").forEach((el) => {
-            if (el.value !== "") out[el.dataset.key] = parseInt(el.value, 10);
-            delete el.dataset.dirty;
-          });
-          socket.emit("update_settings", { code, user_id: youId, settings: out });
-          showToast("Settings saved");
-        });
-      }
-    }
-    S4_FIELDS.forEach(([k]) => {
-      const el = lobbySettings.querySelector(`[data-key="${k}"]`);
-      if (!el) return;
-      const val = s[k] != null ? String(s[k]) : "";
-      if (el.tagName === "INPUT") {
-        if (el !== document.activeElement && !el.dataset.dirty) el.value = val;
-      } else {
-        el.textContent = val || "—";
-      }
-    });
-  }
-
-  function badge(text, cls) {
-    const b = document.createElement("span"); b.className = "badge " + cls; b.textContent = text; return b;
-  }
+  // Shared renderer (roster + settings tabs + start): static/js/core/lobby.js
+  window.SS.Lobby.init({
+    youId,
+    fields: [
+      { key: "turn_timer", label: "Turn time (s)", min: 15, max: 180 },
+      { key: "match_window", label: "Match window (s)", min: 0, max: 10 },
+      { key: "preview_seconds", label: "Preview (s)", min: 3, max: 30 },
+      { key: "rounds", label: "Rounds", min: 1, max: 20 },
+      { key: "exit_score", label: "Exit score (out)", min: 3, max: 100 },
+      { key: "win_score", label: "Stop win (caller)", min: -20, max: 0 },
+      { key: "stop_loss_score", label: "Others on won Stop", min: 0, max: 20 },
+      { key: "loss_score", label: "Loss (other rounds)", min: 0, max: 20 },
+      { key: "penalty_score", label: "Caught-Stop penalty", min: 0, max: 40 },
+      { key: "timeout_limit", label: "Missed turns (out)", min: 1, max: 10 },
+    ],
+  });
 
   // ================= table =================
   function canMatchNow() {
@@ -638,7 +549,7 @@
           btn.title = "Admit " + p.name + " to the next round";
           btn.style.cssText = "width:22px;height:22px;border:none;border-radius:4px;cursor:pointer;" +
             "background:rgba(255,255,255,.15);color:inherit;font-size:16px;line-height:1";
-          btn.addEventListener("click", () => openSpectatorModal(p.user_id, p.name));
+          btn.addEventListener("click", () => window.SS.openSpectatorModal(p.user_id, p.name));
           li.appendChild(btn);
         }
         scoreList.appendChild(li);
@@ -646,25 +557,7 @@
     }
   }
 
-  // ---- spectator admit modal (host) ----
-  let admitTargetId = null;
-  function openSpectatorModal(targetId, name) {
-    const m = $("spectator-modal"); if (!m) return;
-    admitTargetId = targetId;
-    $("admit-name").textContent = name;
-    $("admit-penalty").value = "0";
-    m.classList.add("open");
-  }
-  if ($("admit-cancel")) $("admit-cancel").addEventListener("click", () => {
-    closeModal("spectator-modal"); admitTargetId = null;
-  });
-  if ($("admit-confirm")) $("admit-confirm").addEventListener("click", () => {
-    if (admitTargetId) {
-      const penalty = parseInt($("admit-penalty").value, 10) || 0;
-      socket.emit("admit_spectator", { code, user_id: youId, target_id: admitTargetId, penalty: penalty });
-    }
-    closeModal("spectator-modal"); admitTargetId = null;
-  });
+  // ---- spectator admit modal (host) ---- (shared: static/js/core/chrome.js)
 
   function setPileCard(el, card) {
     let img = el.querySelector("img.pile-face");
@@ -807,159 +700,16 @@
   function openModal(id) { const m = $(id); if (m) m.classList.add("open"); }
   function closeModal(id) { const m = $(id); if (m) m.classList.remove("open"); }
 
-  // Rules modal (per-game content)
-  const rulesCache = {};
-  function loadRules(lang) {
-    const c = $("rules-content-container"), t = $("rules-title");
-    document.querySelectorAll(".lang-btn").forEach((b) => {
-      const on = b.dataset.lang === lang;
-      b.style.background = on ? "#6706ce" : "transparent"; b.style.color = on ? "#fff" : "inherit";
-    });
-    if (t) t.textContent = lang === "hi" ? "📖 नियम" : "📖 Rule Book";
-    if (rulesCache[lang]) { c.innerHTML = rulesCache[lang]; return; }
-    c.innerHTML = "<p>Loading rules…</p>";
-    fetch(`/static/rules/${gameType}/${lang}.html`)
-      .then((r) => { if (!r.ok) throw new Error("nope"); return r.text(); })
-      .then((h) => { rulesCache[lang] = h; c.innerHTML = h; })
-      .catch(() => { c.innerHTML = "<p>Rules coming soon.</p>"; });
-  }
-  if ($("rules-btn")) $("rules-btn").addEventListener("click", () => { openModal("rules-modal"); loadRules("en"); });
-  if ($("rules-close")) $("rules-close").addEventListener("click", () => closeModal("rules-modal"));
-  const rulesModal = $("rules-modal");
-  if (rulesModal) rulesModal.addEventListener("click", (e) => {
-    if (e.target === rulesModal) closeModal("rules-modal");
-  });
-  document.querySelectorAll(".lang-btn").forEach((b) => b.addEventListener("click", (e) => loadRules(e.target.dataset.lang)));
-
-  // Reactions (shared social channel) — same UX as the Super Seven bundle.
-  const fab = $("reaction-fab"), panel = $("reaction-panel");
-  const rxRecentContainer = $("rx-recent-container"), rxRecentGrid = $("rx-recent-grid");
-  function getRecentReactions() {
-    try { return JSON.parse(localStorage.getItem("super_seven_recent_rx")) || []; }
-    catch (e) { return []; }
-  }
-  function sendReaction(emoji) {
-    // Panel stays open — rapid repeat clicks spam reactions, same as Super Seven.
-    socket.emit("reaction", { code, user_id: youId, emoji });
-    let recent = getRecentReactions();
-    recent = recent.filter((e) => e !== emoji);
-    recent.unshift(emoji);
-    if (recent.length > 5) recent.pop();
-    localStorage.setItem("super_seven_recent_rx", JSON.stringify(recent));
-    updateRecentGrid();
-  }
-  function updateRecentGrid() {
-    if (!rxRecentContainer || !rxRecentGrid) return;
-    const recent = getRecentReactions();
-    if (fab && recent.length) fab.textContent = recent[0];
-    if (!recent.length) { rxRecentContainer.style.display = "none"; return; }
-    rxRecentContainer.style.display = "flex";
-    rxRecentGrid.innerHTML = "";
-    recent.forEach((emoji) => {
-      const btn = document.createElement("button");
-      btn.className = "rx"; btn.dataset.e = emoji; btn.title = emoji; btn.textContent = emoji;
-      btn.addEventListener("click", () => sendReaction(emoji));
-      rxRecentGrid.appendChild(btn);
-    });
-  }
-  if (fab && panel) {
-    // Single click toggles the panel; rapid double-click fires the last-used
-    // reaction immediately (same feel as Super Seven).
-    let lastFabClick = 0, fabClickTimeout = null;
-    fab.addEventListener("click", () => {
-      const now = Date.now();
-      const rapid = now - lastFabClick < 300;
-      lastFabClick = now;
-      if (rapid) {
-        if (fabClickTimeout) { clearTimeout(fabClickTimeout); fabClickTimeout = null; }
-        sendReaction(getRecentReactions()[0] || "🤡");
-      } else {
-        fabClickTimeout = setTimeout(() => {
-          fabClickTimeout = null;
-          panel.hidden = !panel.hidden;
-          if (!panel.hidden) updateRecentGrid();
-        }, 220);
-      }
-    });
-    document.querySelectorAll("#rx-main-grid .rx").forEach((b) =>
-      b.addEventListener("click", () => sendReaction(b.dataset.e)));
-    document.addEventListener("click", (e) => {
-      const dock = $("reaction-dock");
-      if (dock && !dock.contains(e.target)) panel.hidden = true;
-    });
-    updateRecentGrid();
-  }
-  function floatReaction(emoji, name) {
-    const layer = $("reactions-layer"); if (!layer) return;
-    const el = document.createElement("div"); el.className = "rx-float"; el.textContent = emoji;
-    if (name) {
-      const tag = document.createElement("span"); tag.className = "rx-name"; tag.textContent = name;
-      el.appendChild(tag);
-    }
-    el.style.left = (10 + Math.random() * 70) + "%";
-    el.style.setProperty("--drift", (Math.random() * 60 - 30) + "px");
-    layer.appendChild(el); setTimeout(() => el.remove(), 3900);
-  }
-
-  // ---- table themes (same shared selector + CSS as Super Seven) ----
-  const THEME_MAP = {
-    default: { icon: "🟢", name: "Default" },
-    casino: { icon: "🎰", name: "Casino Felt" },
-    cyberpunk: { icon: "👾", name: "Cyberpunk" },
-    marble: { icon: "🏛️", name: "Marble Luxury" },
-    red_casino: { icon: "🍒", name: "Red Casino" },
-  };
+  // ---- table theme (shared impl: static/js/core/themes.js) ----
   function syncTableTheme() {
-    const theme = view.tableTheme || "default";
-    Object.keys(THEME_MAP).forEach((t) => document.body.classList.remove("theme-" + t));
-    if (theme !== "default") document.body.classList.add("theme-" + theme);
-    const icon = $("current-theme-icon"), name = $("current-theme-name");
-    if (icon && name) {
-      const active = THEME_MAP[theme] || THEME_MAP.default;
-      icon.textContent = active.icon; name.textContent = active.name;
-    }
+    if (window.SS.themes) window.SS.themes.apply(view.tableTheme || "default");
   }
   function syncThemeSelectorVisibility() {
-    const wrap = $("theme-select-wrap");
-    if (wrap) wrap.style.display = view.hostId === youId ? "inline-flex" : "none";
-  }
-  const themeBtn = $("theme-select-btn"), themeDropdown = $("theme-dropdown");
-  if (themeBtn && themeDropdown) {
-    themeBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const hidden = themeDropdown.hasAttribute("hidden");
-      if (hidden) { themeDropdown.removeAttribute("hidden"); themeDropdown.setAttribute("aria-hidden", "false"); }
-      else { themeDropdown.setAttribute("hidden", ""); themeDropdown.setAttribute("aria-hidden", "true"); }
-    });
-    themeDropdown.querySelectorAll(".theme-opt").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        socket.emit("change_table_theme", { code, user_id: youId, theme: btn.dataset.t });
-        themeDropdown.setAttribute("hidden", ""); themeDropdown.setAttribute("aria-hidden", "true");
-      });
-    });
-    document.addEventListener("click", () => {
-      themeDropdown.setAttribute("hidden", ""); themeDropdown.setAttribute("aria-hidden", "true");
-    });
+    if (window.SS.themes) window.SS.themes.syncVisibility(view.hostId === youId);
   }
   socket.on("table_theme_updated", (d) => { view.tableTheme = d.theme; syncTableTheme(); });
 
-  // Mute (best-effort)
-  if ($("mute-btn") && window.SS.sound && window.SS.sound.toggleMute) {
-    $("mute-btn").addEventListener("click", () => {
-      const muted = window.SS.sound.toggleMute();
-      $("mute-btn").textContent = muted ? "🔇" : "🔊";
-    });
-  }
-  // Copy code
-  if ($("copy-btn")) $("copy-btn").addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      showToast("Room code copied");
-    } catch (_) {
-      showToast("Code: " + code);
-    }
-  });
+  // Rules modal, reactions, mute, copy — all shared: static/js/core/*.js
 
   function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; }
 })();
