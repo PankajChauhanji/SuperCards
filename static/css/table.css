@@ -536,17 +536,19 @@
 /* lobby roster: tags + host kick button */
 .roster-tags { display: flex; align-items: center; gap: 0.35rem; }
 .kick-btn {
-  border: 1px solid var(--line);
+  border: none;
   background: transparent;
   color: var(--muted);
-  width: 24px; height: 24px;
-  border-radius: 6px;
+  width: 26px; height: 26px;
+  border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer;
   font-size: 0.8rem;
   line-height: 1;
-  transition: all 0.15s ease;
+  opacity: 0.6;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
-.kick-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.kick-btn:hover { background: rgba(239, 68, 68, 0.18); color: #ff6b6b; opacity: 1; }
 
 /* host-editable lobby settings */
 .se-hint { font-weight: 400; font-size: 0.7rem; color: var(--muted); text-transform: none; letter-spacing: 0; }
