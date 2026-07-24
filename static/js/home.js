@@ -1,4 +1,6 @@
-// Home page: create or join a room, then navigate to /room/<code>.
+// Home page: choose a game, create or join a room, then navigate to /room/<code>.
+// Round settings are NOT set here — the server fills defaults and the host tunes
+// them in the lobby.
 (function () {
   const { socket, showToast } = window.SS;
 
@@ -8,54 +10,25 @@
   const soloBtn = document.getElementById("solo-btn");
   const joinBtn = document.getElementById("join-btn");
   const gameTiles = Array.from(document.querySelectorAll(".game-tile[data-game]"));
-  const settingsSections = Array.from(document.querySelectorAll(".game-settings[data-game]"));
 
   // Prefill saved name.
   nameInput.value = window.Identity.name();
 
   // ---- Game picker ----
-  // Selected game_type drives create/solo and which settings block shows.
+  // The selected game_type drives create / solo.
   let selectedGame = (gameTiles.find((t) => t.classList.contains("selected"))
     || gameTiles[0] || {}).dataset?.game || "super_seven";
-
-  function syncSettingsVisibility() {
-    settingsSections.forEach((sec) => {
-      sec.style.display = sec.dataset.game === selectedGame ? "" : "none";
-    });
-  }
 
   gameTiles.forEach((tile) => {
     tile.addEventListener("click", () => {
       selectedGame = tile.dataset.game;
-      gameTiles.forEach((t) => t.classList.toggle("selected", t === tile));
-      syncSettingsVisibility();
+      gameTiles.forEach((t) => {
+        const on = t === tile;
+        t.classList.toggle("selected", on);
+        t.setAttribute("aria-checked", on ? "true" : "false");
+      });
     });
   });
-  syncSettingsVisibility();
-
-  // Each settings section has its own collapse toggle.
-  settingsSections.forEach((sec) => {
-    const toggle = sec.querySelector(".settings-toggle");
-    const grid = sec.querySelector(".settings-grid");
-    if (toggle && grid) {
-      toggle.addEventListener("click", () => {
-        grid.classList.toggle("hidden");
-        toggle.textContent = grid.classList.contains("hidden") ? "Game settings ▸" : "Game settings ▾";
-      });
-    }
-  });
-
-  // Gather settings from the visible game's section (inputs carry data-key).
-  function gatherSettings() {
-    const sec = settingsSections.find((s) => s.dataset.game === selectedGame);
-    const out = {};
-    if (sec) {
-      sec.querySelectorAll("input[data-key]").forEach((el) => {
-        if (el.value !== "") out[el.dataset.key] = parseInt(el.value, 10);
-      });
-    }
-    return out;
-  }
 
   function lockButtons(locked) {
     createBtn.disabled = locked;
@@ -72,7 +45,6 @@
       name,
       user_id: window.Identity.userId(),
       game_type: selectedGame,
-      settings: gatherSettings(),
     });
   });
 
@@ -85,7 +57,6 @@
       name,
       user_id: window.Identity.userId(),
       game_type: selectedGame,
-      settings: gatherSettings(),
     });
   });
 
