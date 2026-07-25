@@ -19,6 +19,8 @@
     <div class="topbar-right">
       <span class="turn-timer" id="turn-timer" style="display:none"></span>
       <span class="round-chip" id="round-chip" style="display:none">Round 1</span>
+      <button class="topbar-menu-btn icon-btn" id="topbar-menu-btn" title="Menu" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <div class="topbar-actions" id="topbar-actions">
       <button class="icon-btn" id="mute-btn" title="Sound on/off" aria-label="Sound on/off">&#128266;</button>
       
       <!-- Table Theme Selector (shown beside Rules button) -->
@@ -54,6 +56,7 @@
       <button class="rules-btn" id="rules-btn" title="How to play" aria-label="How to play"><span class="rb-ico">&#9432;</span><span class="btn-label">Rules</span></button>
 
       <button class="quit-btn" id="quit-btn" title="Quit game" aria-label="Quit game"><span class="qb-ico">&#10006;</span><span class="btn-label">Quit</span></button>
+      </div>
     </div>
   </div>
 
@@ -196,6 +199,7 @@
   <script src="{{ url_for('static', filename='js/vendor/socket.io.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/identity.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/socket.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/format.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/sound.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/action_log.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/quit.js') }}"></script>

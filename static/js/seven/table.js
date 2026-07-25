@@ -94,8 +94,9 @@
 
       const text = document.createElement("span");
       text.className = "sb-text";
-      text.textContent = p.name + (p.user_id === state.you ? " (you)" : "");
+      text.textContent = window.SS.shortName(p.name);
       left.appendChild(text);
+      if (p.user_id === state.you) { const y = document.createElement("span"); y.className = "sb-you"; y.textContent = "you"; left.appendChild(y); }
 
       const score = document.createElement("span");
       score.className = "sb-score";
@@ -140,8 +141,9 @@
           
           const text = document.createElement("span");
           text.className = "sb-text";
-          text.textContent = p.name + (p.user_id === state.you ? " (you)" : "");
+          text.textContent = window.SS.shortName(p.name);
           left.appendChild(text);
+          if (p.user_id === state.you) { const y = document.createElement("span"); y.className = "sb-you"; y.textContent = "you"; left.appendChild(y); }
           li.appendChild(left);
 
           if (p.pending_join) {
@@ -231,7 +233,7 @@
         meta.className = "seat-meta";
         const name = document.createElement("span");
         name.className = "seat-name";
-        name.textContent = p.name;
+        name.textContent = window.SS.shortName(p.name);
         
         // Next/Active turn status indicator
         const statusRow = document.createElement("div");
@@ -304,7 +306,7 @@
     const me = state.players.find((p) => p.user_id === state.you);
     const name = document.createElement("span");
     name.className = "seat-name";
-    name.textContent = (me ? me.name : "You") + " (you)";
+    name.textContent = (me ? window.SS.shortName(me.name) : "You") + " (you)";
     
     const tag = document.createElement("span");
     tag.className = "turn-tag";

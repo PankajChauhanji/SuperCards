@@ -72,12 +72,12 @@
 #action-log-list {
   list-style: none;
   margin: 0;
-  padding: 0 0.6rem 0.6rem;
+  padding: 0 0.55rem 0.5rem;
   overflow-y: auto;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.18rem;
 }
 #action-log-list::-webkit-scrollbar { width: 4px; }
 #action-log-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
@@ -85,23 +85,24 @@
 .al-entry {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
-  /* clean, legible handwritten style — Patrick Hand stays readable at small
-     sizes, unlike a heavy cursive; a gentle slant gives the italic feel. */
-  font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive;
-  font-style: italic;
-  font-size: 0.98rem;
-  letter-spacing: 0.01em;
-  line-height: 1.3;
-  padding: 0.34rem 0.55rem;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.05);
+  gap: 0.35rem;
+  /* Compact system font — thinner and more space-efficient than a handwritten
+     face, so most messages fit on one line (two at most). */
+  font-family: var(--body);
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  line-height: 1.25;
+  padding: 0.24rem 0.45rem;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
   animation: al-fadein 0.25s ease;
 }
 @keyframes al-fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.al-icon { flex: 0 0 auto; font-size: 0.95rem; font-style: normal; line-height: 1.3; }
+.al-icon { flex: 0 0 auto; font-size: 0.8rem; font-style: normal; line-height: 1.25; }
 .al-text { flex: 1 1 auto; color: var(--text); word-break: break-word; }
-.al-actor { font-weight: 700; font-style: italic; margin-right: 0.15rem; }
+.al-actor { font-weight: 600; font-style: normal; margin-right: 0.15rem; }
 /* timestamps carry no meaning in the feed — hidden if ever emitted */
 .al-time { display: none; }
 
@@ -136,9 +137,14 @@
   background: rgba(87, 217, 138, 0.08);
 }
 #score-list li.out { opacity: 0.45; }
-.sb-name { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
-.sb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sb-score { font-family: var(--display); font-weight: 600; color: var(--gold); }
+.sb-name { display: flex; align-items: center; gap: 0.4rem; min-width: 0; flex: 1 1 auto; overflow: hidden; }
+.sb-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sb-score { flex: 0 0 auto; margin-left: 0.4rem; font-family: var(--display); font-weight: 600; color: var(--gold); }
+.sb-you {
+  flex: 0 0 auto; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
+  padding: 0.02rem 0.32rem; line-height: 1.4;
+}
 
 /* ---- score progress strip ---- */
 .sb-bar {
@@ -206,8 +212,8 @@
 .mini-stack { display: flex; align-items: center; gap: 0.3rem; }
 .card.mini { width: 30px; height: 42px; border-radius: 4px; }
 .mini-stack .count { font-family: var(--display); font-weight: 600; color: var(--text); }
-.seat-meta { display: flex; flex-direction: column; line-height: 1.2; }
-.seat-name { font-weight: 600; }
+.seat-meta { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.seat-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .seat-score { font-size: 0.78rem; color: var(--muted); }
 
 /* center row */
@@ -261,8 +267,16 @@
 .pile-empty { color: var(--muted); font-size: 0.8rem; }
 .center-card { width: 62px; height: 86px; }
 
-/* own seat + hand */
-.myhand-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+/* own seat + hand — an elevated "tray" that sits slightly above the felt */
+.myhand-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+  width: 100%; max-width: 640px; margin: 0.2rem auto 0;
+  padding: 0.85rem 1rem 1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
 .myseat {
   display: inline-flex;
   align-items: center;
@@ -278,8 +292,11 @@
 
 .hand {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 0;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
 }
 .card.hand-card {
   width: 74px;
@@ -294,12 +311,23 @@
 
 @media (max-width: 720px) {
   .table-view { flex-direction: column; }
-  .scoreboard { position: static; width: 100%; top: auto; bottom: auto; left: auto; max-height: 280px; flex-direction: row; gap: 0.6rem; }
+  /* Stack Scores over Action History, each FULL-WIDTH, so names never clip and
+     log lines fit in one or two rows (side-by-side made both columns too narrow). */
+  .scoreboard { position: static; width: 100%; top: auto; bottom: auto; left: auto;
+                max-height: none; flex-direction: column; gap: 0.6rem; }
   .felt { margin-left: 0; width: 100%; }
-  /* side-by-side cards on narrow screens */
-  .sb-players { max-height: 100%; flex: 1 1 55%; }
-  .action-log { min-height: 0; flex: 1 1 45%; }
+  .sb-players { max-height: 170px; flex: 0 0 auto; }
+  .action-log { min-height: 96px; max-height: 190px; flex: 1 1 auto; }
   .center-row { gap: 1.5rem; }
+}
+
+/* Phones: shrink hand cards so they wrap tidily (never overflow the table) */
+@media (max-width: 600px) {
+  .felt { padding: 1rem 0.75rem; }
+  .hand { gap: 0.4rem; }
+  .card.hand-card { width: 60px; height: 84px; }
+  .bluff-hand .hand-card { width: 46px; height: 66px; }
+  .myhand-wrap { max-width: 100%; padding: 0.7rem 0.55rem 0.85rem; }
 }
 
 /* ---------- card selection ---------- */
@@ -313,13 +341,11 @@
   z-index: 10;
 }
 
-/* Bluff-only: overlap cards since hands can be 52+ cards */
-.bluff-hand .card-slot {
-  margin-left: -50px;
-}
-.bluff-hand .card-slot:first-child {
-  margin-left: 0;
-}
+/* Bluff-only: hands can be large, so use compact cards that WRAP into rows
+   (pile below) instead of overflowing the table width. */
+.bluff-hand { gap: 0.35rem; }
+.bluff-hand .card-slot { margin-left: 0; }
+.bluff-hand .hand-card { width: 58px; height: 82px; }
 .card-slot .tick {
   position: absolute;
   top: -8px; right: -8px;

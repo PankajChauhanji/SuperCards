@@ -56,8 +56,9 @@
 
       const text = document.createElement("span");
       text.className = "sb-text";
-      text.textContent = p.name + (p.user_id === state.you ? " (you)" : "");
+      text.textContent = window.SS.shortName(p.name);
       left.appendChild(text);
+      if (p.user_id === state.you) { const y = document.createElement("span"); y.className = "sb-you"; y.textContent = "you"; left.appendChild(y); }
 
       li.appendChild(left);
       list.appendChild(li);
@@ -92,7 +93,7 @@
         meta.className = "seat-meta";
         const name = document.createElement("span");
         name.className = "seat-name";
-        name.textContent = p.name;
+        name.textContent = window.SS.shortName(p.name);
         meta.appendChild(name);
 
         seat.appendChild(stack);
@@ -152,7 +153,7 @@
     const me = state.players.find((p) => p.user_id === state.you);
     const name = document.createElement("span");
     name.className = "seat-name";
-    name.textContent = (me ? me.name : "You") + " (you)";
+    name.textContent = (me ? window.SS.shortName(me.name) : "You") + " (you)";
     seat.appendChild(name);
   }
 

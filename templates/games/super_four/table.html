@@ -7,9 +7,11 @@
     .s4-seat.turn { border-color:#6706ce; box-shadow:0 0 0 1px #6706ce inset; }
     .s4-seat .seat-name { font-weight:600; font-size:.9rem; margin-bottom:.4rem; display:flex;
                justify-content:space-between; gap:.5rem; align-items:center; }
-    .s4-seat .seat-total { font-size:.75rem; opacity:.7; }
-    .s4-slots { display:flex; gap:.4rem; }
-    .s4-slot { width:46px; height:64px; border-radius:8px; position:relative; cursor:default;
+    .s4-seat .seat-name > span:first-child { overflow:hidden; text-overflow:ellipsis;
+               white-space:nowrap; min-width:0; }
+    .s4-seat .seat-total { font-size:.75rem; opacity:.7; flex:0 0 auto; }
+    .s4-slots { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; }
+    .s4-slot { width:52px; height:72px; border-radius:8px; position:relative; cursor:default;
                background:#1b2333; border:2px solid rgba(255,255,255,.14); display:flex;
                align-items:center; justify-content:center; overflow:hidden; }
     .s4-slot img { width:100%; height:100%; object-fit:contain; }
@@ -19,7 +21,11 @@
     .s4-slot.selectable { cursor:pointer; border-color:#ff9f43; box-shadow:0 0 8px rgba(255,159,67,.6); }
     .s4-slot.selected { border-color:#43c6c6; box-shadow:0 0 10px rgba(67,198,198,.8); }
     .s4-slot.selectable:hover { transform:translateY(-3px); }
-    .s4-mine { margin-top:.4rem; }
+    .s4-mine { margin-top:.4rem; width:100%; max-width:420px; margin-left:auto; margin-right:auto;
+               display:flex; flex-direction:column; align-items:center;
+               padding:.85rem 1rem 1rem; border-radius:16px; border:1px solid rgba(255,255,255,.1);
+               background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+               box-shadow:0 12px 30px -18px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.05); }
     .s4-center-row { display:flex; gap:1.4rem; align-items:flex-end; justify-content:center; }
     .s4-pile { width:60px; height:84px; border-radius:10px; position:relative; display:flex;
                align-items:center; justify-content:center; background:#141b28;
@@ -37,7 +43,8 @@
                background:#6706ce; color:#fff; cursor:pointer; font-weight:600; font-size:.85rem; }
     .s4-btns button.ghost { background:transparent; }
     .s4-btns button:disabled { opacity:.4; cursor:not-allowed; }
-    .s4-myname { font-weight:600; margin-bottom:.3rem; }
+    .s4-myname { font-weight:600; margin-bottom:.3rem; max-width:100%; overflow:hidden;
+               text-overflow:ellipsis; white-space:nowrap; }
   </style>
 
   <div class="table-view" id="table-view" style="display:none">
