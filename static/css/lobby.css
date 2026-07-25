@@ -173,7 +173,10 @@
 
 /* ---------- topbar extras ---------- */
 /* Controls stay on ONE line at every width; they compact rather than wrap. */
-.topbar-right { display: flex; align-items: center; gap: 0.55rem; flex-wrap: nowrap; }
+.topbar-right { position: relative; display: flex; align-items: center; gap: 0.55rem; flex-wrap: nowrap; }
+/* Desktop: actions inline, hamburger hidden. (Mobile overrides in reactions.css.) */
+.topbar-actions { display: flex; align-items: center; gap: 0.55rem; }
+.topbar-menu-btn { display: none; }
 
 /* per-game brand (card emblem + name), accent supplied inline by branding.html */
 .game-brand { min-width: 0; }
