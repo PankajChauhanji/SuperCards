@@ -140,6 +140,43 @@ style of the original `super_seven_symbol.svg` (red/dark card, gold border + gly
 - [x] Verified in-browser (all three games + home): symbols load & render, topbars consistent,
       bot no longer kickable, no console errors; 14 engine tests still green.
 
+## 7. Game-window UI: hand tray, mobile topbar, card faces — ✅ DONE (2026-07-25)
+
+Three fixes to the in-game table (all three games):
+- [x] **Self-hand is a responsive elevated "tray."** Root cause of overflow: `.hand` had lost
+      `flex-wrap` (`gap:0`) and Bluff used a `-50px` overlap with no wrap. Restored `flex-wrap`
+      + gap, wrapped the hand in an elevated panel (`.myhand-wrap` / Super 4 `.s4-mine`), and
+      added mobile card-size shrink so cards wrap tidily and **never leave the felt**. Verified:
+      Super 7 = 4-above-3-below on mobile; Super 4 = 4-slot tray; Bluff = 26 cards wrap ~4/row
+      and pile below (no horizontal overflow). Bluff overlap removed in favor of compact wrapping.
+- [x] **Mobile topbar hamburger.** In-game the row (timer + round + sound/theme/rules/quit)
+      crowded the game name. Wrapped the four action controls in `.topbar-actions` and added a
+      `#topbar-menu-btn` hamburger (shared `core/chrome.js` toggle). ≤600px: controls collapse
+      into a dropdown menu (labelled rows); desktop keeps them inline. Removed the old
+      icon-only-on-mobile hack.
+- [x] **Better face cards.** The J/Q/K were muddy hand-drawn portraits. Rewrote them in
+      `tools/generate_cards.py` as clean **gold emblems that say what they are** — Jack = sword,
+      Queen = tiara, King = crown+cross — over a large suit glyph (consistent with number cards).
+      Regenerated all 52 + back; legible at ~60px table size and elegant enlarged.
+- [x] Verified in-browser across the three games on mobile (375px) and desktop; no console errors.
+
+## 8. Scores + Action History polish — ✅ DONE (2026-07-25)
+
+- [x] **Super 4 gets a progress bar.** Its scoreboard now matches Super Seven: colour swatch,
+      host crown, name, score, and the green→red `.sb-bar` strip — here filling toward
+      `exit_score` (a negative score = doing well = empty bar).
+- [x] **Names never wrap or overrun.** New shared helper `core/format.js` `SS.shortName()`:
+      two words → "First L" (full first + last initial), long single name → clipped with "…".
+      Applied to every scores row, opponent seat, and the self card-pile name across all three
+      games, with CSS ellipsis as a backstop. The redundant "(you)" text became a compact `you`
+      pill so the name keeps its width. The action-log actor name is shortened too.
+- [x] **Mobile layout: stack Scores over Action History full-width** (they were side-by-side and
+      too narrow — names clipped, log lines wrapped 3–4×). Full width → names fit and log lines
+      sit in one or two rows. Desktop keeps the 280px side column.
+- [x] **Action History is compact & thinner** — switched from the wide handwritten face to the
+      body font at 0.78rem / weight 400, tighter padding, line-height and list gap.
+- [x] Verified across all three games on mobile (375px) + desktop; no console errors.
+
 ---
 
 ## Super 4 — game-specific notes & ideas

@@ -65,208 +65,64 @@ FACE_A = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width=
 </svg>
 """
 
-FACE_J = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
+# Face cards: a clean GOLD emblem that says what the rank *is* — Jack = sword
+# (the soldier/knave), Queen = tiara, King = crown+cross — over a large suit
+# glyph in the suit colour. Reads clearly even at ~60px on the table, and stays
+# consistent with the number cards' big central pip.
+_FACE_TMPL = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
   <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
   <!-- Corners -->
   <g fill="{color}" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
     <g>
-      <text x="24" y="44" font-size="28" text-anchor="middle">J</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
+      <text x="26" y="46" font-size="32" text-anchor="middle">{rank}</text>
+      <text x="26" y="76" font-size="26" text-anchor="middle">{suit}</text>
     </g>
     <g transform="rotate(180 90 126)">
-      <text x="24" y="44" font-size="28" text-anchor="middle">J</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
+      <text x="26" y="46" font-size="32" text-anchor="middle">{rank}</text>
+      <text x="26" y="76" font-size="26" text-anchor="middle">{suit}</text>
     </g>
   </g>
-  <!-- Portrait Frame -->
-  <rect x="42" y="42" width="96" height="168" rx="8" fill="none" stroke="{color}" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.5"/>
-  <!-- Jack Portrait -->
-  <g transform="translate(90, 126)">
-    <!-- Top Half -->
-    <g>
-      <!-- Cap -->
-      <path d="M -16,-28 C -16,-46 16,-46 16,-28 Z" fill="{color}"/>
-      <path d="M 0,-40 Q 12,-50 20,-43 Q 12,-36 0,-40" fill="{color}"/>
-      <!-- Face -->
-      <path d="M -14,-28 L 14,-28 L 14,-6 Q 14,8 0,8 Q -14,8 -14,-6 Z" fill="#fdfbf5" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <!-- Eyes & Face details -->
-      <circle cx="-5" cy="-12" r="1.5" fill="{color}"/>
-      <circle cx="5" cy="-12" r="1.5" fill="{color}"/>
-      <path d="M 0,-14 L 0,-9 L 2,-9" stroke="{color}" stroke-width="2" fill="none"/>
-      <line x1="-4" y1="-2" x2="4" y2="-2" stroke="{color}" stroke-width="2" stroke-linecap="round"/>
-      <!-- Shoulders/Collar -->
-      <path d="M -28,35 L -18,8 Q 0,14 18,8 L 28,35 Z" fill="none" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <path d="M -14,8 L -6,22 L 0,8 L 6,22 L 14,8" stroke="{color}" stroke-width="2" fill="none"/>
-      <!-- Halberd/Spear -->
-      <line x1="-22" y1="-20" x2="-22" y2="35" stroke="{color}" stroke-width="2"/>
-      <path d="M -26,-20 L -22,-30 L -18,-20 Z" fill="{color}"/>
-    </g>
-    <!-- Bottom Half -->
-    <g transform="rotate(180)">
-      <!-- Cap -->
-      <path d="M -16,-28 C -16,-46 16,-46 16,-28 Z" fill="{color}"/>
-      <path d="M 0,-40 Q 12,-50 20,-43 Q 12,-36 0,-40" fill="{color}"/>
-      <!-- Face -->
-      <path d="M -14,-28 L 14,-28 L 14,-6 Q 14,8 0,8 Q -14,8 -14,-6 Z" fill="#fdfbf5" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <!-- Eyes & Face details -->
-      <circle cx="-5" cy="-12" r="1.5" fill="{color}"/>
-      <circle cx="5" cy="-12" r="1.5" fill="{color}"/>
-      <path d="M 0,-14 L 0,-9 L 2,-9" stroke="{color}" stroke-width="2" fill="none"/>
-      <line x1="-4" y1="-2" x2="4" y2="-2" stroke="{color}" stroke-width="2" stroke-linecap="round"/>
-      <!-- Shoulders/Collar -->
-      <path d="M -28,35 L -18,8 Q 0,14 18,8 L 28,35 Z" fill="none" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <path d="M -14,8 L -6,22 L 0,8 L 6,22 L 14,8" stroke="{color}" stroke-width="2" fill="none"/>
-      <!-- Halberd/Spear -->
-      <line x1="-22" y1="-20" x2="-22" y2="35" stroke="{color}" stroke-width="2"/>
-      <path d="M -26,-20 L -22,-30 L -18,-20 Z" fill="{color}"/>
-    </g>
+  <!-- Royal emblem (gold) -->
+  <g fill="#c99530" stroke="#8a6416" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
+    {emblem}
   </g>
+  <!-- Large suit glyph -->
+  <text x="90" y="176" font-size="86" fill="{color}" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, 'Times New Roman', serif" font-weight="700">{suit}</text>
 </svg>
 """
 
-FACE_Q = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
-  <!-- Corners -->
-  <g fill="{color}" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <g>
-      <text x="24" y="44" font-size="28" text-anchor="middle">Q</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
-    </g>
-    <g transform="rotate(180 90 126)">
-      <text x="24" y="44" font-size="28" text-anchor="middle">Q</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
-    </g>
-  </g>
-  <!-- Portrait Frame -->
-  <rect x="42" y="42" width="96" height="168" rx="8" fill="none" stroke="{color}" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.5"/>
-  <!-- Queen Portrait -->
-  <g transform="translate(90, 126)">
-    <!-- Top Half -->
-    <g>
-      <!-- Crown -->
-      <path d="M -16,-28 L -16,-40 L -8,-32 L 0,-48 L 8,-32 L 16,-40 L 16,-28 Z" fill="{color}"/>
-      <line x1="-12" y1="-28" x2="12" y2="-28" stroke="#fdfbf5" stroke-width="2"/>
-      <circle cx="-16" cy="-40" r="2" fill="{color}"/>
-      <circle cx="0" cy="-48" r="2" fill="{color}"/>
-      <circle cx="16" cy="-40" r="2" fill="{color}"/>
-      <!-- Face -->
-      <path d="M -12,-28 L 12,-28 L 12,-6 Q 12,8 0,8 Q -12,8 -12,-6 Z" fill="#fdfbf5" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <!-- Hair lines -->
-      <path d="M -14,-22 C -20,-10 -20,15 -14,24" fill="none" stroke="{color}" stroke-width="2"/>
-      <path d="M 14,-22 C 20,-10 20,15 14,24" fill="none" stroke="{color}" stroke-width="2"/>
-      <!-- Eyes & Face details -->
-      <circle cx="-5" cy="-12" r="1.5" fill="{color}"/>
-      <circle cx="5" cy="-12" r="1.5" fill="{color}"/>
-      <path d="M 0,-14 L 0,-9 L 2,-9" stroke="{color}" stroke-width="2" fill="none"/>
-      <path d="M -4,-2 Q 0,1 4,-2" stroke="{color}" stroke-width="2" fill="none"/>
-      <!-- Shoulders/Collar -->
-      <path d="M -26,35 L -16,8 Q 0,12 16,8 L 26,35 Z" fill="none" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <path d="M -8,10 Q 0,16 8,10" stroke="{color}" stroke-width="1.5" fill="none"/>
-      <circle cx="0" cy="14" r="2.5" fill="{color}"/>
-      <!-- Flower -->
-      <path d="M 22,-5 Q 22,15 22,35" stroke="{color}" stroke-width="2" fill="none"/>
-      <circle cx="22" cy="-9" r="3.5" fill="{color}"/>
-    </g>
-    <!-- Bottom Half -->
-    <g transform="rotate(180)">
-      <!-- Crown -->
-      <path d="M -16,-28 L -16,-40 L -8,-32 L 0,-48 L 8,-32 L 16,-40 L 16,-28 Z" fill="{color}"/>
-      <line x1="-12" y1="-28" x2="12" y2="-28" stroke="#fdfbf5" stroke-width="2"/>
-      <circle cx="-16" cy="-40" r="2" fill="{color}"/>
-      <circle cx="0" cy="-48" r="2" fill="{color}"/>
-      <circle cx="16" cy="-40" r="2" fill="{color}"/>
-      <!-- Face -->
-      <path d="M -12,-28 L 12,-28 L 12,-6 Q 12,8 0,8 Q -12,8 -12,-6 Z" fill="#fdfbf5" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <!-- Hair lines -->
-      <path d="M -14,-22 C -20,-10 -20,15 -14,24" fill="none" stroke="{color}" stroke-width="2"/>
-      <path d="M 14,-22 C 20,-10 20,15 14,24" fill="none" stroke="{color}" stroke-width="2"/>
-      <!-- Eyes & Face details -->
-      <circle cx="-5" cy="-12" r="1.5" fill="{color}"/>
-      <circle cx="5" cy="-12" r="1.5" fill="{color}"/>
-      <path d="M 0,-14 L 0,-9 L 2,-9" stroke="{color}" stroke-width="2" fill="none"/>
-      <path d="M -4,-2 Q 0,1 4,-2" stroke="{color}" stroke-width="2" fill="none"/>
-      <!-- Shoulders/Collar -->
-      <path d="M -26,35 L -16,8 Q 0,12 16,8 L 26,35 Z" fill="none" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <path d="M -8,10 Q 0,16 8,10" stroke="{color}" stroke-width="1.5" fill="none"/>
-      <circle cx="0" cy="14" r="2.5" fill="{color}"/>
-      <!-- Flower -->
-      <path d="M 22,-5 Q 22,15 22,35" stroke="{color}" stroke-width="2" fill="none"/>
-      <circle cx="22" cy="-9" r="3.5" fill="{color}"/>
-    </g>
-  </g>
-</svg>
+# Jack — an upright sword (the knave / soldier).
+EMBLEM_J = """
+    <circle cx="90" cy="54" r="5"/>
+    <rect x="86.5" y="59" width="7" height="15" rx="2"/>
+    <rect x="70" y="74" width="40" height="8" rx="3"/>
+    <path d="M 82,82 L 98,82 L 90,126 Z"/>
 """
 
-FACE_K = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
-  <!-- Corners -->
-  <g fill="{color}" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <g>
-      <text x="24" y="44" font-size="28" text-anchor="middle">K</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
-    </g>
-    <g transform="rotate(180 90 126)">
-      <text x="24" y="44" font-size="28" text-anchor="middle">K</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
-    </g>
-  </g>
-  <!-- Portrait Frame -->
-  <rect x="42" y="42" width="96" height="168" rx="8" fill="none" stroke="{color}" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.5"/>
-  <!-- King Portrait -->
-  <g transform="translate(90, 126)">
-    <!-- Top Half -->
-    <g>
-      <!-- Crown -->
-      <path d="M -20,-30 L -20,-45 L -10,-38 L 0,-52 L 10,-38 L 20,-45 L 20,-30 Z" fill="{color}"/>
-      <line x1="-15" y1="-30" x2="15" y2="-30" stroke="#fdfbf5" stroke-width="2"/>
-      <circle cx="-20" cy="-45" r="2.5" fill="{color}"/>
-      <circle cx="0" cy="-52" r="2.5" fill="{color}"/>
-      <circle cx="20" cy="-45" r="2.5" fill="{color}"/>
-      <!-- Face -->
-      <path d="M -15,-30 L 15,-30 L 15,-5 Q 15,10 0,10 Q -15,10 -15,-5 Z" fill="#fdfbf5" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <!-- Beard & Hair lines -->
-      <path d="M -15,-20 Q -22,-10 -15,5 Q 0,22 15,5 Q 22,-10 15,-20" fill="none" stroke="{color}" stroke-width="2"/>
-      <path d="M -15,0 L -12,12 L 0,18 L 12,12 L 15,0 Q 8,5 0,5 Q -8,5 -15,0 Z" fill="{color}"/>
-      <path d="M -10,-3 Q 0,2 10,-3" stroke="{color}" stroke-width="2" fill="none"/>
-      <!-- Eyes & Nose -->
-      <line x1="-7" y1="-14" x2="-3" y2="-14" stroke="{color}" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="3" y1="-14" x2="7" y2="-14" stroke="{color}" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M 0,-16 L 0,-10 L 3,-10" stroke="{color}" stroke-width="2.5" fill="none"/>
-      <!-- Shoulders/Collar -->
-      <path d="M -30,35 L -18,10 Q 0,15 18,10 L 30,35 Z" fill="none" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <path d="M -12,10 L 0,25 L 12,10" stroke="{color}" stroke-width="2" fill="none"/>
-      <!-- Scepter -->
-      <line x1="24" y1="-10" x2="24" y2="35" stroke="{color}" stroke-width="2"/>
-      <circle cx="24" cy="-14" r="4" fill="{color}"/>
-    </g>
-    <!-- Bottom Half -->
-    <g transform="rotate(180)">
-      <!-- Crown -->
-      <path d="M -20,-30 L -20,-45 L -10,-38 L 0,-52 L 10,-38 L 20,-45 L 20,-30 Z" fill="{color}"/>
-      <line x1="-15" y1="-30" x2="15" y2="-30" stroke="#fdfbf5" stroke-width="2"/>
-      <circle cx="-20" cy="-45" r="2.5" fill="{color}"/>
-      <circle cx="0" cy="-52" r="2.5" fill="{color}"/>
-      <circle cx="20" cy="-45" r="2.5" fill="{color}"/>
-      <!-- Face -->
-      <path d="M -15,-30 L 15,-30 L 15,-5 Q 15,10 0,10 Q -15,10 -15,-5 Z" fill="#fdfbf5" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <!-- Beard & Hair lines -->
-      <path d="M -15,-20 Q -22,-10 -15,5 Q 0,22 15,5 Q 22,-10 15,-20" fill="none" stroke="{color}" stroke-width="2"/>
-      <path d="M -15,0 L -12,12 L 0,18 L 12,12 L 15,0 Q 8,5 0,5 Q -8,5 -15,0 Z" fill="{color}"/>
-      <path d="M -10,-3 Q 0,2 10,-3" stroke="{color}" stroke-width="2" fill="none"/>
-      <!-- Eyes & Nose -->
-      <line x1="-7" y1="-14" x2="-3" y2="-14" stroke="{color}" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="3" y1="-14" x2="7" y2="-14" stroke="{color}" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M 0,-16 L 0,-10 L 3,-10" stroke="{color}" stroke-width="2.5" fill="none"/>
-      <!-- Shoulders/Collar -->
-      <path d="M -30,35 L -18,10 Q 0,15 18,10 L 30,35 Z" fill="none" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>
-      <path d="M -12,10 L 0,25 L 12,10" stroke="{color}" stroke-width="2" fill="none"/>
-      <!-- Scepter -->
-      <line x1="24" y1="-10" x2="24" y2="35" stroke="{color}" stroke-width="2"/>
-      <circle cx="24" cy="-14" r="4" fill="{color}"/>
-    </g>
-  </g>
-</svg>
+# Queen — a rounded tiara with gems (no cross).
+EMBLEM_Q = """
+    <path d="M 58,110 Q 58,78 74,94 Q 82,70 90,88 Q 98,70 106,94 Q 122,78 122,110 Z"/>
+    <rect x="58" y="110" width="64" height="13" rx="3"/>
+    <circle cx="74" cy="92" r="3.5" fill="#fdfbf5" stroke="none"/>
+    <circle cx="90" cy="84" r="4" fill="#fdfbf5" stroke="none"/>
+    <circle cx="106" cy="92" r="3.5" fill="#fdfbf5" stroke="none"/>
 """
+
+# King — a tall crown topped with a cross.
+EMBLEM_K = """
+    <rect x="86.5" y="40" width="7" height="16" rx="1.5"/>
+    <rect x="81" y="45" width="18" height="6" rx="1.5"/>
+    <path d="M 56,110 L 60,74 L 74,94 L 90,62 L 106,94 L 120,74 L 124,110 Z"/>
+    <rect x="56" y="110" width="68" height="13" rx="3"/>
+    <circle cx="72" cy="116" r="3.5" fill="#fdfbf5" stroke="none"/>
+    <circle cx="90" cy="116" r="3.5" fill="#fdfbf5" stroke="none"/>
+    <circle cx="108" cy="116" r="3.5" fill="#fdfbf5" stroke="none"/>
+"""
+
+FACE_J = _FACE_TMPL.replace("{emblem}", EMBLEM_J).replace("{rank}", "J")
+FACE_Q = _FACE_TMPL.replace("{emblem}", EMBLEM_Q).replace("{rank}", "Q")
+FACE_K = _FACE_TMPL.replace("{emblem}", EMBLEM_K).replace("{rank}", "K")
 
 BACK = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
   <rect x="3" y="3" width="174" height="246" rx="16" fill="#173029" stroke="#0e201c" stroke-width="2"/>
