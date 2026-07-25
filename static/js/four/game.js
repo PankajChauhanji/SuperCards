@@ -229,7 +229,7 @@
   function renderTable() {
     armAutoInteraction();
     const me = view.players.find((p) => p.user_id === youId);
-    myNameEl.textContent = (me ? me.name : "You") + (view.currentTurn === youId ? "  • your turn" : "");
+    myNameEl.textContent = (me ? window.SS.shortName(me.name) : "You") + (view.currentTurn === youId ? "  • your turn" : "");
 
     // opponents
     oppEl.innerHTML = "";
@@ -237,7 +237,7 @@
       const seat = document.createElement("div");
       seat.className = "s4-seat" + (view.currentTurn === p.user_id ? " turn" : "");
       const head = document.createElement("div"); head.className = "seat-name";
-      head.innerHTML = `<span>${escapeHtml(p.name)}${p.user_id === view.stopCaller ? " ✋" : ""}</span>` +
+      head.innerHTML = `<span>${escapeHtml(window.SS.shortName(p.name))}${p.user_id === view.stopCaller ? " ✋" : ""}</span>` +
         `<span class="seat-total">${p.score}</span>`;
       seat.appendChild(head);
       seat.appendChild(renderSlots(p.user_id, p.slots || [], false, true));
@@ -511,17 +511,43 @@
   function renderScoreboard() {
     if (!scoreList) return;
     scoreList.innerHTML = "";
-    const sorted = [...view.players].filter((p) => !p.is_spectator).sort((a, b) => a.score - b.score);
-    let crowned = false;
+    const PAL = ["#4ea1ff", "#ff9f43", "#a98cf0", "#f06ea9", "#43c6c6", "#d6c04a"];
+    const exit = (view.settings && view.settings.exit_score) || 10;
+    const sorted = [...view.players].filter((p) => !p.is_spectator)
+      .sort((a, b) => (a.eliminated - b.eliminated) || (a.score - b.score));
     sorted.forEach((p) => {
       const li = document.createElement("li");
-      const out = p.eliminated;
-      let tag = "";
-      if (out) tag = " 💀 OUT";
-      else if (!crowned) { tag = " 👑"; crowned = true; }  // lowest active leads
-      li.innerHTML = `<span>${escapeHtml(p.name)}</span><span>${p.score}${tag}</span>`;
-      li.style.display = "flex"; li.style.justifyContent = "space-between";
-      if (out) li.style.opacity = "0.45";
+      if (p.user_id === view.currentTurn) li.classList.add("turn");
+      if (p.eliminated) li.classList.add("out");
+
+      const left = document.createElement("span"); left.className = "sb-name";
+      const sw = document.createElement("span"); sw.className = "swatch";
+      sw.style.background = PAL[(p.color || 0) % PAL.length];
+      left.appendChild(sw);
+      const dot = document.createElement("span"); dot.className = "dot" + (p.connected ? " on" : "");
+      left.appendChild(dot);
+      if (p.user_id === view.hostId) {
+        const c = document.createElement("span"); c.className = "host-crown"; c.textContent = "♛"; c.title = "Host";
+        left.appendChild(c);
+      }
+      const text = document.createElement("span"); text.className = "sb-text";
+      text.textContent = window.SS.shortName(p.name);
+      left.appendChild(text);
+      if (p.user_id === youId) { const y = document.createElement("span"); y.className = "sb-you"; y.textContent = "you"; left.appendChild(y); }
+
+      const score = document.createElement("span"); score.className = "sb-score";
+      score.textContent = p.score;
+
+      li.appendChild(left); li.appendChild(score);
+
+      // Progress toward exit_score (elimination). A negative score = doing well = empty bar.
+      const pct = Math.max(0, Math.min(1, (p.score || 0) / exit));
+      const bar = document.createElement("div"); bar.className = "sb-bar";
+      const fill = document.createElement("div"); fill.className = "sb-bar-fill";
+      fill.style.setProperty("--bar-pct", (pct * 100).toFixed(1) + "%");
+      fill.style.setProperty("--bar-raw", pct.toFixed(4));
+      bar.appendChild(fill); li.appendChild(bar);
+
       scoreList.appendChild(li);
     });
 
@@ -536,7 +562,7 @@
         const li = document.createElement("li");
         li.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:.4rem";
         const nm = document.createElement("span");
-        nm.textContent = "👁 " + p.name + (p.user_id === youId ? " (you)" : "");
+        nm.textContent = "👁 " + window.SS.shortName(p.name) + (p.user_id === youId ? " (you)" : "");
         li.appendChild(nm);
         if (p.pending_join) {
           const tag = document.createElement("span");

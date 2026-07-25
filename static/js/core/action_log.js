@@ -67,7 +67,7 @@
     if (actor) {
       const who = document.createElement("span");
       who.className = "al-actor";
-      who.textContent = actor;
+      who.textContent = (window.SS && window.SS.shortName) ? window.SS.shortName(actor) : actor;
       const col = colorFor(opts.colorIndex);
       if (col) who.style.color = col;
       text.appendChild(who);

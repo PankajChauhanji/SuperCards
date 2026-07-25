@@ -31,6 +31,34 @@
     });
   }
 
+  // ---- mobile topbar menu (hamburger) ----
+  // On narrow widths the action controls (sound/theme/rules/quit) collapse into
+  // this dropdown; on desktop they sit inline and the hamburger is hidden (CSS).
+  const menuBtn = document.getElementById("topbar-menu-btn");
+  const menuPanel = document.getElementById("topbar-actions");
+  if (menuBtn && menuPanel) {
+    const setOpen = (open) => {
+      menuPanel.classList.toggle("open", open);
+      menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      setOpen(!menuPanel.classList.contains("open"));
+    });
+    // Close when tapping outside, or after choosing Rules/Quit (which navigate
+    // away or open a modal). Sound/theme keep the menu open for repeat use.
+    document.addEventListener("click", (e) => {
+      if (menuPanel.classList.contains("open") &&
+          !menuPanel.contains(e.target) && e.target !== menuBtn) {
+        setOpen(false);
+      }
+    });
+    ["rules-btn", "quit-btn"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("click", () => setOpen(false));
+    });
+  }
+
   // ---- spectator admit modal (host) ----
   const specModal = document.getElementById("spectator-modal");
   const specCancel = document.getElementById("admit-cancel");
