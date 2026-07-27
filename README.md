@@ -35,7 +35,7 @@ The platform has grown beyond a single game and now serves as a home for multipl
 ## 🎮 Games available
 
 <div>
-  <img src="static/img/game_images/super_cards_home.png" alt="Super Seven preview" width="100%" />
+  <img src="static/img/game_images/super_seven_game_window.png" alt="Super Seven preview" width="100%" />
   <details>
     <summary><strong>Super Seven</strong> — tactical shedding and bold Stop calls</summary>
     <br>
@@ -49,7 +49,7 @@ The platform has grown beyond a single game and now serves as a home for multipl
 </div>
 
 <div>
-  <img src="https://placehold.co/900x500/png?text=Super+Four+Preview" alt="Super Four preview" width="100%" />
+  <img src="static/img/game_images/super_four_window.png" alt="Super Four preview" width="100%" />
   <details>
     <summary><strong>Super Four</strong> — memory, deduction, and hidden-card strategy</summary>
     <br>
@@ -63,7 +63,7 @@ The platform has grown beyond a single game and now serves as a home for multipl
 </div>
 
 <div>
-  <img src="https://placehold.co/900x500/png?text=Bluff+Preview" alt="Bluff preview" width="100%" />
+  <img src="static/img/game_images/super_bluff_window.png" alt="Bluff preview" width="100%" />
   <details>
     <summary><strong>Bluff</strong> — deception, challenge, and table reading</summary>
     <br>
