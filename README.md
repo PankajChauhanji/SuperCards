@@ -35,7 +35,7 @@ The platform has grown beyond a single game and now serves as a home for multipl
 ## 🎮 Games available
 
 <div>
-  <img src="static/img/game_images/super_seven_game_window.png" alt="Super Seven preview" width="100%" />
+  
   <details>
     <summary><strong>Super Seven</strong> — tactical shedding and bold Stop calls</summary>
     <br>
@@ -46,10 +46,10 @@ The platform has grown beyond a single game and now serves as a home for multipl
       <li><strong>Special mechanic:</strong> reaching zero points makes you Safe and removes you from the Stop race for that round.</li>
     </ul>
   </details>
+  <img src="static/img/game_images/super_seven_game_window.png" alt="Super Seven preview" width="100%" />
 </div>
 
 <div>
-  <img src="static/img/game_images/super_four_window.png" alt="Super Four preview" width="100%" />
   <details>
     <summary><strong>Super Four</strong> — memory, deduction, and hidden-card strategy</summary>
     <br>
@@ -60,10 +60,10 @@ The platform has grown beyond a single game and now serves as a home for multipl
       <li><strong>Highlights:</strong> table matches, optional powers, and high-risk Stop decisions shape every round.</li>
     </ul>
   </details>
+  <img src="static/img/game_images/super_four_window.png" alt="Super Four preview" width="100%" />
 </div>
 
 <div>
-  <img src="static/img/game_images/super_bluff_window.png" alt="Bluff preview" width="100%" />
   <details>
     <summary><strong>Bluff</strong> — deception, challenge, and table reading</summary>
     <br>
@@ -74,6 +74,7 @@ The platform has grown beyond a single game and now serves as a home for multipl
       <li><strong>Drama:</strong> Show calls can flip the round instantly, turning an ordinary play into a bold gamble.</li>
     </ul>
   </details>
+  <img src="static/img/game_images/super_bluff_window.png" alt="Bluff preview" width="100%" />
 </div>
 
 ---
