@@ -160,7 +160,7 @@ jobs:
 
           echo ""
           echo "⚙️  Adding public remote..."
-          git remote add public https://github.com/PankajChauhanji/SuperSevenCards.git
+          git remote add public https://github.com/PankajChauhanji/SuperCards.git
           echo "✅ Remote added"
 
           echo ""
