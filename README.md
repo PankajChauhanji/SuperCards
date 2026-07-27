@@ -28,14 +28,14 @@ The platform has grown beyond a single game and now serves as a home for multipl
 
 | Welcome lobby | Live table |
 | :---: | :---: |
-| ![Super Cards lobby](static/img/game_images/super_seven_lobby.png) | ![Super Cards table](static/img/game_images/super_seven_game_table.png) |
+| ![Super Cards lobby](static/img/game_images/super_cards_home.png) | ![Super Cards table](static/img/game_images/super_cards_lobby.png) |
 
 ---
 
 ## 🎮 Games available
 
 <div>
-  <img src="https://placehold.co/900x500/png?text=Super+Seven+Preview" alt="Super Seven preview" width="100%" />
+  <img src="static/img/game_images/super_cards_home.png" alt="Super Seven preview" width="100%" />
   <details>
     <summary><strong>Super Seven</strong> — tactical shedding and bold Stop calls</summary>
     <br>
