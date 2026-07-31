@@ -1,6 +1,6 @@
 # Super 4 — implementation design & locked decisions
 
-Source rules: PLATFORM_PLAN.md + the Super 4 rules. Where the rules were silent or
+Source rules: docs/PLATFORM_PLAN.md + the Super 4 rules. Where the rules were silent or
 ambiguous, the decision made here is marked **[decision]** so it can be revisited.
 
 ## Core model

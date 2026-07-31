@@ -1,6 +1,6 @@
 """Bluff gameplay settings.
 
-Keep in sync when any default changes: bluff_rules.md and
+Keep in sync when any default changes: docs/bluff_rules.md and
 static/rules/bluff/en.html.
 """
 

@@ -3,7 +3,7 @@
 Sources of truth for rules/scoring, keep in sync when any default below changes:
   - this file (the running behavior)
   - DESIGN.md (design decisions / rationale)
-  - README.md "Super Four rule book"
+  - docs/README.md "Super Four rule book"
   - static/rules/super_four/{en,hi}.html (player-facing rules)
 """
 
