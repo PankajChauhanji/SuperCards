@@ -538,6 +538,24 @@
   padding-bottom: 1px;
 }
 .footer-star a:hover { border-bottom-color: var(--gold); }
+.footer-sep {
+  color: var(--muted);
+  margin: 0 0.3rem;
+}
+.footer-inline-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--gold);
+  font: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  border-bottom: 1px dashed rgba(230,178,60,0.4);
+  padding-bottom: 1px;
+}
+.footer-inline-link:hover {
+  border-bottom-color: var(--gold);
+}
 
 /* ---------- Batch 1 enhancements ---------- */
 /* 3-second pick countdown on the deck */
