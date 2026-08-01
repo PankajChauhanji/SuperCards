@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="mbg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a3d35"/>
+      <stop offset="100%" stop-color="#0f1f1c"/>
+    </linearGradient>
+    <linearGradient id="mcard-top" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2e5b"/>
+      <stop offset="100%" stop-color="#9b0022"/>
+    </linearGradient>
+    <linearGradient id="mcard-bot" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2d3748"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="mgold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffe66d"/>
+      <stop offset="50%" stop-color="#ffb300"/>
+      <stop offset="100%" stop-color="#d48a00"/>
+    </linearGradient>
+    <filter id="mglow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="mcard-clip">
+      <rect x="186" y="130" width="140" height="196" rx="16"/>
+    </clipPath>
+  </defs>
+
+  <!-- Full-bleed background (maskable safe zone = inner 80%) -->
+  <rect width="512" height="512" fill="url(#mbg)"/>
+
+  <!-- Radial glow -->
+  <circle cx="256" cy="246" r="140" fill="#e6b23c" opacity="0.06"/>
+
+  <!-- Playing card (scaled down to stay in safe zone) -->
+  <g clip-path="url(#mcard-clip)">
+    <rect x="186" y="130" width="140" height="98" fill="url(#mcard-top)"/>
+    <rect x="186" y="228" width="140" height="98" fill="url(#mcard-bot)"/>
+    <g opacity="0.06" stroke="#ffffff" stroke-width="2.5">
+      <line x1="140" y1="160" x2="380" y2="400"/>
+      <line x1="180" y1="120" x2="380" y2="320"/>
+      <line x1="100" y1="200" x2="340" y2="440"/>
+    </g>
+  </g>
+
+  <!-- Card border -->
+  <rect x="186" y="130" width="140" height="196" rx="16" fill="none"
+        stroke="url(#mgold)" stroke-width="3.5" opacity="0.7"/>
+
+  <!-- Jester hat (centered, slightly smaller for safe zone) -->
+  <g fill="url(#mgold)" filter="url(#mglow)"
+     transform="translate(256, 234) scale(2.5) translate(-50, -36)">
+    <path d="M 50,42 Q 42,28 26,38 Q 35,46 41,50 Q 45,35 50,22 Q 55,35 59,50
+             Q 65,46 74,38 Q 58,28 50,42 Z"/>
+    <circle cx="26" cy="38" r="3.5"/>
+    <circle cx="50" cy="21" r="3.5"/>
+    <circle cx="74" cy="38" r="3.5"/>
+  </g>
+
+  <!-- "SC" text -->
+  <text x="256" y="385" text-anchor="middle" font-family="system-ui, sans-serif"
+        font-weight="700" font-size="30" fill="url(#mgold)" opacity="0.45"
+        letter-spacing="6">SC</text>
+</svg>

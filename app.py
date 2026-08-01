@@ -11,7 +11,7 @@ handles the process — this guarantees start_background_task() works correctly.
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, send_from_directory
 from flask_socketio import SocketIO
 
 import config
@@ -39,6 +39,27 @@ def index():
         for spec in registry.all_games().values()
     ]
     return render_template("index.html", games=games)
+
+
+# ── PWA routes ───────────────────────────────────────────────────────
+# The service worker must be served from "/" so its scope covers the
+# entire site.  The manifest needs a clean root-level URL too.
+
+@app.route("/sw.js")
+def service_worker():
+    return send_from_directory(
+        app.static_folder, "sw.js",
+        mimetype="application/javascript",
+        max_age=0,   # never cache the SW itself — browser manages updates
+    )
+
+
+@app.route("/manifest.json")
+def manifest():
+    return send_from_directory(
+        app.static_folder, "manifest.json",
+        mimetype="application/manifest+json",
+    )
 
 
 @app.route("/room/<code>")
