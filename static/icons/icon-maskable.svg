@@ -25,20 +25,20 @@
       </feMerge>
     </filter>
     <clipPath id="mcard-clip">
-      <rect x="186" y="130" width="140" height="196" rx="16"/>
+      <rect x="164" y="118" width="184" height="256" rx="24"/>
     </clipPath>
   </defs>
 
   <!-- Full-bleed background (maskable safe zone = inner 80%) -->
-  <rect width="512" height="512" fill="url(#mbg)"/>
+  <rect x="24" y="24" width="464" height="464" fill="url(#mbg)"/>
 
   <!-- Radial glow -->
-  <circle cx="256" cy="246" r="140" fill="#e6b23c" opacity="0.06"/>
+  <circle cx="256" cy="246" r="172" fill="#e6b23c" opacity="0.06"/>
 
   <!-- Playing card (scaled down to stay in safe zone) -->
   <g clip-path="url(#mcard-clip)">
-    <rect x="186" y="130" width="140" height="98" fill="url(#mcard-top)"/>
-    <rect x="186" y="228" width="140" height="98" fill="url(#mcard-bot)"/>
+    <rect x="164" y="118" width="184" height="128" fill="url(#mcard-top)"/>
+    <rect x="164" y="246" width="184" height="128" fill="url(#mcard-bot)"/>
     <g opacity="0.06" stroke="#ffffff" stroke-width="2.5">
       <line x1="140" y1="160" x2="380" y2="400"/>
       <line x1="180" y1="120" x2="380" y2="320"/>
@@ -47,12 +47,12 @@
   </g>
 
   <!-- Card border -->
-  <rect x="186" y="130" width="140" height="196" rx="16" fill="none"
-        stroke="url(#mgold)" stroke-width="3.5" opacity="0.7"/>
+  <rect x="164" y="118" width="184" height="256" rx="24" fill="none"
+        stroke="url(#mgold)" stroke-width="4" opacity="0.7"/>
 
   <!-- Jester hat (centered, slightly smaller for safe zone) -->
   <g fill="url(#mgold)" filter="url(#mglow)"
-     transform="translate(256, 234) scale(2.5) translate(-50, -36)">
+     transform="translate(256, 232) scale(3.1) translate(-50, -36)">
     <path d="M 50,42 Q 42,28 26,38 Q 35,46 41,50 Q 45,35 50,22 Q 55,35 59,50
              Q 65,46 74,38 Q 58,28 50,42 Z"/>
     <circle cx="26" cy="38" r="3.5"/>
@@ -61,7 +61,7 @@
   </g>
 
   <!-- "SC" text -->
-  <text x="256" y="385" text-anchor="middle" font-family="system-ui, sans-serif"
-        font-weight="700" font-size="30" fill="url(#mgold)" opacity="0.45"
-        letter-spacing="6">SC</text>
+  <text x="256" y="408" text-anchor="middle" font-family="system-ui, sans-serif"
+        font-weight="700" font-size="36" fill="url(#mgold)" opacity="0.5"
+        letter-spacing="8">SC</text>
 </svg>

@@ -30,15 +30,15 @@
   </defs>
 
   <!-- Background -->
-  <rect width="512" height="512" rx="80" fill="url(#bg-grad)"/>
+  <rect x="18" y="18" width="476" height="476" rx="82" fill="url(#bg-grad)"/>
 
   <!-- Subtle radial glow behind card -->
-  <circle cx="256" cy="256" r="180" fill="#e6b23c" opacity="0.06"/>
+  <circle cx="256" cy="256" r="188" fill="#e6b23c" opacity="0.06"/>
 
   <!-- Playing card -->
   <g clip-path="url(#card-clip)">
-    <rect x="166" y="110" width="180" height="126" fill="url(#card-top)"/>
-    <rect x="166" y="236" width="180" height="126" fill="url(#card-bot)"/>
+    <rect x="166" y="112" width="180" height="124" fill="url(#card-top)"/>
+    <rect x="166" y="236" width="180" height="124" fill="url(#card-bot)"/>
     <!-- Subtle diagonal lines -->
     <g opacity="0.06" stroke="#ffffff" stroke-width="3">
       <line x1="120" y1="140" x2="400" y2="420"/>
@@ -49,12 +49,12 @@
   </g>
 
   <!-- Card border (gold) -->
-  <rect x="166" y="110" width="180" height="252" rx="20" fill="none"
+  <rect x="166" y="112" width="180" height="248" rx="20" fill="none"
         stroke="url(#gold)" stroke-width="4" opacity="0.7"/>
 
   <!-- Jester hat (centered on card) -->
   <g fill="url(#gold)" filter="url(#glow)"
-     transform="translate(256, 244) scale(3.2) translate(-50, -36)">
+     transform="translate(256, 242) scale(3.1) translate(-50, -36)">
     <path d="M 50,42 Q 42,28 26,38 Q 35,46 41,50 Q 45,35 50,22 Q 55,35 59,50
              Q 65,46 74,38 Q 58,28 50,42 Z"/>
     <circle cx="26" cy="38" r="3.5"/>
@@ -63,7 +63,7 @@
   </g>
 
   <!-- "SC" text at bottom -->
-  <text x="256" y="420" text-anchor="middle" font-family="system-ui, sans-serif"
+  <text x="256" y="418" text-anchor="middle" font-family="system-ui, sans-serif"
         font-weight="700" font-size="36" fill="url(#gold)" opacity="0.5"
         letter-spacing="8">SC</text>
 </svg>
