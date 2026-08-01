@@ -101,6 +101,8 @@ jobs:
           remove_file sockets/static/js/core/socket.js
           remove_file sockets/static/js/core/rules_modal.js
           remove_file sockets/static/js/core/identity.js
+          remove_file sockets/static/js/core/chrome.js
+          remove_file sockets/static/js/core/lobby.js
 
           # ── Test files (expose internal logic and edge cases) ──
 
