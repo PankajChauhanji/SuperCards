@@ -8,9 +8,6 @@ Usage:
 Produces:
     static/icons/icon-192.png
     static/icons/icon-512.png
-    static/icons/icon-maskable-192.png
-    static/icons/icon-maskable-512.png
-    static/icons/apple-touch-icon.png  (180×180)
 """
 
 import os
@@ -35,16 +32,16 @@ ICONS_DIR = os.path.join(ROOT, "static", "icons")
 
 SOURCES = {
     "icon": os.path.join(ICONS_DIR, "icon.svg"),
-    "maskable": os.path.join(ICONS_DIR, "icon-maskable.svg"),
+    "maskable": os.path.join(ICONS_DIR, "icon.svg"),
 }
 
 TARGETS = [
     # (source_key, filename, size)
     ("icon", "icon-192.png", 192),
     ("icon", "icon-512.png", 512),
-    ("maskable", "icon-maskable-192.png", 192),
-    ("maskable", "icon-maskable-512.png", 512),
-    ("icon", "apple-touch-icon.png", 180),
+    # ("maskable", "icon-192.png", 192),
+    # ("maskable", "", 512),
+    # ("icon", "icon-192.png", 180),
 ]
 
 
