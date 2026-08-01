@@ -18,6 +18,10 @@
     cyberpunk: { icon: "👾", name: "Cyberpunk" },
     marble: { icon: "🏛️", name: "Marble Luxury" },
     red_casino: { icon: "🍒", name: "Red Casino" },
+    royal_velvet: { icon: "👑", name: "Royal Velvet" },
+    ocean_glow: { icon: "🌊", name: "Ocean Glow" },
+    sunset_mirage: { icon: "🌅", name: "Sunset Mirage" },
+    forest_mist: { icon: "🌲", name: "Forest Mist" },
   };
 
   function apply(theme) {

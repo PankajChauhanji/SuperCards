@@ -5,7 +5,8 @@ body.theme-casino .felt {
   border: 4px solid var(--gold) !important;
   box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8), 0 10px 30px rgba(0,0,0,0.5) !important;
 }
-body.theme-casino .opponents .seat {
+body.theme-casino .opponents .seat,
+body.theme-casino .s4-seat {
   background: #022c22 !important;
   border-color: rgba(230, 178, 60, 0.3) !important;
 }
@@ -13,15 +14,16 @@ body.theme-casino .opponents .seat {
 /* 2. Cyberpunk */
 body.theme-cyberpunk .felt {
   background: radial-gradient(120% 120% at 50% 0%, #1e1b4b 0%, #03001e 80%) !important;
-  background-image: 
+  background-image:
     radial-gradient(120% 120% at 50% 0%, rgba(30, 27, 75, 0.8) 0%, rgba(3, 0, 30, 0.95) 80%),
-    linear-gradient(rgba(232, 89, 63, 0.06) 1px, transparent 1px), 
+    linear-gradient(rgba(232, 89, 63, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(232, 89, 63, 0.06) 1px, transparent 1px) !important;
   background-size: 100% 100%, 24px 24px, 24px 24px !important;
   border: 1.5px solid #06b6d4 !important;
   box-shadow: inset 0 0 60px rgba(6, 182, 212, 0.2), 0 0 15px rgba(6, 182, 212, 0.1) !important;
 }
-body.theme-cyberpunk .opponents .seat {
+body.theme-cyberpunk .opponents .seat,
+body.theme-cyberpunk .s4-seat {
   background: #090520 !important;
   border-color: rgba(6, 182, 212, 0.3) !important;
 }
@@ -32,7 +34,8 @@ body.theme-marble .felt {
   border: 2px solid var(--gold) !important;
   box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.9) !important;
 }
-body.theme-marble .opponents .seat {
+body.theme-marble .opponents .seat,
+body.theme-marble .s4-seat {
   background: #18191c !important;
   border-color: rgba(230, 178, 60, 0.2) !important;
 }
@@ -43,27 +46,72 @@ body.theme-red_casino .felt {
   border: 4px solid var(--gold) !important;
   box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8), 0 10px 30px rgba(0,0,0,0.5) !important;
 }
-body.theme-red_casino .opponents .seat {
+body.theme-red_casino .opponents .seat,
+body.theme-red_casino .s4-seat {
   background: #2d0505 !important;
   border-color: rgba(230, 178, 60, 0.3) !important;
 }
 
-/* Super 4 seats pick up the same theme treatment as Super Seven seats. */
-body.theme-casino .s4-seat {
-  background: #022c22 !important;
-  border-color: rgba(230, 178, 60, 0.3) !important;
+/* 5. Royal Velvet */
+body.theme-royal_velvet .felt {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.16), transparent 22%),
+    radial-gradient(circle at 80% 15%, rgba(255,255,255,0.12), transparent 20%),
+    linear-gradient(135deg, #4f1d7a 0%, #1d1037 45%, #0a0615 100%) !important;
+  border: 3px solid #f5c56b !important;
+  box-shadow: inset 0 0 70px rgba(255,255,255,0.08), 0 14px 35px rgba(0,0,0,0.45) !important;
 }
-body.theme-cyberpunk .s4-seat {
-  background: #090520 !important;
-  border-color: rgba(6, 182, 212, 0.3) !important;
+body.theme-royal_velvet .opponents .seat,
+body.theme-royal_velvet .s4-seat {
+  background: #260d3d !important;
+  border-color: rgba(245, 197, 107, 0.35) !important;
 }
-body.theme-marble .s4-seat {
-  background: #18191c !important;
-  border-color: rgba(230, 178, 60, 0.2) !important;
+
+/* 6. Ocean Glow */
+body.theme-ocean_glow .felt {
+  background:
+    radial-gradient(120% 120% at 50% 0%, #0f766e 0%, #134e4a 45%, #052b2b 100%) !important;
+  background-image:
+    radial-gradient(circle at 20% 15%, rgba(103,232,249,0.16), transparent 24%),
+    radial-gradient(circle at 80% 20%, rgba(34,211,238,0.14), transparent 20%),
+    linear-gradient(135deg, #0f766e 0%, #134e4a 45%, #052b2b 100%) !important;
+  border: 3px solid #7dd3fc !important;
+  box-shadow: inset 0 0 70px rgba(6,182,212,0.16), 0 12px 32px rgba(0,0,0,0.38) !important;
 }
-body.theme-red_casino .s4-seat {
-  background: #2d0505 !important;
-  border-color: rgba(230, 178, 60, 0.3) !important;
+body.theme-ocean_glow .opponents .seat,
+body.theme-ocean_glow .s4-seat {
+  background: #07313a !important;
+  border-color: rgba(125, 211, 252, 0.35) !important;
+}
+
+/* 7. Sunset Mirage */
+body.theme-sunset_mirage .felt {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255,237,213,0.18), transparent 20%),
+    radial-gradient(circle at 80% 20%, rgba(251,146,60,0.18), transparent 22%),
+    linear-gradient(135deg, #7c2d12 0%, #9a2c2c 45%, #431407 100%) !important;
+  border: 3px solid #fbbf24 !important;
+  box-shadow: inset 0 0 70px rgba(251,191,36,0.15), 0 12px 32px rgba(0,0,0,0.35) !important;
+}
+body.theme-sunset_mirage .opponents .seat,
+body.theme-sunset_mirage .s4-seat {
+  background: #2e1209 !important;
+  border-color: rgba(251,191,36,0.35) !important;
+}
+
+/* 8. Forest Mist */
+body.theme-forest_mist .felt {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255,255,255,0.12), transparent 24%),
+    radial-gradient(circle at 80% 18%, rgba(220,252,231,0.15), transparent 20%),
+    linear-gradient(135deg, #14532d 0%, #1a4732 45%, #0d211a 100%) !important;
+  border: 3px solid #86efac !important;
+  box-shadow: inset 0 0 70px rgba(134,239,172,0.14), 0 12px 32px rgba(0,0,0,0.34) !important;
+}
+body.theme-forest_mist .opponents .seat,
+body.theme-forest_mist .s4-seat {
+  background: #10281d !important;
+  border-color: rgba(134,239,172,0.35) !important;
 }
 
 /* ---------- Theme Select Dropdown ---------- */
