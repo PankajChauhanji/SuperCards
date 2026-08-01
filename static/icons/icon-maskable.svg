@@ -48,6 +48,6 @@
 
 
   <text x="270" y="405" text-anchor="middle" font-family="system-ui, sans-serif"
-        font-weight="1000" font-size="45" fill="url(#sc-gold-grad)" opacity="0.9"
-        letter-spacing="3">Super Cards</text>
+        font-weight="1000" font-size="52" fill="url(#sc-gold-grad)" opacity="1"
+        letter-spacing="2">Super Cards</text>
 </svg>
