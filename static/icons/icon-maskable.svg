@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <clipPath id="sc-card-clip">
-      <rect x="16" y="16" width="480" height="480" rx="54"/>
+      <rect x="16" y="16" width="480" height="480" rx="125"/>
     </clipPath>
     <linearGradient id="sc-bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#1a3d35"/>
@@ -17,8 +17,8 @@
     </linearGradient>
     <linearGradient id="sc-gold-grad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#ffe66d"/>
-      <stop offset="50%" stop-color="#ffb300"/>
-      <stop offset="100%" stop-color="#d48a00"/>
+      <stop offset="50%" stop-color="#ffc300"/>
+      <!-- <stop offset="100%" stop-color="#d48a00"/> -->
     </linearGradient>
   </defs>
 
@@ -37,9 +37,6 @@
     </g>
   </g>
 
-  <rect x="16" y="16" width="480" height="480" rx="54" fill="none"
-        stroke="url(#sc-gold-grad)" stroke-width="18" opacity="0.85"/>
-
   <!-- Gold jester hat — circles now land well inside the wider card -->
   <g fill="url(#sc-gold-grad)" filter="drop-shadow(0 4px 10px rgba(0,0,0,0.5))"
      transform="translate(256,271) scale(6.4) translate(-50,-36)">
@@ -50,7 +47,7 @@
   </g>
 
 
-  <text x="260" y="450" text-anchor="middle" font-family="system-ui, sans-serif"
-        font-weight="800" font-size="55" fill="url(#sc-gold-grad)" opacity="0.9"
-        letter-spacing="7">Super Cards</text>
+  <text x="270" y="405" text-anchor="middle" font-family="system-ui, sans-serif"
+        font-weight="1000" font-size="45" fill="url(#sc-gold-grad)" opacity="0.9"
+        letter-spacing="3">Super Cards</text>
 </svg>
