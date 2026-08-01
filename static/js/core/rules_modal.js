@@ -41,22 +41,48 @@
     langBtns.forEach((b) => b.addEventListener("click", (e) => loadRules(e.target.dataset.lang)));
   }
 
+  const installTitle = document.getElementById("install-title");
+  const installLangBtns = document.querySelectorAll(".install-lang-btn");
+
   if (installModal && installContent) {
+    const installCache = {};
+    let selectedInstallLang = "en";
+
     const closeInstall = () => installModal.classList.remove("open");
+
+    function updateInstallButtons(lang) {
+      installLangBtns.forEach((btn) => {
+        const active = btn.dataset.lang === lang;
+        btn.style.background = active ? "#6706ce" : "transparent";
+        btn.style.color = active ? "white" : "inherit";
+      });
+      if (installTitle) {
+        installTitle.innerText = lang === "hi" ? "📱 सुपर कार्ड्स इंस्टॉल करें" : "📱 Install Super Cards";
+      }
+    }
+
+    function loadInstall(lang) {
+      updateInstallButtons(lang);
+      const path = lang === "hi" ? "/static/rules/install.hi.html" : "/static/rules/install.html";
+      if (installCache[lang]) {
+        installContent.innerHTML = installCache[lang];
+        return;
+      }
+      installContent.innerHTML = "<p>Loading instructions…</p>";
+      fetch(path)
+        .then((res) => { if (!res.ok) throw new Error("not ok"); return res.text(); })
+        .then((html) => {
+          installCache[lang] = html;
+          installContent.innerHTML = html;
+        })
+        .catch(() => {
+          installContent.innerHTML = "<p>Install instructions coming soon.</p>";
+        });
+    }
+
     const openInstall = () => {
       installModal.classList.add("open");
-      if (!installContent.dataset.loaded) {
-        installContent.innerHTML = "<p>Loading instructions…</p>";
-        fetch("/static/rules/install.html")
-          .then((res) => { if (!res.ok) throw new Error("not ok"); return res.text(); })
-          .then((html) => {
-            installContent.innerHTML = html;
-            installContent.dataset.loaded = "true";
-          })
-          .catch(() => {
-            installContent.innerHTML = "<p>Install instructions coming soon.</p>";
-          });
-      }
+      loadInstall(selectedInstallLang);
     };
 
     if (openInstallBtn) {
@@ -65,6 +91,16 @@
         openInstall();
       });
     }
+
+    installLangBtns.forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const lang = e.currentTarget.dataset.lang;
+        if (lang && lang !== selectedInstallLang) {
+          selectedInstallLang = lang;
+          loadInstall(lang);
+        }
+      });
+    });
 
     if (closeInstallBtn) closeInstallBtn.addEventListener("click", closeInstall);
     installModal.addEventListener("click", (e) => { if (e.target === installModal) closeInstall(); });

@@ -556,6 +556,9 @@
 .footer-inline-link:hover {
   border-bottom-color: var(--gold);
 }
+.footer-install {
+  margin-top: 0.75rem;
+}
 
 /* ---------- Batch 1 enhancements ---------- */
 /* 3-second pick countdown on the deck */
