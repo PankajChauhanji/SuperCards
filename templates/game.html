@@ -36,35 +36,7 @@
       <div class="topbar-actions" id="topbar-actions">
       <button class="icon-btn" id="mute-btn" title="Sound on/off" aria-label="Sound on/off">&#128266;</button>
       
-      <!-- Table Theme Selector (shown beside Rules button) -->
-      <div class="theme-select-wrap" id="theme-select-wrap" style="display:none">
-        <button class="theme-select-btn" id="theme-select-btn" title="Select Table Theme" aria-label="Select Table Theme">
-          <span class="theme-icon" id="current-theme-icon">🟢</span>
-          <span class="theme-name" id="current-theme-name">Default</span>
-        </button>
-        <div class="theme-dropdown" id="theme-dropdown" role="menu" aria-hidden="true" hidden>
-          <button class="theme-opt" type="button" data-t="default" title="Default Dark Blue/Green felt">
-            <span class="theme-opt-icon">🟢</span>
-            <span class="theme-opt-label">Default</span>
-          </button>
-          <button class="theme-opt" type="button" data-t="casino" title="Classic Emerald Green Casino felt">
-            <span class="theme-opt-icon">🎰</span>
-            <span class="theme-opt-label">Casino Felt</span>
-          </button>
-          <button class="theme-opt" type="button" data-t="cyberpunk" title="Neon Neon Grid felt">
-            <span class="theme-opt-icon">👾</span>
-            <span class="theme-opt-label">Cyberpunk</span>
-          </button>
-          <button class="theme-opt" type="button" data-t="marble" title="Luxury Marble felt">
-            <span class="theme-opt-icon">🏛️</span>
-            <span class="theme-opt-label">Marble Luxury</span>
-          </button>
-          <button class="theme-opt" type="button" data-t="red_casino" title="Royal Red Casino Felt">
-            <span class="theme-opt-icon">🍒</span>
-            <span class="theme-opt-label">Red Casino</span>
-          </button>
-        </div>
-      </div>
+      {% include 'partials/theme_selector.html' %}
 
       <button class="rules-btn" id="rules-btn" title="How to play" aria-label="How to play"><span class="rb-ico">&#9432;</span><span class="btn-label">Rules</span></button>
 
@@ -102,47 +74,7 @@
   <!-- Table (shown once the round is dealt) — variant-specific markup -->
   {% include 'games/' + game_type + '/table.html' %}
 
-  <!-- Reactions (shown during play) -->
-  <div class="reactions-layer" id="reactions-layer"></div>
-  <div class="reaction-dock" id="reaction-dock" style="display:none">
-    <div class="reaction-panel" id="reaction-panel" hidden>
-      <!-- Recently Used Section -->
-      <div class="rx-recent-container" id="rx-recent-container" style="display:none">
-        <div class="rx-recent-label">Recent</div>
-        <div class="rx-recent-grid" id="rx-recent-grid"></div>
-        <div class="rx-divider" id="rx-recent-divider"></div>
-      </div>
-      <!-- Combined Emojis Grid (prioritizing roasting/funny reactions) -->
-      <div class="rx-grid" id="rx-main-grid">
-        <button class="rx" data-e="🤡" title="Clown">🤡</button>
-        <button class="rx" data-e="💀" title="Dead/RIP">💀</button>
-        <button class="rx" data-e="🤫" title="Shh">🤫</button>
-        <button class="rx" data-e="🥱" title="Boring">🥱</button>
-        <button class="rx" data-e="💩" title="Poop">💩</button>
-        <button class="rx" data-e="👶" title="Baby">👶</button>
-        <button class="rx" data-e="🍿" title="Popcorn">🍿</button>
-        <button class="rx" data-e="🐔" title="Chicken">🐔</button>
-        <button class="rx" data-e="🦖" title="Dinosaur/Slow">🦖</button>
-        <button class="rx" data-e="🤦" title="Facepalm">🤦</button>
-        <button class="rx" data-e="🤥" title="Liar">🤥</button>
-        <button class="rx" data-e="🐌" title="Snail">🐌</button>
-        <button class="rx" data-e="🤏" title="Small">🤏</button>
-        <button class="rx" data-e="🚮" title="Trash">🚮</button>
-        <button class="rx" data-e="👎" title="Thumbs Down">👎</button>
-        <button class="rx" data-e="😂" title="Laugh">😂</button>
-        <button class="rx" data-e="🤯" title="Mind Blown">🤯</button>
-        <button class="rx" data-e="🔥" title="Nice Move">🔥</button>
-        <button class="rx" data-e="⚡" title="Speed Up">⚡</button>
-        <button class="rx" data-e="🎉" title="Celebration">🎉</button>
-        <button class="rx" data-e="😲" title="Surprise">😲</button>
-        <button class="rx" data-e="😭" title="Cry">😭</button>
-        <button class="rx" data-e="😡" title="Anger">😡</button>
-        <button class="rx" data-e="👏" title="Good Game">👏</button>
-        <button class="rx" data-e="😎" title="Smooth Move">😎</button>
-      </div>
-    </div>
-    <button class="reaction-fab" id="reaction-fab" title="React" aria-label="Send a reaction">😀</button>
-  </div>
+  {% include 'partials/reactions_panel.html' %}
 
   <!-- Rules modal -->
   <div class="modal-backdrop" id="rules-modal">
