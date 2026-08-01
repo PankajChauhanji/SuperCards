@@ -19,7 +19,8 @@ The platform has grown beyond a single game and now serves as a home for multipl
 - Real-time multiplayer rooms with instant turn sync and live table updates
 - A shared platform layer for lobbies, room lifecycle, and player identity
 - Per-game rules and UI modules that stay isolated while sharing the same backend
-- Responsive browser-based gameplay with no installation required for casual play
+- Responsive browser gameplay that also supports installable mobile PWA flow for a clean home-screen experience
+- Fresh themes and polished UI touches that keep every screen feeling modern and easy to use
 - A growing catalog of card games with a consistent experience across them
 
 ---
