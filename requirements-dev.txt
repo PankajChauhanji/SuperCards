@@ -1,0 +1,26 @@
+# Development-only dependencies.  Install with:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# Deliberately NOT in requirements.txt — the production Render deploy needs none
+# of these, and cairosvg in particular pulls native Cairo system libraries that
+# would slow down (or break) the build for no benefit.
+
+
+# The socket tests (tests/test_s7_*_socket.py, tests/test_s7_phase*.py) drive a
+# python-socketio *client*, which needs requests for the HTTP polling transport.
+# Without it they fail with "requests package is not installed".
+# Note: those tests expect a server already running on port 5005:
+#   PORT=5005 python app.py
+requests>=2.31
+
+
+# Only needed to regenerate the PWA icons (tools/generate_pwa_icons.py).
+# tools/generate_cards.py — the card artwork generator — needs nothing beyond
+# the standard library.
+cairosvg>=2.7
+Pillow>=10.0
+
+
+
+
+
