@@ -1,0 +1,42 @@
+{
+  "packageId": "com.pankajchauhan.supercards",
+  "host": "super-cards.onrender.com",
+  "name": "Super Cards — Play with Friends",
+  "launcherName": "Super Cards",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#0f1f1c",
+  "themeColorDark": "#0f1f1c",
+  "navigationColor": "#0f1f1c",
+  "navigationColorDark": "#0f1f1c",
+  "navigationDividerColor": "#0f1f1c",
+  "navigationDividerColorDark": "#0f1f1c",
+  "backgroundColor": "#0f1f1c",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://super-cards.onrender.com/static/icons/icon-512.png",
+  "maskableIconUrl": "https://super-cards.onrender.com/static/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/home/k10280/android-toolchain/keys/super-cards.keystore",
+    "alias": "super-cards"
+  },
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://super-cards.onrender.com/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "minSdkVersion": 23,
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "displayOverride": []
+}
