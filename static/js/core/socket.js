@@ -21,5 +21,8 @@
     toastTimer = setTimeout(() => el.classList.remove("show"), ms || 3200);
   }
 
-  window.SS = { socket, showToast };
+  /* Merge, don't replace — modules that registered on SS before this one loads
+     (e.g. core/install.js, which runs from <head>) would otherwise be wiped. */
+  window.SS = window.SS || {};
+  Object.assign(window.SS, { socket, showToast });
 })();
