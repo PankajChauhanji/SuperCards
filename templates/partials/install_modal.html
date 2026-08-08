@@ -8,6 +8,21 @@
       </div>
     </div>
 
+    <!-- Native one-tap install. core/install.js unhides this only when the
+         browser actually offers a prompt (Chrome/Edge on Android + desktop). -->
+    <div id="install-now-row" hidden>
+      <button type="button" class="btn-primary" id="install-now-btn">📥 Install now</button>
+      <p class="install-now-hint">One tap — no browser menus needed.</p>
+    </div>
+
+    <p id="install-done-note" hidden class="install-done-note">
+      ✅ Super Cards is already installed on this device.
+    </p>
+
+    <p id="install-manual-intro" hidden class="install-manual-intro">
+      Prefer to do it yourself? Here are the manual steps.
+    </p>
+
     <div id="install-content-container"></div>
 
     <div class="close-row">
