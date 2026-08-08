@@ -144,6 +144,44 @@
 .modal .close-row { text-align: right; margin-top: 1.25rem; }
 .modal .close-row button { width: auto; }
 
+/* ── Install modal extras (driven by core/install.js) ─────────────────── */
+/* The attribute alone loses to any display rule, so make it decisive here. */
+#install-modal [hidden] { display: none !important; }
+
+#install-now-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+#install-now-btn {
+  width: auto;
+  padding: 0.7rem 2.2rem;
+  font-size: 1rem;
+}
+.install-now-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.install-done-note {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(87, 217, 138, 0.12);
+  border: 1px solid rgba(87, 217, 138, 0.35);
+  font-size: 0.88rem;
+}
+.install-manual-intro {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 /* ---------- toast ---------- */
 #toast {
   position: fixed;
