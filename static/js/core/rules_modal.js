@@ -66,6 +66,7 @@
       const path = lang === "hi" ? "/static/rules/install.hi.html" : "/static/rules/install.html";
       if (installCache[lang]) {
         installContent.innerHTML = installCache[lang];
+        if (window.SS && SS.install) SS.install.decorate(installContent);
         return;
       }
       installContent.innerHTML = "<p>Loading instructions…</p>";
@@ -74,6 +75,8 @@
         .then((html) => {
           installCache[lang] = html;
           installContent.innerHTML = html;
+          /* Filter the steps down to this device, and refresh the install button. */
+          if (window.SS && SS.install) SS.install.decorate(installContent);
         })
         .catch(() => {
           installContent.innerHTML = "<p>Install instructions coming soon.</p>";
