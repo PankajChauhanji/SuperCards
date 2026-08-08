@@ -14,7 +14,7 @@
  * live server connection for multiplayer.
  */
 
-const CACHE_NAME = "super-cards-v1";
+const CACHE_NAME = "super-cards-v4";
 
 /* Static assets to pre-cache on install for instant second loads. */
 const PRECACHE_URLS = [
@@ -24,9 +24,13 @@ const PRECACHE_URLS = [
   "/static/css/table.css",
   "/static/css/reactions.css",
   "/static/css/themes.css",
+  "/static/css/safe-area.css",
   "/static/js/vendor/socket.io.min.js",
   "/static/js/core/identity.js",
   "/static/js/core/socket.js",
+  "/static/js/core/install.js",
+  "/static/js/core/connection.js",
+  "/static/js/core/waking.js",
   "/static/js/home.js",
   "/static/img/super_cards_symbol.svg",
   "/static/icons/icon.svg",
@@ -78,7 +82,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  /* HTML pages → network-first with cache fallback. */
+  /* The landing page is safe to serve from cache instantly — it is identical for
+     everyone. Doing so is what makes a cold launch paint immediately instead of
+     waiting out the host's wake-up. */
+  if (url.pathname === "/") {
+    event.respondWith(cacheFirstRace(event.request, 2500));
+    return;
+  }
+
+  /* Room pages carry server-rendered game_type + code, and a 4-char room code
+     gets reused. Serving a stale one would boot the player into the wrong game's
+     bundle, so these stay strictly network-first. By the time anyone opens a room
+     the server is awake anyway. */
   event.respondWith(networkFirst(event.request));
 });
 
@@ -100,6 +115,29 @@ async function staleWhileRevalidate(request) {
 
   /* Return the cached version immediately, or wait for network. */
   return cached || fetching;
+}
+
+/* Paint from cache, but give the network a short head start so a warm server
+   still wins and the page is never needlessly stale.
+
+   A sleeping free-tier instance does not fail — it stalls for 20-50s. A plain
+   network-first therefore blocks on the full nap. Racing a timeout turns that
+   into an instant paint, with the fresh copy landing in cache for next time. */
+async function cacheFirstRace(request, timeoutMs) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  const network = fetch(request)
+    .then((response) => {
+      if (response.ok) cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => null);
+
+  if (!cached) return (await network) || networkFirst(request);
+
+  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
+  return (await Promise.race([network, timeout])) || cached;
 }
 
 async function networkFirst(request) {
