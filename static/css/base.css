@@ -212,3 +212,120 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .settings-grid.hidden { display: none; }
 .settings-grid label { margin-bottom: 0.3rem; }
 
+/* ══════════════════════════════════════════════════════════════════════
+   First-connect loading screen (core/waking.js)
+   ══════════════════════════════════════════════════════════════════════
+   The service worker can paint the cached landing page long before the
+   sleeping host answers, which leaves a complete-looking UI that cannot
+   do anything yet. This covers that window with something to watch. */
+
+#waking {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem calc(1.5rem + env(safe-area-inset-left))
+           calc(2rem + env(safe-area-inset-bottom))
+           calc(1.5rem + env(safe-area-inset-right));
+  background: radial-gradient(120% 90% at 50% -10%, #16302b 0%, var(--bg) 65%);
+  animation: waking-fade-in 200ms ease-out;
+}
+#waking.waking-out {
+  animation: waking-fade-out 240ms ease-in forwards;
+  pointer-events: none;
+}
+.waking-inner { max-width: 340px; }
+
+/* Three cards being dealt, on a loop. */
+.waking-cards {
+  position: relative;
+  height: 96px;
+  margin-bottom: 1.7rem;
+}
+.waking-cards i {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 56px;
+  height: 80px;
+  margin-left: -28px;
+  border-radius: 8px;
+  background: linear-gradient(160deg, var(--cream) 0%, #dccfb2 100%);
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  box-shadow: 0 12px 24px -14px rgba(0, 0, 0, 0.95);
+  animation: waking-deal 1900ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+/* The gold pip, matching the card artwork's treatment. */
+.waking-cards i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 16px;
+  height: 16px;
+  background: var(--gold);
+  transform: rotate(45deg);
+  border-radius: 3px;
+  opacity: 0.85;
+}
+.waking-cards i:nth-child(1) { --r: -19deg; animation-delay: 0ms; }
+.waking-cards i:nth-child(2) { --r: 0deg;   animation-delay: 190ms; }
+.waking-cards i:nth-child(3) { --r: 19deg;  animation-delay: 380ms; }
+
+.waking-title {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+  color: var(--text);
+}
+.waking-tip {
+  margin: 0;
+  min-height: 2.8em;           /* reserve space so swaps don't jump the layout */
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--muted);
+  transition: opacity 200ms ease;
+}
+.waking-note {
+  margin: 1rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+  opacity: 0.75;
+}
+.waking-retry {
+  margin-top: 1.3rem;
+  padding: 0.6rem 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@keyframes waking-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes waking-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes waking-deal {
+  0%   { transform: translateY(10px) rotate(0deg) scale(0.95); opacity: 0.3; }
+  30%  { opacity: 1; }
+  60%  { transform: translateY(-8px) rotate(var(--r)) scale(1); opacity: 1; }
+  100% { transform: translateY(10px) rotate(0deg) scale(0.95); opacity: 0.3; }
+}
+
+/* Respect a reduced-motion preference: keep the screen, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .waking-cards i {
+    animation: none;
+    opacity: 1;
+  }
+  .waking-cards i:nth-child(1) { transform: translateX(-34px) rotate(-19deg); }
+  .waking-cards i:nth-child(3) { transform: translateX(34px) rotate(19deg); }
+  #waking, #waking.waking-out { animation: none; }
+}
