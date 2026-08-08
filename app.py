@@ -11,7 +11,7 @@ handles the process — this guarantees start_background_task() works correctly.
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask, render_template, redirect, url_for, send_from_directory
+from flask import Flask, render_template, redirect, url_for, send_from_directory, jsonify, abort
 from flask_socketio import SocketIO
 
 import config
@@ -60,6 +60,29 @@ def manifest():
         app.static_folder, "manifest.json",
         mimetype="application/manifest+json",
     )
+
+
+@app.route("/.well-known/assetlinks.json")
+def assetlinks():
+    """Digital Asset Links — ties the Android TWA package to this domain.
+
+    Chrome fetches this when the installed app launches; a match is what lets it
+    drop the URL bar and render full-screen. 404s while unconfigured rather than
+    serving a half-filled file, since a malformed link fails verification in a
+    way that is harder to diagnose than a missing one.
+    """
+    if not config.TWA_PACKAGE_NAME or not config.TWA_SHA256_FINGERPRINT:
+        abort(404)
+    return jsonify([
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": config.TWA_PACKAGE_NAME,
+                "sha256_cert_fingerprints": [config.TWA_SHA256_FINGERPRINT],
+            },
+        }
+    ])
 
 
 @app.route("/room/<code>")
