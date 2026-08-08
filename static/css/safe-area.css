@@ -1,0 +1,59 @@
+/* Loaded LAST, on purpose.
+   These rules re-state paddings owned by lobby.css / table.css /
+   reactions.css and add device insets. Loading earlier would let those
+   files win on source order and silently drop the insets. */
+
+/* ══════════════════════════════════════════════════════════════════════
+   Safe areas — notch, rounded corners, gesture bar
+   ══════════════════════════════════════════════════════════════════════
+   The pages set viewport-fit=cover, which lets the layout use the whole
+   screen — and therefore lets content slide under the notch and the home
+   indicator. These insets resolve to 0px on hardware without cutouts, so
+   they apply unconditionally rather than behind a media query.
+   Values below re-state each rule's original padding and add the inset. */
+
+.topbar {
+  padding-top: calc(0.9rem + env(safe-area-inset-top));
+  padding-left: calc(1.25rem + env(safe-area-inset-left));
+  padding-right: calc(1.25rem + env(safe-area-inset-right));
+}
+
+.lobby {
+  padding-left: calc(1.25rem + env(safe-area-inset-left));
+  padding-right: calc(1.25rem + env(safe-area-inset-right));
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+}
+
+.table-view {
+  padding-left: calc(1.5rem + env(safe-area-inset-left));
+  padding-right: calc(1.5rem + env(safe-area-inset-right));
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+}
+
+/* Fixed-position furniture has to clear the gesture bar itself. */
+#toast {
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+.reaction-dock {
+  left: calc(16px + env(safe-area-inset-left));
+  bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* ── Connection banner (core/connection.js) ─────────────────────────── */
+#conn-banner {
+  position: fixed;
+  top: calc(env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  margin-top: 8px;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
