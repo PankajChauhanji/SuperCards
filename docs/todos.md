@@ -177,6 +177,73 @@ Three fixes to the in-game table (all three games):
       body font at 0.78rem / weight 400, tighter padding, line-height and list gap.
 - [x] Verified across all three games on mobile (375px) + desktop; no console errors.
 
+## 9. Android app (TWA) + mobile hardening — ✅ DONE (2026-08-08)
+
+Packaged the site as an installable Android app and closed the gaps that only
+show up once it runs as an app rather than a browser tab. See
+`docs/discussion_future_installation.md` for why TWA was chosen over Capacitor.
+
+**Android wrapper** — new `twa/` folder (see `twa/README.md`):
+- [x] Signed APK + AAB via Bubblewrap, package `com.pankajchauhan.supercards`.
+      The APK holds **no app code** — it opens the live site, so a server deploy
+      updates the app with no rebuild.
+- [x] `/.well-known/assetlinks.json` route in `app.py`, driven by
+      `TWA_PACKAGE_NAME` / `TWA_SHA256_FINGERPRINT` in `config.py`. Verified the
+      served fingerprint matches the APK's signing certificate exactly.
+- [x] Keystore lives **outside the repo** at `~/android-toolchain/keys/` and is
+      gitignored. Losing it means no in-place updates — back it up.
+
+**Install experience** — `beforeinstallprompt` was never handled, so install was
+manual-instructions-only:
+- [x] New `core/install.js`: real one-tap **Install now** button; platform-filtered
+      steps (Android users no longer scroll past iPhone steps); install entry
+      points hide once installed. Loaded from `<head>` — Chrome fires
+      `beforeinstallprompt` early enough to beat a bottom-of-body script.
+
+**Mobile hardening:**
+- [x] `core/connection.js` — Android freezes a backgrounded WebView's network, so
+      a resumed phone holds a socket that only *looks* alive. Forces the check on
+      `visibilitychange`/`focus`/`online` and shows a "Reconnecting…" banner.
+      State resync was already free (every bundle re-emits `enter_room` on connect).
+- [x] `core/wakelock.js` — Screen Wake Lock so the phone stops sleeping while you
+      wait out an opponent's turn. Re-acquires on every return to visibility, since
+      the browser always releases it on hide. Room pages only.
+- [x] `core/quit.js` — Android back button now routes through the same confirm as
+      the Quit button via a sentinel history entry. Previously back dropped you out
+      of a live game silently, with no browser chrome to fall back on.
+- [x] `css/safe-area.css` — the pages set `viewport-fit=cover` but **nothing used
+      `env(safe-area-inset-*)`**, so content could sit under the notch and gesture
+      bar. Must load **last**: it re-states paddings owned by `lobby.css`/`table.css`/
+      `reactions.css`, and would lose on source order anywhere earlier.
+
+**Cold-start experience** — the free tier sleeps and takes ~20-50s to wake, which
+as an *app* reads as broken rather than slow:
+- [x] `sw.js` was making it worse: `networkFirst` waits on the network, and a
+      sleeping host doesn't *fail*, it stalls — so the SW blocked for the whole
+      nap instead of using its cache. The landing page now races the network
+      against a 2.5s timeout and paints from cache. Room pages stay strictly
+      network-first: a 4-char room code gets reused, and a stale one would boot
+      the player into the wrong game's bundle.
+- [x] `core/waking.js` + styles — a cached shell that can't reach the server looks
+      broken, so a branded screen covers the first connect: dealing-card animation,
+      rotating per-game tips, an honest "the server naps when idle" note after 9s,
+      and a Reload button after 45s. Appears only after 1.2s, so a warm server never
+      flashes it. Reconnects mid-session stay with `connection.js`'s lighter banner.
+- [x] Verified by stopping the server outright: page still painted from cache,
+      overlay appeared, tips rotated, and it tore down cleanly when the server
+      returned. No flash on a warm load; mobile 375px fits with no overflow.
+
+**Bug found in passing:** `core/socket.js` did `window.SS = {...}` — a hard
+overwrite that silently wiped any module registered before it. Every other core
+module merges; this one was the outlier. Now merges too.
+
+- [x] Verified across all three games: modules register, back guard arms, banner
+      appears on transport drop and clears on reconnect, no console errors.
+
+> **Not verified on real hardware yet:** the native install prompt and the wake
+> lock both need a real device (an automated browser reports the page as hidden,
+> which correctly refuses a wake lock). Logic is unit-verified with stubs.
+
 ---
 
 ## Super 4 — game-specific notes & ideas
