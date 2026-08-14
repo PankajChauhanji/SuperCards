@@ -48,6 +48,8 @@
     document.querySelectorAll(".lobby-panel").forEach((p) => {
       p.classList.toggle("hidden", p.dataset.panel !== tab);
     });
+    const tabsEl = document.querySelector(".lobby-tabs");
+    if (tabsEl) tabsEl.classList.toggle("pos-settings", tab === "settings");
   }
 
   function badge(text, cls) {
