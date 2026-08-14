@@ -38,7 +38,7 @@ class Room:
         self.host_id = host_id
         self.original_host_id = host_id   # restored once back in the lobby (rematch)
         self.settings = settings
-        self.table_theme = "default"
+        self.table_theme = "casino"
         self.players: Dict[str, Player] = {}   # user_id -> Player
         self.state = STATE_LOBBY
         self.round_number = 0
@@ -345,7 +345,7 @@ class Room:
             "round_number": self.round_number,
             "host_id": self.host_id,
             "settings": self.settings,
-            "table_theme": getattr(self, "table_theme", "default"),
+            "table_theme": getattr(self, "table_theme", "casino"),
             "current_turn": self.current_turn_id(),
             "awaiting_draw": self.awaiting_draw,
             "first_orbit_complete": self.first_orbit_complete,
