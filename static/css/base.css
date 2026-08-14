@@ -37,6 +37,14 @@ body {
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }
+/* Home page only: a flex column so the felt-backdrop hero grows to fill the
+   viewport and the footer sticks to the bottom on short pages, without
+   touching every other page's (game.html) body layout. */
+body.home-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
 /* ---------- wordmark ---------- */
 .wordmark {
@@ -79,37 +87,56 @@ body {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
 }
 
-/* ---------- home ---------- */
+/* ---------- home: felt-backdrop hero ----------
+   A full-bleed table-textured hero (the same radial-gradient recipe as
+   .felt) with a single glass card holding everything — ties the home
+   screen to the actual game instead of reading as a generic form page.
+   .home is a flex child of body.home-page so it grows to fill the
+   viewport and the footer sticks to the bottom on short pages. */
 .home {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: clamp(2rem, 6vh, 5rem) 1.25rem 3rem;
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: clamp(1.5rem, 4vh, 2.75rem) 1.25rem;
+  background: radial-gradient(120% 120% at 50% 0%, #1b3a33 0%, var(--felt) 70%);
 }
-.home header {
-  text-align: center;
-  margin-bottom: 2.25rem;
+.home-card {
+  width: 100%;
+  max-width: 640px;
+  background: rgba(15, 31, 28, 0.72);
+  border: 1px solid rgba(230, 178, 60, 0.25);
+  border-radius: 16px;
+  padding: 2rem 2.2rem;
+  backdrop-filter: blur(2px);
 }
-.home .wordmark { font-size: clamp(1.7rem, 8vw, 2.5rem); }
+.home-brand { text-align: center; margin-bottom: 1.75rem; }
+.home .wordmark { font-size: clamp(1.6rem, 6vw, 2.1rem); }
 .home .tagline {
   color: var(--muted);
   margin: 0.5rem 0 0;
   font-size: 0.95rem;
 }
-
-.card-panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
-  margin-bottom: 1.25rem;
-}
-.card-panel h2 {
+.home-section { margin-bottom: 1.5rem; }
+.home-section:last-of-type { margin-bottom: 0; }
+.home-label {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 1.05rem;
-  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  margin: 0 0 0.8rem;
   letter-spacing: 0.01em;
+}
+.home-join {
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px dashed var(--line);
+}
+.home-join-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
 }
 
 label {
@@ -182,15 +209,6 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   margin-top: 0.6rem;
 }
 .btn-solo:hover:not(:disabled) { background: rgba(87,217,138,0.1); }
-
-.divider {
-  text-align: center;
-  color: var(--muted);
-  font-size: 0.8rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin: 0.25rem 0 1.25rem;
-}
 
 /* collapsible settings */
 .settings-toggle {
