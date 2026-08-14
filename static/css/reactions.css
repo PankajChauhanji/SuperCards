@@ -117,52 +117,56 @@
 .sb-score { flex: 0 0 auto; padding-left: 0.5rem; }
 .host-crown { color: var(--gold); font-size: 0.9rem; flex: 0 0 auto; }
 
-/* prominent rules button */
+/* rules button — quiet ghost/outline; the toolbar pill on its left already
+   carries the visual weight, this just needs to read as an action */
 .rules-btn {
   display: inline-flex; align-items: center; gap: 0.35rem;
-  border: 1px solid var(--gold);
-  background: rgba(230,178,60,0.12);
-  color: var(--gold);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
   font-family: var(--display); font-weight: 600;
   font-size: 0.9rem;
   padding: 0.5rem 0.9rem;
   border-radius: 999px;
   cursor: pointer;
   min-height: 40px;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.rules-btn:hover { background: rgba(230,178,60,0.22); }
+.rules-btn:hover { border-color: var(--muted); color: var(--text); background: rgba(255,255,255,0.05); }
 .rules-btn .rb-ico { font-size: 1.05rem; }
 
-/* quit button — sits to the right of Rules; red to read as "leave" */
+/* quit button — same quiet ghost treatment, tinted red only on hover so it
+   doesn't compete with Rules for attention at rest */
 .quit-btn {
   display: inline-flex; align-items: center; gap: 0.35rem;
-  border: 1px solid rgba(239,68,68,0.75);
-  background: rgba(239,68,68,0.12);
-  color: #ff6b6b;
+  border: 1px solid rgba(239,68,68,0.35);
+  background: transparent;
+  color: #f0a08f;
   font-family: var(--display); font-weight: 600;
   font-size: 0.9rem;
   padding: 0.5rem 0.9rem;
   border-radius: 999px;
   cursor: pointer;
   min-height: 40px;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.quit-btn:hover { background: rgba(239,68,68,0.24); }
+.quit-btn:hover { border-color: rgba(239,68,68,0.75); color: #ff6b6b; background: rgba(239,68,68,0.12); }
 .quit-btn .qb-ico { font-size: 0.95rem; }
 
-/* compact footer */
-.site-footer.compact { padding: 0.6rem 1rem; min-height: unset; }
-.site-footer.compact .footer-links { margin: 0; flex-wrap: wrap; gap: 1rem; }
-.star-link { color: var(--gold) !important; }
+/* compact footer (in-game) — same two-zone layout, just denser padding */
+.site-footer.compact { padding: 0.7rem 1rem; }
 
 @media (max-width: 560px) {
   .wordmark { flex-wrap: wrap; }
 }
 
 @media (max-width: 640px) {
-  .site-footer.compact { padding: 0.5rem 0.75rem; }
-  .site-footer.compact .footer-links { gap: 0.8rem; font-size: 0.8rem; }
+  .site-footer.compact { padding: 0.6rem 0.85rem; }
+  .footer-main { flex-direction: column; align-items: stretch; gap: 0.85rem; text-align: center; }
+  .footer-brand { align-items: center; }
+  .footer-right { flex-direction: column; gap: 0.6rem; }
+  .footer-links { flex-wrap: wrap; justify-content: center; }
+  .footer-install-cta, .footer-star-cta { width: 100%; justify-content: center; }
   .reaction-fab { width: 46px; height: 46px; font-size: 1.3rem; }
   .reaction-dock { right: 10px; bottom: 10px; }
 }
@@ -199,6 +203,16 @@
     border-radius: 12px; box-shadow: var(--shadow);
   }
   .topbar-actions.open { display: flex; }
+  /* The desktop pill-toolbar treatment (transparent icon/theme buttons
+     blending into one shared background) doesn't apply once this becomes a
+     vertical dropdown list — each row needs its own visible bounds back. */
+  .topbar-divider { display: none; }
+  .topbar-actions .icon-btn,
+  .topbar-actions .theme-select-btn {
+    background: var(--panel); border: 1px solid var(--line);
+  }
+  .topbar-actions .icon-btn:hover,
+  .topbar-actions .theme-select-btn:hover { background: var(--panel-2); }
   /* Each control becomes a full-width, left-aligned, labelled row. */
   .topbar-actions > .icon-btn,
   .topbar-actions > .rules-btn,
@@ -228,9 +242,10 @@
   .topbar-right { justify-content: flex-end; gap: 0.4rem; }
   .brand-symbol { height: 28px; }
   .brand-name { font-size: 1.02rem; }
-  .round-chip, .turn-timer { font-size: 0.75rem; padding: 0.25rem 0.55rem; }
+  .round-chip { font-size: 0.75rem; padding: 0.25rem 0.55rem; }
 
   .lobby { padding: 1.25rem 0.9rem; }
+  .lobby-card { padding: 1.15rem 1.1rem 1rem; }
   .code-banner .code { font-size: 2.1rem; letter-spacing: 0.22em; }
   .roster li { padding: 0.6rem 0.75rem; }
   .settings-edit, .settings-readout { grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); }
@@ -241,11 +256,7 @@
   .deck img { width: 54px; height: 76px; }
   .center-card { width: 50px; height: 70px; }
   .discard { min-width: 74px; }
-  .seat { min-width: 0; padding: 0.5rem 0.6rem; gap: 0.5rem; }
-  .card.mini { width: 24px; height: 34px; }
 
-  .card.hand-card { width: 58px; height: 82px; }
-  .hand { gap: 0.35rem; }
   .action-bar { gap: 0.5rem; }
   .play-label { min-width: 0; flex: 1 1 100%; text-align: center; }
   .action-btns { flex: 1 1 100%; justify-content: center; }
