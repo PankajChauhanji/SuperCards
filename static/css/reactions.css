@@ -31,19 +31,30 @@
 }
 
 .reaction-dock {
+  /* Right side, not left: on the in-game table the hand tray/action bar sit
+     centered at the bottom, and a left-bottom dock ended up floating over
+     hand cards there. The right corner stays clear on every game's layout. */
   position: fixed;
-  left: 16px; bottom: 16px;
+  right: 16px; bottom: 16px;
   z-index: 61;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
 }
 .reaction-fab {
   width: 52px; height: 52px;
   border-radius: 50%;
-  border: 1px solid var(--line);
+  border: 2px solid var(--gold);
   background: var(--panel);
   font-size: 1.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  /* `button` (base.css) sets a 12px/16px padding meant for text buttons,
+     which pushed this emoji off-center in a circular button; override to a
+     true centered layout, and use the border (plus a soft gold halo) to
+     make it read clearly as its own floating control against the felt. */
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 0 0 3px rgba(230,178,60,0.16);
   transition: transform 0.12s ease;
 }
 .reaction-fab:hover { transform: scale(1.08); }
@@ -153,12 +164,32 @@
   .site-footer.compact { padding: 0.5rem 0.75rem; }
   .site-footer.compact .footer-links { gap: 0.8rem; font-size: 0.8rem; }
   .reaction-fab { width: 46px; height: 46px; font-size: 1.3rem; }
-  .reaction-dock { left: 10px; bottom: 10px; }
+  .reaction-dock { right: 10px; bottom: 10px; }
 }
 
 /* ---------- narrow widths: collapse topbar actions into a hamburger menu ---------- */
 @media (max-width: 600px) {
-  .topbar-menu-btn { display: inline-flex; }
+  /* `.icon-btn` is `display:grid;place-items:center` — keep that display
+     value so its centering keeps working, just make it visible (the base
+     rule in lobby.css hides it on desktop). A previous version stacked a
+     chevron under the lines and overrode this to flex/column, which both
+     broke centering and made the button visibly taller than its sibling
+     40x40 pill chips. */
+  .topbar-menu-btn { display: grid; }
+  .menu-lines {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 18px;
+    height: 13px;
+  }
+  .menu-lines span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    border-radius: 2px;
+    background: var(--text);
+  }
   .topbar-actions {
     display: none;
     position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
