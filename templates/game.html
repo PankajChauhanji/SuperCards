@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/reactions.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/winner.css') }}" />
   <!-- Must stay last: it re-states paddings from the sheets above to add device insets. -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/safe-area.css') }}" />
 </head>
@@ -36,13 +37,14 @@
   <div class="topbar">
     {% include 'games/' + game_type + '/branding.html' %}
     <div class="topbar-right">
-      <span class="turn-timer" id="turn-timer" style="display:none"></span>
       <span class="round-chip" id="round-chip" style="display:none">Round 1</span>
       <button class="topbar-menu-btn icon-btn" id="topbar-menu-btn" title="Menu" aria-label="Menu" aria-expanded="false"><span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span></button>
       <div class="topbar-actions" id="topbar-actions">
       <button class="icon-btn" id="mute-btn" title="Sound on/off" aria-label="Sound on/off">&#128266;</button>
-      
+
       {% include 'partials/theme_selector.html' %}
+
+      <span class="topbar-divider" aria-hidden="true"></span>
 
       <button class="rules-btn" id="rules-btn" title="How to play" aria-label="How to play"><span class="rb-ico">&#9432;</span><span class="btn-label">Rules</span></button>
 
@@ -53,28 +55,31 @@
 
   <!-- Lobby -->
   <main class="lobby" id="lobby-view">
-    <div class="code-banner">
-      <div class="label">Room code</div>
-      <div class="code" id="room-code">····</div>
-      <button class="copy-hint" id="copy-btn">Tap to copy &amp; share</button>
-    </div>
+    <div class="lobby-card">
+      <div class="code-banner">
+        <div class="label">Room code</div>
+        <div class="code" id="room-code">····</div>
+        <button class="copy-hint" id="copy-btn">Tap to copy &amp; share</button>
+      </div>
 
-    <div class="lobby-tabs" role="tablist">
-      <button class="lobby-tab active" data-tab="players" role="tab" aria-selected="true">
-        Players <span class="tab-count" id="players-count"></span>
-      </button>
-      <button class="lobby-tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
-    </div>
+      <div class="lobby-tabs" role="tablist">
+        <span class="tab-slider" aria-hidden="true"></span>
+        <button class="lobby-tab active" data-tab="players" role="tab" aria-selected="true">
+          Players <span class="tab-count" id="players-count"></span>
+        </button>
+        <button class="lobby-tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
+      </div>
 
-    <div class="lobby-panel" data-panel="players">
-      <ul class="roster" id="roster"></ul>
-      <p class="meta" id="lobby-meta">Connecting…</p>
-    </div>
-    <div class="lobby-panel hidden" data-panel="settings">
-      <div class="lobby-settings" id="lobby-settings"></div>
-    </div>
+      <div class="lobby-panel" data-panel="players">
+        <ul class="roster" id="roster"></ul>
+        <p class="meta" id="lobby-meta">Connecting…</p>
+      </div>
+      <div class="lobby-panel hidden" data-panel="settings">
+        <div class="lobby-settings" id="lobby-settings"></div>
+      </div>
 
-    <div class="start-row" id="start-row"></div>
+      <div class="start-row" id="start-row"></div>
+    </div>
   </main>
 
   <!-- Table (shown once the round is dealt) — variant-specific markup -->
@@ -121,7 +126,7 @@
     </div>
   </div>
 
-  <!-- Round-end reveal -->
+  <!-- Round-end reveal (mid-game, between rounds) -->
   <div class="modal-backdrop" id="roundend-modal">
     <div class="modal roundend" role="dialog" aria-modal="true" aria-label="Round results">
       <h2 id="roundend-title">Round over</h2>
@@ -130,7 +135,25 @@
       <div class="close-row" id="roundend-footer"></div>
     </div>
   </div>
-  
+
+  <!-- Winner screen (game over) — medal stand, separate from the round-end reveal above -->
+  <div class="modal-backdrop" id="winner-modal">
+    <div class="winner-panel" role="dialog" aria-modal="true" aria-label="Game results">
+      <div class="winner-scene">
+        <div class="winner-confetti-layer" id="winner-confetti-layer" aria-hidden="true"></div>
+        <div class="winner-title-block">
+          <div class="winner-crown" aria-hidden="true">&#9819;</div>
+          <h2 class="winner-title" id="winner-title"></h2>
+          <p class="winner-sub" id="winner-sub"></p>
+        </div>
+        <div class="winner-ground"></div>
+        <div class="winner-podium-row" id="winner-podium-row"></div>
+      </div>
+      <div class="winner-overflow" id="winner-overflow"></div>
+      <div class="close-row" id="winner-footer"></div>
+    </div>
+  </div>
+
   {% include 'partials/install_modal.html' %}
 
   {% include 'partials/footer.html' %}
@@ -152,6 +175,8 @@
   <script src="{{ url_for('static', filename='js/core/format.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/sound.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/action_log.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/seats.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/winner_screen.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/quit.js') }}"></script>
   <!-- Shared chrome (reactions, themes, rules modal, mute/copy/spectator) -->
   <script src="{{ url_for('static', filename='js/core/reactions.js') }}"></script>
