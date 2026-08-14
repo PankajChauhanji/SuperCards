@@ -245,34 +245,131 @@
   box-shadow: inset 0 0 60px -20px rgba(0,0,0,0.6);
 }
 
-/* opponents */
+/* opponents — arc layout. Seats are absolutely positioned by JS
+   (core/seats.js), curved so a single opponent centers at the very top and
+   more opponents bow down toward the edges, like sitting around an oval
+   table. The container needs an explicit height since absolutely positioned
+   children don't contribute to it. */
 .opponents {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: center;
-  min-height: 92px;
+  position: relative;
+  width: 100%;
+  height: 150px;
 }
-.seat {
-  background: var(--panel);
-  border: 2px solid var(--line);
-  border-radius: 12px;
-  padding: 0.6rem 0.75rem;
+.opp-seat {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 74px;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+.opp-seat.offline { opacity: 0.5; }
+.opp-seat.out { opacity: 0.4; filter: grayscale(0.6); }
+
+/* Two concentric rings, always both present: the inner one is the
+   elimination/score progress (conic-gradient "bar bent into a circle",
+   same green -> yellow -> orange -> red meaning as .sb-bar-fill in the
+   Scores panel) and NEVER goes away. The outer one only lights up with
+   --timer-pct/--timer-color while this seat is the active turn, so the two
+   meanings stay visible at once instead of the timer replacing the score
+   ring. Games with no elimination metric (Bluff) skip the inner ring via
+   .no-ring below, but still get the outer timer ring on their turn. */
+.opp-ring-outer {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  min-width: 140px;
+  justify-content: center;
+  background: conic-gradient(var(--timer-color, transparent) 0% var(--timer-pct, 0%), transparent var(--timer-pct, 0%) 100%);
+  transition: background 0.3s ease;
 }
-.seat.active { border-color: var(--turn); box-shadow: 0 0 0 3px rgba(87,217,138,0.18); }
-.seat.next { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(230,178,60,0.18); }
-.seat.offline { opacity: 0.5; }
-.seat.out { opacity: 0.4; filter: grayscale(0.6); }
-.mini-stack { display: flex; align-items: center; gap: 0.3rem; }
-.card.mini { width: 30px; height: 42px; border-radius: 4px; }
-.mini-stack .count { font-family: var(--display); font-weight: 600; color: var(--text); }
-.seat-meta { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
-.seat-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.seat-score { font-size: 0.78rem; color: var(--muted); }
+.opp-ring {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(var(--ring-color, var(--line)) 0% var(--ring-pct, 0%), var(--line) var(--ring-pct, 0%) 100%);
+}
+/* Sole turn indicator now that seats sit in clockwise-from-you order (no
+   more TURN/NEXT text badges) — a gentle pulse so it reads at a glance.
+   Applies to the player's own seat too (.my-seat), not just opponents'. */
+.opp-seat.active .opp-ring-outer,
+.my-seat.active .opp-ring-outer {
+  box-shadow: 0 0 0 3px var(--turn), 0 0 16px 2px rgba(87, 217, 138, 0.45);
+  animation: opp-active-pulse 1.4s ease-in-out infinite;
+}
+@keyframes opp-active-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--turn), 0 0 16px 2px rgba(87, 217, 138, 0.45); }
+  50% { box-shadow: 0 0 0 3px var(--turn), 0 0 22px 6px rgba(87, 217, 138, 0.7); }
+}
+
+.opp-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.opp-seat.no-ring .opp-ring,
+.my-seat.no-ring .opp-ring { background: none; }
+.opp-seat.no-ring .opp-avatar,
+.my-seat.no-ring .opp-avatar { width: 52px; height: 52px; border: 2px solid var(--line); }
+
+/* Timer status line replacing the score line while this seat's turn clock
+   is running (see core/seats.js buildSeatEl) — greener/bolder than the
+   plain score text so the countdown reads as "live". */
+.opp-score.timer { color: var(--turn); font-weight: 600; }
+
+.opp-count {
+  position: absolute;
+  bottom: -3px;
+  right: -6px;
+  background: var(--gold);
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.68rem;
+  border-radius: 999px;
+  padding: 0.05rem 0.35rem;
+  border: 2px solid var(--bg);
+}
+.opp-count.safe { background: var(--turn); }
+
+.opp-name {
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.opp-score { font-size: 0.7rem; color: var(--muted); }
+
+@media (max-width: 720px) {
+  .opponents { height: 118px; }
+  .opp-seat { width: 60px; }
+  .opp-ring-outer { width: 50px; height: 50px; }
+  .opp-ring { width: 44px; height: 44px; }
+  .opp-avatar { width: 36px; height: 36px; font-size: 0.88rem; }
+  .opp-seat.no-ring .opp-avatar { width: 40px; height: 40px; }
+  .opp-count { font-size: 0.6rem; padding: 0.02rem 0.28rem; }
+  .opp-name { font-size: 0.68rem; }
+  .opp-score { font-size: 0.62rem; }
+}
 
 /* center row */
 .center-row {
@@ -325,35 +422,41 @@
 .pile-empty { color: var(--muted); font-size: 0.8rem; }
 .center-card { width: 62px; height: 86px; }
 
-/* own seat + hand — an elevated "tray" that sits slightly above the felt */
+/* Own hand + seat + actions — no boxed panel around them (the fanned
+   cards, ring, and pill buttons already read as their own things sitting
+   directly on the felt, same as opponents do); this is just the layout
+   column that stacks and centers them. */
 .myhand-wrap {
   display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
   width: 100%; max-width: 640px; margin: 0.2rem auto 0;
-  padding: 0.85rem 1rem 1rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
-.myseat {
-  display: inline-flex;
+/* Own seat badge — same ring/avatar/name/score parts as .opp-seat
+   (core/seats.js buildSeatEl), just centered/static instead of arced, and a
+   little larger since it's the one seat that's always front and center. */
+.my-seat {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.35rem 0.85rem;
-  border: 2px solid var(--line);
-  border-radius: 999px;
-  background: var(--panel);
+  gap: 0.3rem;
 }
-.myseat.active { border-color: var(--turn); box-shadow: 0 0 0 3px rgba(87,217,138,0.18); }
-.turn-tag { font-size: 0.78rem; color: var(--muted); }
-.myseat.active .turn-tag { color: var(--turn); font-weight: 600; }
+.my-seat.offline { opacity: 0.5; }
+.my-seat.out { opacity: 0.4; filter: grayscale(0.6); }
+.my-seat .opp-ring-outer { width: 66px; height: 66px; }
+.my-seat .opp-ring { width: 60px; height: 60px; }
+.my-seat .opp-avatar { width: 50px; height: 50px; font-size: 1.15rem; }
+.my-seat.no-ring .opp-avatar { width: 56px; height: 56px; }
+.my-seat .opp-name { font-size: 0.85rem; }
+.my-seat .opp-score { font-size: 0.76rem; }
 
 .hand {
   display: flex;
-  flex-wrap: wrap;
+  /* Always one row — core/seats.js layoutHandFan() computes per-card
+     overlap so any hand size fits, collapsing cards onto each other
+     instead of wrapping to a second row. */
+  flex-wrap: nowrap;
   justify-content: center;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 0;
   width: 100%;
 }
 .card.hand-card {
@@ -361,9 +464,14 @@
   height: 104px;
   border-radius: 8px;
   box-shadow: 0 6px 14px -8px rgba(0,0,0,0.7);
-  transition: transform 0.1s ease;
 }
-.card.hand-card:hover { transform: translateY(-6px); }
+/* Bluff-only: smaller cards since hands can run much larger than Seven's
+   fixed 7 — layoutHandFan() (core/seats.js) keeps them in one row
+   regardless. Placed here (before the mobile media queries below) on
+   purpose: at equal specificity the later rule wins regardless of media
+   query, so this unconditional rule must come before the ≤600px override
+   or it would win at every width, including mobile, and shadow it. */
+.bluff-hand .hand-card { width: 58px; height: 82px; }
 
 .badge.safe { background: var(--turn); color: var(--ink); }
 
@@ -377,33 +485,55 @@
   .sb-players { max-height: 170px; flex: 0 0 auto; }
   .action-log { min-height: 96px; max-height: 190px; flex: 1 1 auto; }
   .center-row { gap: 1.5rem; }
+
+  /* Placed in this (later) 720px block on purpose: the base .my-seat rule
+     sits further down this file than the earlier 720px block above, and a
+     same-specificity tie resolves by source order, not by which media
+     query "sounds" more specific — an override placed before the base rule
+     it's meant to override silently loses. */
+  .my-seat .opp-ring-outer { width: 54px; height: 54px; }
+  .my-seat .opp-ring { width: 48px; height: 48px; }
+  .my-seat .opp-avatar { width: 40px; height: 40px; font-size: 0.95rem; }
+  .my-seat.no-ring .opp-avatar { width: 44px; height: 44px; }
+  .my-seat .opp-name { font-size: 0.72rem; }
+  .my-seat .opp-score { font-size: 0.66rem; }
 }
 
-/* Phones: shrink hand cards so they wrap tidily (never overflow the table) */
+/* Phones: shrink hand cards — layoutHandFan() (core/seats.js) recomputes
+   overlap from the smaller measured card width, so they still always fit
+   one row. */
 @media (max-width: 600px) {
   .felt { padding: 1rem 0.75rem; }
-  .hand { gap: 0.4rem; }
   .card.hand-card { width: 60px; height: 84px; }
   .bluff-hand .hand-card { width: 46px; height: 66px; }
-  .myhand-wrap { max-width: 100%; padding: 0.7rem 0.55rem 0.85rem; }
+  .myhand-wrap { max-width: 100%; }
 }
 
 /* ---------- card selection ---------- */
-.card-slot { 
-  position: relative; 
-  display: inline-block; 
+/* Fanned hand: each card gets a rotation + downward-arc offset via --rot /
+   --fan-y (set per-card in JS — seven/table.js and bluff/table.js
+   renderHand(), same shape as the opponent arc math: 0 at the center card,
+   growing toward the edges). transform-origin sits at the bottom so cards
+   pivot like they're held in a hand, not spun around their own center.
+   Large Bluff hands leave --rot/--fan-y at their 0 defaults and keep the
+   flat wrapped layout — a rotated multi-row hand wouldn't read as a fan. */
+.card-slot {
+  position: relative;
+  display: inline-block;
   line-height: 0;
-  transition: transform 0.2s ease, z-index 0s;
+  transform-origin: bottom center;
+  transform: rotate(var(--rot, 0deg)) translateY(var(--fan-y, 0px));
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
+/* The slot itself never resizes on hover — only z-index changes — so the
+   hover trigger stays bound to the card's original footprint. If the slot
+   grew too, leaving that original area (even while still visually "inside"
+   the bigger card underneath) would keep hover active, which reads as
+   sticky/unpredictable. Growth happens on the child (.hand-card) below. */
 .card-slot:hover {
-  z-index: 10;
+  z-index: 30;
 }
 
-/* Bluff-only: hands can be large, so use compact cards that WRAP into rows
-   (pile below) instead of overflowing the table width. */
-.bluff-hand { gap: 0.35rem; }
-.bluff-hand .card-slot { margin-left: 0; }
-.bluff-hand .hand-card { width: 58px; height: 82px; }
 .card-slot .tick {
   position: absolute;
   top: -8px; right: -8px;
@@ -421,13 +551,31 @@
   pointer-events: none;
 }
 .card-slot.selected .tick { opacity: 1; transform: scale(1); }
-.card-slot .hand-card { cursor: pointer; }
-.card-slot.selected .hand-card {
-  outline: 3px solid var(--accent);
-  outline-offset: 1px;
-  transform: translateY(-10px);
+.card-slot .hand-card {
+  cursor: pointer;
+  /* Anchored at bottom-right so growth reaches toward the top-left — away
+     from the next card in the fan, which overlaps this one from the
+     right, and away from neighbors above/below in a wrapped row. */
+  transform-origin: bottom right;
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), outline-color 0.15s ease;
 }
 .card-slot.locked .hand-card { cursor: default; }
+.card-slot.selected {
+  z-index: 15;
+}
+/* Selected: colored outline + a modest lift/scale — noticeably marked, not
+   a full preview (that's what hover, below, is for). */
+.card-slot.selected .hand-card {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  transform: scale(1.06) translateY(-8px);
+}
+/* Comes after .selected so hovering a selected card still shows the full
+   enlarge-preview (equal specificity — last rule wins). Kept small — just
+   enough lift/scale to read the card clearly, not a dramatic zoom. */
+.card-slot:hover .hand-card {
+  transform: scale(1.08) translate(-6px, -10px);
+}
 
 /* ---------- action bar ---------- */
 .action-bar {
@@ -445,19 +593,34 @@
 .play-label.bad { color: var(--accent); }
 .play-label.draw { color: var(--gold); font-weight: 600; }
 .action-btns { display: flex; gap: 0.6rem; }
+/* Pill buttons with a leading icon glyph, not just text — same treatment
+   for every variant's action row (Seven's Throw/Stop, Bluff's
+   Throw/Pass/Show!). */
+.btn-throw, .btn-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  min-width: 108px;
+}
+.btn-ico { font-size: 0.95em; line-height: 1; }
 .btn-throw {
   background: var(--gold);
   color: var(--ink);
-  min-width: 96px;
 }
 .btn-throw:hover:not(:disabled) { filter: brightness(1.06); }
 .btn-stop {
   background: transparent;
   color: var(--accent);
   border: 1px solid var(--accent);
-  min-width: 80px;
 }
 .btn-stop:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.btn-stop.solid {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-stop.solid:hover:not(:disabled) { filter: brightness(1.1); }
 
 /* deck becomes interactive only when a draw is owed by the viewer */
 .deck.clickable img {
@@ -490,21 +653,6 @@
 .re-total { color: var(--muted); font-size: 0.82rem; margin-left: 0.4rem; }
 .re-empty { color: var(--turn); font-size: 0.85rem; font-weight: 600; }
 
-/* ---------- turn timer ---------- */
-.turn-timer {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 0.82rem;
-  color: var(--turn);
-  border: 1px solid var(--line);
-  background: var(--panel);
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  min-width: 3.2rem;
-  text-align: center;
-}
-.turn-timer.low { color: #fff; background: var(--accent); border-color: var(--accent); }
-
 /* game-over rows reuse .re-row; winner uses .caller highlight, out uses .out */
 .re-row.out { opacity: 0.5; }
 
@@ -517,9 +665,6 @@
   margin-right: 0.1rem;
   flex: 0 0 auto;
 }
-
-/* coloured accent stripe on opponent seats */
-.seat { border-left: 4px solid var(--seat-color, var(--line)); }
 
 /* just-drawn card highlight (clears after ~5s) */
 .card-slot.just-drawn .hand-card {
@@ -564,59 +709,71 @@
 /* ---------- footer ---------- */
 .site-footer {
   border-top: 1px solid var(--line);
-  padding: 1rem 1.25rem 0.6rem;
-  text-align: center;
-  background: var(--bg-2);
+  padding: 1.1rem 1.4rem;
+  background: linear-gradient(0deg, var(--panel) 0%, var(--bg-2) 100%);
+  box-shadow: 0 -1px 0 rgba(230, 178, 60, 0.14);
+}
+.footer-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.footer-brand-name { font-family: var(--display); font-weight: 700; font-size: 0.95rem; }
+.footer-tagline { font-size: 0.76rem; color: var(--muted); white-space: nowrap; }
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
 }
 .footer-links {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 1.25rem;
-  margin-bottom: 0.5rem;
+  gap: 1rem;
 }
 .footer-links a {
   color: var(--muted);
   text-decoration: none;
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   transition: color 0.15s ease;
 }
-.footer-links a:hover { color: var(--gold); }
-.footer-copy { color: var(--muted); font-size: 0.75rem; margin-bottom: 0.5rem; }
-.footer-star {
-  font-size: 0.82rem;
-  color: var(--muted);
-  margin: 0;
-}
-.footer-star a {
+.footer-links a:hover { color: var(--text); }
+.footer-star-cta {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-family: var(--display); font-weight: 600; font-size: 0.78rem;
   color: var(--gold);
+  border: 1px solid rgba(230, 178, 60, 0.4);
+  background: rgba(230, 178, 60, 0.06);
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
   text-decoration: none;
-  font-weight: 600;
-  border-bottom: 1px dashed rgba(230,178,60,0.4);
-  padding-bottom: 1px;
+  white-space: nowrap;
+  transition: background 0.15s ease;
 }
-.footer-star a:hover { border-bottom-color: var(--gold); }
-.footer-sep {
-  color: var(--muted);
-  margin: 0 0.3rem;
-}
-.footer-inline-link {
-  background: none;
-  border: 0;
-  padding: 0;
-  color: var(--gold);
-  font: inherit;
+.footer-star-cta:hover { background: rgba(230, 178, 60, 0.12); }
+/* the one CTA in the footer allowed to be filled/loud — everything else
+   here stays quiet so this is what the eye lands on */
+.footer-install-cta {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-family: var(--display); font-weight: 700; font-size: 0.8rem;
+  color: var(--ink);
+  border: 1px solid var(--gold);
+  background: var(--gold);
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
   cursor: pointer;
-  font-weight: 600;
-  border-bottom: 1px dashed rgba(230,178,60,0.4);
-  padding-bottom: 1px;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
 }
-.footer-inline-link:hover {
-  border-bottom-color: var(--gold);
-}
-.footer-install {
-  margin-top: 0.75rem;
-}
+.footer-install-cta:hover { filter: brightness(1.06); }
 
 /* ---------- Batch 1 enhancements ---------- */
 /* 3-second pick countdown on the deck */
