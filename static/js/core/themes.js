@@ -12,26 +12,35 @@
   const code = window.SS_ROOM_CODE;
   const youId = window.Identity ? window.Identity.userId() : null;
 
+  // Casino is the baseline look — every room starts here, no picking
+  // required. The first 5 are palette variants sharing the Classic frame;
+  // the rest are fully self-contained signature designs (own background,
+  // border and ornaments baked in — no separate shape picker).
   const THEME_MAP = {
-    default: { icon: "🟢", name: "Default" },
     casino: { icon: "🎰", name: "Casino Felt" },
-    cyberpunk: { icon: "👾", name: "Cyberpunk" },
     marble: { icon: "🏛️", name: "Marble Luxury" },
     red_casino: { icon: "🍒", name: "Red Casino" },
-    royal_velvet: { icon: "👑", name: "Royal Velvet" },
     ocean_glow: { icon: "🌊", name: "Ocean Glow" },
     sunset_mirage: { icon: "🌅", name: "Sunset Mirage" },
-    forest_mist: { icon: "🌲", name: "Forest Mist" },
+    poker: { icon: "🃏", name: "Poker Table" },
+    royal: { icon: "👑", name: "Royal" },
+    hacker: { icon: "🖥️", name: "Hacker" },
+    horror: { icon: "🩸", name: "Horror" },
+    pirate: { icon: "☠️", name: "Pirate Treasure" },
+    space: { icon: "🌌", name: "Space Galaxy" },
+    egyptian: { icon: "🏺", name: "Egyptian Pharaoh" },
+    wildwest: { icon: "🤠", name: "Wild West Saloon" },
+    forest: { icon: "🌲", name: "Enchanted Forest" },
   };
 
   function apply(theme) {
-    theme = theme || "default";
+    theme = theme || "casino";
     Object.keys(THEME_MAP).forEach((t) => document.body.classList.remove("theme-" + t));
-    if (theme !== "default") document.body.classList.add("theme-" + theme);
+    document.body.classList.add("theme-" + theme);
     const icon = document.getElementById("current-theme-icon");
     const name = document.getElementById("current-theme-name");
     if (icon && name) {
-      const active = THEME_MAP[theme] || THEME_MAP.default;
+      const active = THEME_MAP[theme] || THEME_MAP.casino;
       icon.textContent = active.icon;
       name.textContent = active.name;
     }
