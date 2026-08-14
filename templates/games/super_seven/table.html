@@ -14,6 +14,10 @@
       </div>
     </aside>
     <section class="felt">
+      <span class="table-corner tc-tl" aria-hidden="true"></span>
+      <span class="table-corner tc-tr" aria-hidden="true"></span>
+      <span class="table-corner tc-bl" aria-hidden="true"></span>
+      <span class="table-corner tc-br" aria-hidden="true"></span>
       <div class="opponents" id="opponents"></div>
 
       <div class="center-row">
@@ -30,13 +34,13 @@
       </div>
 
       <div class="myhand-wrap">
-        <div class="myseat" id="myseat"></div>
         <div class="hand" id="hand"></div>
+        <div id="myseat"></div>
         <div class="action-bar" id="action-bar">
           <span class="play-label" id="play-label"></span>
           <div class="action-btns">
-            <button class="btn-throw" id="throw-btn" disabled>Throw</button>
-            <button class="btn-stop" id="stop-btn" disabled title="Call Stop at the start of your turn">Stop</button>
+            <button class="btn-throw" id="throw-btn" disabled><span class="btn-ico" aria-hidden="true">&#8593;</span> Throw</button>
+            <button class="btn-stop" id="stop-btn" disabled title="Call Stop at the start of your turn"><span class="btn-ico" aria-hidden="true">&#9724;</span> Stop</button>
           </div>
         </div>
       </div>
