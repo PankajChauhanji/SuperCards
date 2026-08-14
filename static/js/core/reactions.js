@@ -101,4 +101,33 @@
   }
 
   socket.on("reaction", (d) => floatReaction(d.emoji, d.name));
+
+  // Anchor the dock to the table's own bottom-right corner instead of the
+  // raw viewport corner — on a wide desktop screen #table-view is centered
+  // with its own max-width, so a plain `position:fixed;right;bottom` sits
+  // far from the felt. Falls back to the CSS default (viewport corner) on
+  // any page without #table-view (e.g. Super Four, untouched by this).
+  //
+  // Belt and suspenders: a ResizeObserver on #table-view catches every size
+  // change generically (round start, hand dealt, opponent count, window
+  // resize) without needing a call at each render site — but each game
+  // bundle ALSO calls SS.positionReactionDock() directly after the render
+  // calls that are known to change the felt's height (your_hand,
+  // round_start, table_state), since ResizeObserver notifications can lag
+  // or be throttled in a backgrounded/non-compositing tab.
+  const GAP = 16;
+  function positionReactionDock() {
+    const tableView = document.getElementById("table-view");
+    if (!rxDock || !tableView) return;
+    if (getComputedStyle(tableView).display === "none") return;
+    const r = tableView.getBoundingClientRect();
+    rxDock.style.right = Math.max(GAP, window.innerWidth - r.right + GAP) + "px";
+    rxDock.style.bottom = Math.max(GAP, window.innerHeight - r.bottom + GAP) + "px";
+  }
+  const tableViewEl = document.getElementById("table-view");
+  if (tableViewEl && "ResizeObserver" in window) {
+    new ResizeObserver(positionReactionDock).observe(tableViewEl);
+  }
+  window.addEventListener("resize", positionReactionDock);
+  SS.positionReactionDock = positionReactionDock;
 })();
