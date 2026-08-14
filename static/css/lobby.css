@@ -5,7 +5,8 @@
   justify-content: space-between;
   padding: 0.9rem 1.25rem;
   border-bottom: 1px solid var(--line);
-  background: var(--bg-2);
+  background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%);
+  box-shadow: 0 1px 0 rgba(230, 178, 60, 0.14);
 }
 .topbar .wordmark { font-size: 1.35rem; }
 .icon-btn {
@@ -23,6 +24,16 @@
   max-width: 560px;
   margin: 0 auto;
   padding: 2rem 1.25rem;
+}
+/* One card holding the whole lobby — room code, tabs, roster/settings,
+   start button — instead of those sitting loose on the page, matching the
+   home page's single-card treatment. */
+.lobby-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 1.75rem 1.75rem 1.5rem;
 }
 
 .code-banner {
@@ -213,8 +224,20 @@
 /* Controls stay on ONE line at every width; they compact rather than wrap. */
 .topbar-right { position: relative; display: flex; align-items: center; gap: 0.55rem; flex-wrap: nowrap; }
 /* Desktop: actions inline, hamburger hidden. (Mobile overrides in reactions.css.) */
-.topbar-actions { display: flex; align-items: center; gap: 0.55rem; }
+.topbar-actions {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.3rem;
+}
 .topbar-menu-btn { display: none; }
+.topbar-divider { width: 1px; height: 22px; background: var(--line); margin: 0 0.15rem; flex: none; }
+/* Blend the mute icon into the toolbar pill instead of stacking its own
+   panel+border on top of the pill's — the pill already reads as a control
+   group. */
+.topbar-actions .icon-btn { background: transparent; border: none; }
+.topbar-actions .icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
 
 /* per-game brand (card emblem + name), accent supplied inline by branding.html */
 .game-brand { min-width: 0; }
@@ -237,33 +260,51 @@
   font-size: 0.82rem;
   letter-spacing: 0.04em;
   color: var(--gold);
-  border: 1px solid var(--line);
-  background: var(--panel);
+  border: 1px solid rgba(230, 178, 60, 0.4);
+  background: rgba(230, 178, 60, 0.07);
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
 }
 
-/* ---------- lobby: Players / Settings tabs ---------- */
+/* ---------- lobby: Players / Settings tabs ----------
+   A sliding pill (.tab-slider) rather than an instant background swap —
+   it's an absolutely-positioned sibling of the two buttons, animated via
+   a .pos-settings modifier class on the container (set by lobby.js), so
+   the two tab buttons themselves never need their own background. */
 .lobby-tabs {
+  position: relative;
   display: flex; gap: 0.35rem;
   background: var(--bg-2); border: 1px solid var(--line);
   border-radius: 12px; padding: 0.3rem; margin-bottom: 1.1rem;
 }
+.tab-slider {
+  position: absolute;
+  top: 0.3rem; bottom: 0.3rem; left: 0.3rem;
+  width: calc(50% - 0.3rem - 0.175rem);
+  background: var(--gold);
+  border-radius: 9px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lobby-tabs.pos-settings .tab-slider {
+  transform: translateX(calc(100% + 0.35rem));
+}
 .lobby-tab {
+  position: relative; z-index: 1;
   flex: 1; background: transparent; border: none; color: var(--muted);
   font-family: var(--display); font-weight: 600; font-size: 0.9rem;
   padding: 0.55rem 0.5rem; border-radius: 9px; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-  transition: background 0.15s, color 0.15s;
+  transition: color 0.2s ease;
 }
-.lobby-tab:hover { color: var(--text); }
-.lobby-tab.active { background: var(--panel); color: var(--text); }
+.lobby-tab:hover:not(.active) { color: var(--text); }
+.lobby-tab.active { color: var(--ink); }
 .tab-count {
   font-size: 0.72rem; min-width: 20px; height: 20px; padding: 0 0.35rem;
   border-radius: 999px; background: var(--panel-2); color: var(--muted);
   display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
 }
-.lobby-tab.active .tab-count { background: var(--gold); color: var(--ink); }
+.lobby-tab.active .tab-count { background: rgba(21, 32, 29, 0.18); color: var(--ink); }
 .lobby-panel.hidden { display: none; }
 
 /* ---------- lobby: reusable settings panel (all games share this) ---------- */
@@ -288,16 +329,6 @@
 }
 .set-val { font-family: var(--display); font-weight: 600; color: var(--text); font-size: 1rem; }
 .set-save { margin-top: 1rem; width: auto; padding: 0.5rem 1.1rem; }
-
-/* ---------- landing page: step headers ---------- */
-.step-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.1rem; }
-.step-num {
-  flex: none; width: 24px; height: 24px; border-radius: 999px;
-  background: var(--gold); color: var(--ink);
-  font-family: var(--display); font-weight: 700; font-size: 0.82rem;
-  display: flex; align-items: center; justify-content: center;
-}
-.step-head h2 { margin: 0; }
 
 /* ---------- landing page: game picker ---------- */
 .picker-tiles {
@@ -349,8 +380,12 @@
 .join-row .btn-ghost { width: auto; padding-left: 1.4rem; padding-right: 1.4rem; }
 
 /* ---------- landing page: mobile ---------- */
+@media (max-width: 600px) {
+  .home-card { padding: 1.5rem 1.25rem; }
+  .home-brand { margin-bottom: 1.4rem; }
+}
 @media (max-width: 400px) {
-  .card-panel { padding: 1.15rem; }
+  .home-card { padding: 1.15rem; }
   .action-row { flex-direction: column; }
   .gt-emblem { width: 40px; height: 54px; font-size: 1.55rem; }
   .gt-name { font-size: 0.9rem; }
