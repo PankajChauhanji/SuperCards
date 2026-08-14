@@ -16,6 +16,17 @@
     return s;
   }
 
+  // Turn-timer info for whichever seat (opponent or you) is currently
+  // active — feeds core/seats.js's ring, which shows this instead of the
+  // score ring while running. Only one seat is ever active at a time, so
+  // this only returns non-null for that one.
+  function timerInfo(state, isTurn) {
+    if (!isTurn || state.state !== "IN_TURN" || typeof state.secondsLeft !== "number") return null;
+    const total = (state.settings && state.settings.turn_timer) || 40;
+    const remaining = Math.max(0, state.secondsLeft);
+    return { pct: Math.max(0, Math.min(1, remaining / total)), label: remaining + "s left" };
+  }
+
   function cardImg(card, className) {
     const img = document.createElement("img");
     img.className = "card " + (className || "");
@@ -187,78 +198,50 @@
 
   function renderOpponents(state) {
     const wrap = document.getElementById("opponents");
-    wrap.innerHTML = "";
 
-    // Find next turn
-    let nextTurnId = null;
-    if (state.turnOrder && state.turnOrder.length > 0 && state.currentTurn) {
-      const idx = state.turnOrder.indexOf(state.currentTurn);
-      if (idx !== -1) {
-        nextTurnId = state.turnOrder[(idx + 1) % state.turnOrder.length];
-      }
-    }
-
-    // Opponents in seating order, starting after "you" for a stable layout.
-    const order = state.turnOrder && state.turnOrder.length
+    const raw = state.turnOrder && state.turnOrder.length
       ? state.turnOrder
       : state.players.map((p) => p.user_id);
+
+    // Rotate so the sequence starts right after "you", wrapping around — the
+    // arc then reads left-to-right as the actual turn order from whoever is
+    // viewing it, like sitting at a table and turns passing clockwise. Every
+    // player computes this from their own state.you, so it's correct for
+    // each viewer independently.
+    const youIdx = raw.indexOf(state.you);
+    const order = youIdx === -1
+      ? raw
+      : raw.slice(youIdx + 1).concat(raw.slice(0, youIdx + 1));
+
     const byId = {};
     state.players.forEach((p) => (byId[p.user_id] = p));
 
-    order
+    // Ring shows how close the player is to the elimination cap (matches the
+    // Scores panel's own sb-bar-fill: score / max_score).
+    const maxScore = (state.settings && state.settings.max_score) || 100;
+
+    const seats = order
       .filter((uid) => uid !== state.you && byId[uid])
-      .forEach((uid) => {
+      .map((uid) => {
         const p = byId[uid];
-        const seat = document.createElement("div");
-        seat.className = "seat";
-        seat.style.setProperty("--seat-color", colorOf(p));
-        if (p.user_id === state.currentTurn) seat.classList.add("active");
-        if (p.user_id === nextTurnId) seat.classList.add("next");
-        if (!p.connected) seat.classList.add("offline");
-        if (p.eliminated) seat.classList.add("out");
-
-        const stack = document.createElement("div");
-        stack.className = "mini-stack";
-        if (p.is_safe) {
-          stack.appendChild(badge("SAFE 0", "safe"));
-        } else {
-          stack.appendChild(backImg("mini"));
-          const count = document.createElement("span");
-          count.className = "count";
-          count.textContent = "\u00d7" + p.card_count; // ×N
-          stack.appendChild(count);
-        }
-
-        const meta = document.createElement("div");
-        meta.className = "seat-meta";
-        const name = document.createElement("span");
-        name.className = "seat-name";
-        name.textContent = window.SS.shortName(p.name);
-        
-        // Next/Active turn status indicator
-        const statusRow = document.createElement("div");
-        statusRow.style.display = "flex";
-        statusRow.style.alignItems = "center";
-        statusRow.style.gap = "0.3rem";
-        statusRow.style.marginTop = "0.15rem";
-        if (p.user_id === state.currentTurn) {
-          statusRow.appendChild(badge("TURN", "turn-now"));
-        } else if (p.user_id === nextTurnId) {
-          statusRow.appendChild(badge("NEXT", "next-turn"));
-        }
-
-        const score = document.createElement("span");
-        score.className = "seat-score";
-        score.textContent = p.score + " pts";
-        
-        meta.appendChild(name);
-        meta.appendChild(score);
-        meta.appendChild(statusRow);
-
-        seat.appendChild(stack);
-        seat.appendChild(meta);
-        wrap.appendChild(seat);
+        const isTurn = p.user_id === state.currentTurn;
+        const timer = timerInfo(state, isTurn);
+        return {
+          name: window.SS.shortName(p.name),
+          color: colorOf(p),
+          cardCount: p.card_count,
+          score: p.score,
+          safe: p.is_safe,
+          ringPct: p.is_safe ? 0 : Math.min(1, (p.score || 0) / maxScore),
+          timerPct: timer ? timer.pct : null,
+          timerLabel: timer ? timer.label : null,
+          active: isTurn,
+          connected: p.connected,
+          eliminated: p.eliminated,
+        };
       });
+
+    window.SS.renderOpponentSeats(wrap, seats);
   }
 
   function renderCenter(state) {
@@ -283,43 +266,27 @@
   }
 
   function renderMySeat(state) {
-    const seat = document.getElementById("myseat");
-    seat.className = "myseat";
-    
-    // Find next turn
-    let nextTurnId = null;
-    if (state.turnOrder && state.turnOrder.length > 0 && state.currentTurn) {
-      const idx = state.turnOrder.indexOf(state.currentTurn);
-      if (idx !== -1) {
-        nextTurnId = state.turnOrder[(idx + 1) % state.turnOrder.length];
-      }
-    }
-
-    if (state.you === state.currentTurn) {
-      seat.classList.add("active");
-    } else if (state.you === nextTurnId) {
-      seat.classList.add("next");
-    }
-    
-    seat.innerHTML = "";
-
+    const wrap = document.getElementById("myseat");
     const me = state.players.find((p) => p.user_id === state.you);
-    const name = document.createElement("span");
-    name.className = "seat-name";
-    name.textContent = (me ? window.SS.shortName(me.name) : "You") + " (you)";
-    
-    const tag = document.createElement("span");
-    tag.className = "turn-tag";
-    if (state.you === state.currentTurn) {
-      tag.textContent = "Your turn";
-    } else if (state.you === nextTurnId) {
-      tag.textContent = "Up Next \u2794";
-    } else {
-      tag.textContent = "Waiting";
-    }
-    
-    seat.appendChild(name);
-    seat.appendChild(tag);
+    if (!me) { window.SS.renderMySeat(wrap, null); return; }
+
+    const isTurn = state.you === state.currentTurn;
+    const timer = timerInfo(state, isTurn);
+    const maxScore = (state.settings && state.settings.max_score) || 100;
+
+    window.SS.renderMySeat(wrap, {
+      name: window.SS.shortName(me.name) + " (you)",
+      color: colorOf(me),
+      cardCount: me.card_count,
+      score: me.score,
+      safe: me.is_safe,
+      ringPct: me.is_safe ? 0 : Math.min(1, (me.score || 0) / maxScore),
+      timerPct: timer ? timer.pct : null,
+      timerLabel: timer ? timer.label : null,
+      active: isTurn,
+      connected: me.connected,
+      eliminated: me.eliminated,
+    });
   }
 
   // Stable display order for a hand: by rank, then by suit.
@@ -334,7 +301,8 @@
   function renderHand(state) {
     const hand = document.getElementById("hand");
     hand.innerHTML = "";
-    sortedHand(state.hand).forEach((card) => {
+    const cards = sortedHand(state.hand);
+    const slots = cards.map((card) => {
       const slot = document.createElement("div");
       slot.className = "card-slot";
       slot.dataset.id = card.id;
@@ -345,7 +313,11 @@
       tick.textContent = "\u2713";
       slot.appendChild(tick);
       hand.appendChild(slot);
+      return slot;
     });
+    // Fan/overlap math (core/seats.js) needs the slots already in the DOM
+    // to measure real card width, so it runs after the loop above.
+    window.SS.layoutHandFan(hand, slots);
     if (window.Selection) window.Selection.refresh();
   }
 
@@ -358,6 +330,12 @@
       renderCenter(state);
       renderMySeat(state);
       renderHand(state);
+    },
+    // Lightweight per-second refresh for the turn-timer ring — only the
+    // seat badges (a handful of small elements), not the whole hand/felt.
+    tick(state) {
+      renderOpponents(state);
+      renderMySeat(state);
     },
   };
 })();
