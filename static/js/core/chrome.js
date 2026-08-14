@@ -59,6 +59,23 @@
     });
   }
 
+  // ---- scores panel collapse ----
+  // Unlike Action History (action_log.js), this stays open by default at
+  // every width — it carries the turn indicator, so hiding it automatically
+  // on phones would cost more than the space it saves.
+  const scoresPanel = document.getElementById("sb-players");
+  const scoresToggle = document.getElementById("scores-toggle");
+  if (scoresPanel && scoresToggle) {
+    const toggleScores = () => {
+      const collapsed = scoresPanel.classList.toggle("is-collapsed");
+      scoresToggle.setAttribute("aria-expanded", String(!collapsed));
+    };
+    scoresToggle.addEventListener("click", toggleScores);
+    scoresToggle.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleScores(); }
+    });
+  }
+
   // ---- spectator admit modal (host) ----
   const specModal = document.getElementById("spectator-modal");
   const specCancel = document.getElementById("admit-cancel");
