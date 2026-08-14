@@ -3,6 +3,16 @@
   const PALETTE = ["#4ea1ff", "#ff9f43", "#a98cf0", "#f06ea9", "#43c6c6", "#d6c04a"];
   function colorOf(p) { return PALETTE[(p && typeof p.color === "number" ? p.color : 0) % PALETTE.length]; }
   function swatch(p) { const s = document.createElement("span"); s.className = "swatch"; s.style.background = colorOf(p); return s; }
+
+  // Turn-timer info for whichever seat (opponent or you) is currently
+  // active — feeds core/seats.js's ring, which shows this instead of the
+  // (Bluff has no) score ring while running.
+  function timerInfo(state, isTurn) {
+    if (!isTurn || state.state !== "IN_TURN" || typeof state.secondsLeft !== "number") return null;
+    const total = (state.settings && state.settings.turn_timer) || 40;
+    const remaining = Math.max(0, state.secondsLeft);
+    return { pct: Math.max(0, Math.min(1, remaining / total)), label: remaining + "s left" };
+  }
   
   function cardImg(card, className) {
     const img = document.createElement("img");
@@ -67,39 +77,40 @@
 
   function renderOpponents(state) {
     const wrap = document.getElementById("opponents");
-    wrap.innerHTML = "";
-    const order = state.turnOrder && state.turnOrder.length ? state.turnOrder : state.players.map((p) => p.user_id);
+    const raw = state.turnOrder && state.turnOrder.length ? state.turnOrder : state.players.map((p) => p.user_id);
+
+    // Rotate so the sequence starts right after "you", wrapping around — the
+    // arc then reads left-to-right as the actual turn order from whoever is
+    // viewing it, like sitting at a table and turns passing clockwise.
+    const youIdx = raw.indexOf(state.you);
+    const order = youIdx === -1
+      ? raw
+      : raw.slice(youIdx + 1).concat(raw.slice(0, youIdx + 1));
+
     const byId = {};
     state.players.forEach((p) => (byId[p.user_id] = p));
 
-    order.filter((uid) => uid !== state.you && byId[uid]).forEach((uid) => {
-        const p = byId[uid];
-        const seat = document.createElement("div");
-        seat.className = "seat";
-        seat.style.setProperty("--seat-color", colorOf(p));
-        if (p.user_id === state.currentTurn) seat.classList.add("active");
-        if (!p.connected) seat.classList.add("offline");
-        if (p.eliminated) seat.classList.add("out");
+    // Bluff has no numeric elimination cap (players are only removed by
+    // finishing their hand), so seats render with ringPct null -> a plain
+    // bordered avatar (core/seats.js), no progress ring.
+    const seats = order.filter((uid) => uid !== state.you && byId[uid]).map((uid) => {
+      const p = byId[uid];
+      const isTurn = p.user_id === state.currentTurn;
+      const timer = timerInfo(state, isTurn);
+      return {
+        name: window.SS.shortName(p.name),
+        color: colorOf(p),
+        cardCount: p.card_count || 0,
+        ringPct: null,
+        timerPct: timer ? timer.pct : null,
+        timerLabel: timer ? timer.label : null,
+        active: isTurn,
+        connected: p.connected,
+        eliminated: p.eliminated,
+      };
+    });
 
-        const stack = document.createElement("div");
-        stack.className = "mini-stack";
-        stack.appendChild(backImg("mini"));
-        const count = document.createElement("span");
-        count.className = "count";
-        count.textContent = "\u00d7" + (p.card_count || 0);
-        stack.appendChild(count);
-
-        const meta = document.createElement("div");
-        meta.className = "seat-meta";
-        const name = document.createElement("span");
-        name.className = "seat-name";
-        name.textContent = window.SS.shortName(p.name);
-        meta.appendChild(name);
-
-        seat.appendChild(stack);
-        seat.appendChild(meta);
-        wrap.appendChild(seat);
-      });
+    window.SS.renderOpponentSeats(wrap, seats);
   }
 
   function renderCenter(state) {
@@ -145,22 +156,30 @@
   }
 
   function renderMySeat(state) {
-    const seat = document.getElementById("myseat");
-    seat.className = "myseat";
-    if (state.you === state.currentTurn) seat.classList.add("active");
-    seat.innerHTML = "";
-
+    const wrap = document.getElementById("myseat");
     const me = state.players.find((p) => p.user_id === state.you);
-    const name = document.createElement("span");
-    name.className = "seat-name";
-    name.textContent = (me ? window.SS.shortName(me.name) : "You") + " (you)";
-    seat.appendChild(name);
+    if (!me) { window.SS.renderMySeat(wrap, null); return; }
+
+    const isTurn = state.you === state.currentTurn;
+    const timer = timerInfo(state, isTurn);
+
+    window.SS.renderMySeat(wrap, {
+      name: window.SS.shortName(me.name) + " (you)",
+      color: colorOf(me),
+      cardCount: me.card_count || 0,
+      ringPct: null,
+      timerPct: timer ? timer.pct : null,
+      timerLabel: timer ? timer.label : null,
+      active: isTurn,
+      connected: me.connected,
+      eliminated: me.eliminated,
+    });
   }
 
   function renderHand(state) {
     const hand = document.getElementById("hand");
     hand.innerHTML = "";
-    
+
     // Sort hand in descending order of rank
     const sortedHand = (state.hand || []).slice().sort((a, b) => {
       if (a.rank !== b.rank) return b.rank - a.rank;
@@ -168,7 +187,7 @@
       return (suitOrder[a.suit] || 0) - (suitOrder[b.suit] || 0);
     });
 
-    sortedHand.forEach((card) => {
+    const slots = sortedHand.map((card) => {
       const slot = document.createElement("div");
       slot.className = "card-slot";
       slot.dataset.id = card.id;
@@ -178,7 +197,14 @@
       tick.textContent = "\u2713";
       slot.appendChild(tick);
       hand.appendChild(slot);
+      return slot;
     });
+    // Fan/overlap math (core/seats.js) needs the slots already in the DOM
+    // to measure real card width, so it runs after the loop above. Bluff
+    // hands can run past 20 cards early in a small game \u2014 this always
+    // fits them in one row by collapsing the overlap further, down to a
+    // floor that keeps each card's rank/suit corner readable.
+    window.SS.layoutHandFan(hand, slots);
     if (window.Selection) window.Selection.refresh();
   }
 
@@ -189,6 +215,12 @@
       renderCenter(state);
       renderMySeat(state);
       renderHand(state);
+    },
+    // Lightweight per-second refresh for the turn-timer ring — only the
+    // seat badges (a handful of small elements), not the whole hand/felt.
+    tick(state) {
+      renderOpponents(state);
+      renderMySeat(state);
     },
     showRevealed(cards) {
       const discard = document.getElementById("center-pile");
