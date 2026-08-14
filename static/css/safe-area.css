@@ -36,7 +36,7 @@
 }
 
 .reaction-dock {
-  left: calc(16px + env(safe-area-inset-left));
+  right: calc(16px + env(safe-area-inset-right));
   bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
