@@ -2,14 +2,14 @@
    Included by game.html based on game_type. #}
   <div class="table-view" id="table-view" style="display:none">
     <aside class="scoreboard">
-      <div class="sb-players">
-        <h3>🏆 Scores</h3>
+      <div class="sb-players" id="sb-players">
+        <h3 id="scores-toggle" role="button" tabindex="0" aria-expanded="true">🏆 Scores <span class="collapse-chevron">▾</span></h3>
         <ul id="score-list"></ul>
         <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
         <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
       </div>
-      <div class="action-log">
-        <h3>📜 Action History</h3>
+      <div class="action-log" id="action-log">
+        <h3 id="action-log-toggle" role="button" tabindex="0" aria-expanded="true">📜 Action History <span class="collapse-chevron">▾</span></h3>
         <ul id="action-log-list"></ul>
       </div>
     </aside>
