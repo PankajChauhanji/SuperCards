@@ -29,6 +29,32 @@
     container = document.getElementById("action-log-list");
   }
 
+  // Collapsible header (mobile-first: collapsed by default on phone widths,
+  // since Scores/turn info matters more than the feed and the fixed panel
+  // height was pushing the hand tray below the fold). Desktop keeps today's
+  // always-open behaviour. Games without the toggle markup (e.g. Super 4)
+  // simply have no header to find here, so this is a no-op for them.
+  function setupToggle() {
+    const panel = document.getElementById("action-log");
+    const header = document.getElementById("action-log-toggle");
+    if (!panel || !header) return;
+
+    function toggle() {
+      const collapsed = panel.classList.toggle("is-collapsed");
+      header.setAttribute("aria-expanded", String(!collapsed));
+    }
+    header.addEventListener("click", toggle);
+    header.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+
+    if (window.matchMedia && window.matchMedia("(max-width: 720px)").matches) {
+      panel.classList.add("is-collapsed");
+      header.setAttribute("aria-expanded", "false");
+    }
+  }
+  document.addEventListener("DOMContentLoaded", setupToggle);
+
   function colorFor(idx) {
     if (typeof idx !== "number" || idx < 0) return null;
     return PALETTE[idx % PALETTE.length];
