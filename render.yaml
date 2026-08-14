@@ -4,7 +4,7 @@
 # and never touches the production Super Seven deployment built from master.
 services:
   - type: web
-    name: super-cards
+    name: super-cards-beta
     runtime: python
     plan: free
     region: singapore
