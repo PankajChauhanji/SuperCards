@@ -1,0 +1,140 @@
+/* ---------- winner screen: medal-stand game-over popup ----------
+   A deliberately different look from the rest of the app's felt/casino
+   aesthetic — a dark spotlight stage instead of green felt, distinct enough
+   to read as "the game is over" at a glance. */
+
+.winner-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+}
+
+.winner-scene {
+  position: relative;
+  overflow: hidden;
+  min-height: 420px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background:
+    radial-gradient(60% 50% at 50% 30%, rgba(230, 178, 60, 0.16) 0%, transparent 70%),
+    radial-gradient(120% 90% at 50% -10%, #241a3d 0%, #0d0b17 55%, #08070d 100%);
+}
+
+.winner-confetti-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.winner-confetti {
+  position: absolute;
+  top: -20px;
+  width: 8px; height: 14px;
+  opacity: 0.9;
+  border-radius: 2px;
+  animation: winner-fall linear infinite;
+}
+@keyframes winner-fall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+  8%   { opacity: 1; }
+  100% { transform: translateY(440px) rotate(340deg); opacity: 0.9; }
+}
+.winner-burst {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  animation: winner-burst 1.8s ease-out infinite;
+}
+@keyframes winner-burst {
+  0%   { box-shadow: 0 0 0 0 currentColor; opacity: 1; transform: scale(0.3); }
+  70%  { opacity: 0.6; }
+  100% { box-shadow: 0 0 0 46px transparent; opacity: 0; transform: scale(1); }
+}
+
+.winner-title-block { position: relative; z-index: 2; text-align: center; padding: 2rem 1.5rem 0; }
+.winner-crown { font-size: 1.6rem; color: var(--gold); }
+.winner-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.6rem;
+  margin: 0.3rem 0 0.2rem;
+  color: var(--text);
+}
+.winner-sub { color: var(--muted); font-size: 0.9rem; margin: 0; }
+
+.winner-ground {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 14px;
+  background: linear-gradient(180deg, rgba(230, 178, 60, 0.28), rgba(230, 178, 60, 0));
+}
+.winner-ground::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: rgba(230, 178, 60, 0.55);
+}
+
+.winner-podium-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.7rem;
+  padding: 1.5rem 1rem 0;
+  flex-wrap: wrap;
+}
+
+.winner-place { display: flex; flex-direction: column; align-items: center; width: 104px; }
+.winner-place .trophy { margin-bottom: 0.35rem; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5)); }
+.winner-p-name {
+  font-weight: 600; font-size: 0.82rem; text-align: center; color: var(--text);
+  max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.winner-you-badge {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--ink); background: var(--gold); border-radius: 999px;
+  padding: 0.05rem 0.4rem; margin-top: 0.2rem;
+}
+.winner-p-score { font-family: var(--display); font-weight: 700; font-size: 0.88rem; margin-top: 0.1rem; }
+.winner-riser {
+  width: 100%; border-radius: 10px 10px 0 0; margin-top: 0.55rem;
+  display: flex; align-items: flex-start; justify-content: center; padding-top: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.08); border-bottom: none;
+}
+.winner-rank-num { font-family: var(--display); font-weight: 700; font-size: 1.2rem; color: rgba(21, 32, 29, 0.55); }
+
+.winner-place.r1 .winner-riser { height: 140px; background: linear-gradient(180deg, #f3d685, var(--gold)); }
+.winner-place.r2 .winner-riser { height: 110px; background: linear-gradient(180deg, #e3e6e9, #c7ccd1); }
+.winner-place.r3 .winner-riser { height: 90px;  background: linear-gradient(180deg, #dba277, #c3763f); }
+.winner-place.r4 .winner-riser { height: 74px;  background: linear-gradient(180deg, #9aa0a8, #7a8088); }
+.winner-place.r5 .winner-riser { height: 60px;  background: linear-gradient(180deg, #8a8f96, #565a60); }
+.winner-place.r1 .winner-p-score { color: var(--gold); }
+.winner-place.r2 .winner-p-score { color: #c7ccd1; }
+.winner-place.r3 .winner-p-score { color: #c3763f; }
+.winner-place.r4 .winner-p-score { color: #7a8088; }
+.winner-place.r5 .winner-p-score { color: #8a8f96; }
+
+.winner-overflow {
+  position: relative; z-index: 2;
+  padding: 0.9rem 1.5rem 0;
+  display: flex; flex-direction: column; gap: 0.3rem;
+}
+.winner-overflow-row { font-size: 0.82rem; color: var(--muted); }
+.winner-overflow:empty { display: none; }
+
+.winner-panel .close-row { text-align: right; margin: 1.1rem 1.5rem 1.5rem; }
+.winner-panel .close-row button { width: auto; }
+
+@media (max-width: 480px) {
+  .winner-scene { min-height: 340px; }
+  .winner-title { font-size: 1.3rem; }
+  .winner-podium-row { gap: 0.4rem; padding: 1.1rem 0.6rem 0; }
+  .winner-place { width: 76px; }
+  .winner-p-name { font-size: 0.72rem; max-width: 72px; }
+  .winner-p-score { font-size: 0.76rem; }
+  .winner-place .trophy { width: 26px !important; height: 26px !important; }
+  .winner-place.r1 .trophy { width: 32px !important; height: 32px !important; }
+  .winner-place.r1 .winner-riser { height: 100px; }
+  .winner-place.r2 .winner-riser { height: 80px; }
+  .winner-place.r3 .winner-riser { height: 66px; }
+  .winner-place.r4 .winner-riser { height: 54px; }
+  .winner-place.r5 .winner-riser { height: 44px; }
+  .winner-panel .close-row { margin: 1rem; }
+}
