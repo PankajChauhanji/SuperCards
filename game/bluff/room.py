@@ -25,7 +25,7 @@ class Room:
         self.host_id = host_id
         self.original_host_id = host_id
         self.settings = settings
-        self.table_theme = "default"
+        self.table_theme = "casino"
         self.players: Dict[str, Player] = {}
         self.state = STATE_LOBBY
         self.round_number = 0
