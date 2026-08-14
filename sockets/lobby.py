@@ -168,7 +168,7 @@ def register(socketio, manager):
                 "state": room.state,
                 "host_id": room.host_id,
                 "settings": room.settings,
-                "table_theme": getattr(room, "table_theme", "default"),
+                "table_theme": getattr(room, "table_theme", "casino"),
                 "players": room.public_players(),
             },
         )
@@ -226,7 +226,7 @@ def register(socketio, manager):
         emit(
             "room_reset",
             {"players": room.public_players(), "host_id": room.host_id,
-             "settings": room.settings, "table_theme": getattr(room, "table_theme", "default")},
+             "settings": room.settings, "table_theme": getattr(room, "table_theme", "casino")},
             to=code,
         )
 
@@ -325,7 +325,7 @@ def register(socketio, manager):
         data = data or {}
         code = (data.get("code") or "").strip().upper()
         user_id = data.get("user_id")
-        theme = data.get("theme", "default")
+        theme = data.get("theme", "casino")
         room = manager.get_room(code)
         if room is None:
             return error("This room no longer exists.")
