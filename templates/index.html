@@ -32,7 +32,7 @@
   <!-- Must stay last: it re-states paddings from the sheets above to add device insets. -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/safe-area.css') }}" />
 </head>
-<body>
+<body class="home-page">
   {# Per-game presentation for the picker tiles. Falls back gracefully for any
      game not listed here. #}
   {% set game_meta = {
@@ -42,58 +42,57 @@
   } %}
 
   <main class="home">
-    <header>
-      <div class="wordmark"><span class="wordmark-title">SUPER <span class="seven">CARDS</span></span> <img src="{{ url_for('static', filename='img/super_cards_symbol.svg') }}" alt="Joker" class="logo-inline-symbol" /></div>
-      <p class="tagline">Pick a game, grab a seat, and play with friends.</p>
-    </header>
-
-    <!-- Step 1 — choose the game (its own panel) -->
-    <section class="card-panel game-select">
-      <div class="step-head"><span class="step-num">1</span><h2>Choose your game</h2></div>
-      <div class="picker-tiles" id="game-picker" role="radiogroup" aria-label="Choose your game">
-        {% for g in games %}
-        {% set m = game_meta.get(g.key, {"short": g.display_name, "emblem": g.display_name[:1], "desc": "", "accent": "#e6b23c"}) %}
-        {% if g.ready %}
-        <button type="button" class="game-tile{% if loop.first %} selected{% endif %}"
-                data-game="{{ g.key }}" role="radio" aria-checked="{{ 'true' if loop.first else 'false' }}"
-                style="--game-accent: {{ m.accent }}">
-          <span class="gt-emblem">{{ m.emblem }}</span>
-          <span class="gt-name">{{ m.short }}</span>
-          <span class="gt-desc">{{ m.desc }}</span>
-        </button>
-        {% else %}
-        <button type="button" class="game-tile disabled" disabled title="Coming soon"
-                style="--game-accent: {{ m.accent }}">
-          <span class="gt-emblem">{{ m.emblem }}</span>
-          <span class="gt-name">{{ m.short }}</span>
-          <span class="gt-badge">Coming soon</span>
-        </button>
-        {% endif %}
-        {% endfor %}
+    <div class="home-card">
+      <div class="home-brand">
+        <div class="wordmark"><span class="wordmark-title">SUPER <span class="seven">CARDS</span></span> <img src="{{ url_for('static', filename='img/super_cards_symbol.svg') }}" alt="Joker" class="logo-inline-symbol" /></div>
+        <p class="tagline">Pick a game, grab a seat, and play with friends — free, no signup.</p>
       </div>
-    </section>
 
-    <!-- Step 2 — name + start -->
-    <section class="card-panel">
-      <div class="step-head"><span class="step-num">2</span><h2>Your name</h2></div>
-      <div class="field">
-        <input type="text" id="name" maxlength="20" autocomplete="off" placeholder="e.g. Riya" aria-label="Your name" />
+      <div class="home-section">
+        <h2 class="home-label">Choose your game</h2>
+        <div class="picker-tiles" id="game-picker" role="radiogroup" aria-label="Choose your game">
+          {% for g in games %}
+          {% set m = game_meta.get(g.key, {"short": g.display_name, "emblem": g.display_name[:1], "desc": "", "accent": "#e6b23c"}) %}
+          {% if g.ready %}
+          <button type="button" class="game-tile{% if loop.first %} selected{% endif %}"
+                  data-game="{{ g.key }}" role="radio" aria-checked="{{ 'true' if loop.first else 'false' }}"
+                  style="--game-accent: {{ m.accent }}">
+            <span class="gt-emblem">{{ m.emblem }}</span>
+            <span class="gt-name">{{ m.short }}</span>
+            <span class="gt-desc">{{ m.desc }}</span>
+          </button>
+          {% else %}
+          <button type="button" class="game-tile disabled" disabled title="Coming soon"
+                  style="--game-accent: {{ m.accent }}">
+            <span class="gt-emblem">{{ m.emblem }}</span>
+            <span class="gt-name">{{ m.short }}</span>
+            <span class="gt-badge">Coming soon</span>
+          </button>
+          {% endif %}
+          {% endfor %}
+        </div>
       </div>
-      <div class="action-row">
-        <button class="btn-primary" id="create-btn">Create room</button>
-        <button class="btn-solo" id="solo-btn">Play with computer</button>
-      </div>
-      <p class="hint">Round settings can be tuned in the lobby before you start.</p>
-    </section>
 
-    <p class="divider">or join a room</p>
-
-    <section class="card-panel join-panel">
-      <div class="join-row">
-        <input type="text" id="code" class="code-input" maxlength="4" autocomplete="off" placeholder="ABCD" aria-label="Room code" />
-        <button class="btn-ghost" id="join-btn">Join</button>
+      <div class="home-section">
+        <label for="name">Your name</label>
+        <div class="field">
+          <input type="text" id="name" maxlength="20" autocomplete="off" placeholder="e.g. Riya" aria-label="Your name" />
+        </div>
+        <div class="action-row">
+          <button class="btn-primary" id="create-btn">Create room</button>
+          <button class="btn-solo" id="solo-btn">Play with Bot</button>
+        </div>
+        <p class="hint">You can adjust round settings once you're in the lobby.</p>
       </div>
-    </section>
+
+      <div class="home-join">
+        <span class="home-join-label">Have a room code?</span>
+        <div class="join-row">
+          <input type="text" id="code" class="code-input" maxlength="4" autocomplete="off" placeholder="ABCD" aria-label="Room code" />
+          <button class="btn-ghost" id="join-btn">Join a room</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   {% include 'partials/install_modal.html' %}
