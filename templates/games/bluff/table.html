@@ -12,6 +12,10 @@
       </div>
     </aside>
     <section class="felt">
+      <span class="table-corner tc-tl" aria-hidden="true"></span>
+      <span class="table-corner tc-tr" aria-hidden="true"></span>
+      <span class="table-corner tc-bl" aria-hidden="true"></span>
+      <span class="table-corner tc-br" aria-hidden="true"></span>
       <div class="opponents" id="opponents"></div>
 
       <div class="center-row">
@@ -29,8 +33,8 @@
       </div>
 
       <div class="myhand-wrap">
-        <div class="myseat" id="myseat"></div>
         <div class="hand bluff-hand" id="hand"></div>
+        <div id="myseat"></div>
         <div class="action-bar" id="action-bar">
           <span class="play-label" id="play-label"></span>
           
@@ -52,9 +56,9 @@
           </select>
           
           <div class="action-btns">
-            <button class="btn-throw" id="throw-btn" disabled>Throw</button>
-            <button class="btn-stop" id="pass-btn" disabled>Pass</button>
-            <button class="btn-stop" id="show-btn" disabled style="background-color: #d9534f;">Show!</button>
+            <button class="btn-throw" id="throw-btn" disabled><span class="btn-ico" aria-hidden="true">&#8593;</span> Throw</button>
+            <button class="btn-stop" id="pass-btn" disabled><span class="btn-ico" aria-hidden="true">&#8618;</span> Pass</button>
+            <button class="btn-stop solid" id="show-btn" disabled><span class="btn-ico" aria-hidden="true">&#128065;</span> Show!</button>
           </div>
         </div>
       </div>
