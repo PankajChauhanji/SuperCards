@@ -31,9 +31,11 @@ def register(socketio, manager):
         player = room.players[user_id]
         now = time.time()
         
-        # Token bucket rate limiting: max 10 tokens, refills at 10 tokens / 3 seconds
-        capacity = 10.0
-        fill_rate = 10.0 / 3.0
+        # Token bucket rate limiting: max 6 tokens, refills at 6 tokens / 4 seconds.
+        # Was 10 tokens / 3 seconds — trimmed the burst and slowed the refill so
+        # spamming the panel reads less like a machine gun.
+        capacity = 6.0
+        fill_rate = 6.0 / 4.0
         
         last_time = getattr(player, '_reaction_last_time', now)
         tokens = getattr(player, '_reaction_tokens', capacity)
