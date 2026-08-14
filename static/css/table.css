@@ -58,17 +58,75 @@
   border-radius: var(--radius);
   overflow: hidden;
 }
-.action-log h3 {
+/* Shared collapsible-panel header, used by both Action History and Scores. */
+.action-log h3,
+#scores-toggle {
   font-family: var(--display);
   font-size: 0.72rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
-  margin: 0;
+  margin: 0 0 0.6rem;
   padding: 0.7rem 1rem 0.45rem;
-  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.action-log h3 { margin-bottom: 0; border-bottom: 1px solid var(--line); }
+
+/* A small round badge (not just a bare glyph) so the collapse control reads
+   clearly as an interactive toggle, not decoration. */
+.collapse-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 0.7rem;
+  transition: transform 0.2s ease, background 0.15s ease;
+}
+.action-log h3:hover .collapse-chevron,
+#scores-toggle:hover .collapse-chevron {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Collapsed: header stays visible, list + its border collapse away so the
+   panel shrinks to header-height only. Toggled by action_log.js (Action
+   History; defaults to collapsed on phones, since the log matters far less
+   than the turn/score info above it) and chrome.js (Scores; stays open by
+   default everywhere — it carries the turn indicator). */
+.action-log.is-collapsed {
+  min-height: 0;
   flex: 0 0 auto;
 }
+/* Both collapsed headers share one padding/margin value declared in one
+   place — the previous version split padding differently between each
+   panel's own container and its header, which was meant to match but
+   actually rendered visibly taller for Action History and left its
+   chevron sitting further from the text than Scores'. Zeroing both
+   containers' padding and putting 100% of it on the toggle row itself
+   removes that asymmetry by construction. */
+.action-log.is-collapsed h3,
+.sb-players.is-collapsed #scores-toggle {
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  border-bottom: 0;
+}
+.action-log.is-collapsed #action-log-list { display: none; }
+.action-log.is-collapsed .collapse-chevron,
+.sb-players.is-collapsed .collapse-chevron { transform: rotate(-90deg); }
+
+.sb-players.is-collapsed { padding: 0; max-height: none; }
+.sb-players.is-collapsed #score-list,
+.sb-players.is-collapsed #spectators-heading,
+.sb-players.is-collapsed #spectator-list { display: none; }
 #action-log-list {
   list-style: none;
   margin: 0;
