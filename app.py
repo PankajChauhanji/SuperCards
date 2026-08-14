@@ -108,7 +108,7 @@ def _port_already_serving(port: int) -> bool:
     eventlet's listener can share a port with an existing server instead of
     failing, which silently splits clients between two processes — each with
     its own in-memory rooms ("Invalid session" spam, "room not exists" for
-    other players). Refuse to start into that trap.
+    other players). Refuse to start into that trap. 
     """
     import socket
     try:
