@@ -30,6 +30,15 @@
   };
   window.SS.view = view; // selection.js reads this live reference
 
+  // Every Table.render() can change the felt's height (hand size, opponent
+  // count) which shifts where its bottom-right corner is — reposition the
+  // reaction dock after each one rather than chasing every call site below.
+  const _renderTable = Table.render;
+  Table.render = function (v) {
+    _renderTable(v);
+    if (window.SS.positionReactionDock) window.SS.positionReactionDock();
+  };
+
   // Resolve a player's stable colour index (for colouring names in the feed).
   function colorIndexOf(uid) {
     const p = view.players.find((x) => x.user_id === uid);
@@ -61,7 +70,7 @@
     view.state = data.state;
     view.players = data.players;
     if (data.settings) view.settings = data.settings;
-    view.tableTheme = data.table_theme || "default";
+    view.tableTheme = data.table_theme || "casino";
     syncTableTheme();
     sync();
   });
@@ -77,14 +86,14 @@
     view.hostId = data.host_id;
     view.players = data.players;
     if (data.settings) view.settings = data.settings;
-    view.tableTheme = data.table_theme || "default";
+    view.tableTheme = data.table_theme || "casino";
     syncTableTheme();
     view.hand = [];
     view.justDrawnId = null;
     view.secondsLeft = null;
     prevTurn = null;
     document.getElementById("roundend-modal").classList.remove("open");
-    syncTimer();
+    if (window.SS.hideWinnerScreen) window.SS.hideWinnerScreen();
     sync();
     showToast("New game — back to the lobby");
   });
@@ -93,10 +102,10 @@
     view.state = "IN_TURN";
     applyTable(data);
     document.getElementById("roundend-modal").classList.remove("open");
+    if (window.SS.hideWinnerScreen) window.SS.hideWinnerScreen();
     if (window.Selection) window.Selection.reset();
     if (window.ActionLog) { window.ActionLog.clear(); window.ActionLog.push("Round " + (view.roundNumber || 1) + " started. Cards dealt!", "system"); }
     sync();
-    syncTimer();
   });
 
   socket.on("table_state", (data) => {
@@ -105,7 +114,6 @@
       Table.render(view);
       if (window.Selection) window.Selection.refresh();
     }
-    syncTimer();
     syncPickTimer();
   });
 
@@ -242,7 +250,6 @@
     if (data.players) view.players = data.players;
     if (tableView.style.display !== "none") Table.render(view);
     if (window.Selection) window.Selection.refresh();
-    syncTimer();
     if (data.game_over) {
       showGameOver(data.winner, gameOverRows(data.results));
     } else {
@@ -255,23 +262,14 @@
     view.secondsLeft = null;
     if (data.host_id) view.hostId = data.host_id;
     if (data.players) view.players = data.players;
-    syncTimer();
     const wp = view.players.find(p => p.user_id === data.winner);
     if (window.ActionLog) window.ActionLog.push(`🎉 ${wp ? wp.name : "Someone"} wins the game!`, "win");
     showGameOver(data.winner, data.standings);
   });
 
   // ---- turn timer countdown ----
-  function syncTimer() {
-    const el = document.getElementById("turn-timer");
-    if (view.state !== "IN_TURN" || view.secondsLeft == null) {
-      el.style.display = "none";
-      return;
-    }
-    el.style.display = "inline-block";
-    el.textContent = "\u23f1 " + Math.max(0, view.secondsLeft) + "s";
-    el.classList.toggle("low", view.secondsLeft <= 10);
-  }
+  // The countdown itself now lives on the active seat's ring (Table.tick),
+  // not a separate topbar chip.
   function syncPickTimer() {
     const el = document.getElementById("pick-timer");
     if (!el) return;
@@ -287,7 +285,7 @@
   setInterval(() => {
     if (view.state === "IN_TURN" && typeof view.secondsLeft === "number" && view.secondsLeft > 0) {
       view.secondsLeft -= 1;
-      syncTimer();
+      if (tableView.style.display !== "none") Table.tick(view);
     }
     if (view.state === "IN_TURN" && view.awaitingDraw &&
         typeof view.pickSecondsLeft === "number" && view.pickSecondsLeft > 0) {
@@ -434,68 +432,13 @@
   }
 
   function showGameOver(winnerId, rows) {
-    const modal = document.getElementById("roundend-modal");
-    const title = document.getElementById("roundend-title");
-    const sub = document.getElementById("roundend-sub");
-    const body = document.getElementById("roundend-body");
-
-    const winnerName = (rows.find((r) => r.user_id === winnerId) || {}).name || "Nobody";
-    title.textContent = winnerName + " wins!";
-    sub.textContent = winnerId === youId
-      ? "You're the last one standing."
-      : "Last player standing takes the game.";
-
-    body.innerHTML = "";
-    rows.forEach((r, i) => {
-      const row = document.createElement("div");
-      row.className = "re-row";
-      if (r.user_id === winnerId) row.classList.add("caller");
-      if (r.eliminated) row.classList.add("out");
-
-      const head = document.createElement("div");
-      head.className = "re-head";
-      const name = document.createElement("span");
-      name.className = "re-name";
-      name.textContent = (i + 1) + ". " + r.name;
-      if (r.user_id === winnerId) name.appendChild(makeBadge("Winner", "host"));
-      if (r.eliminated) name.appendChild(makeBadge("Out", "you"));
-      const score = document.createElement("span");
-      score.className = "re-score";
-      score.textContent = r.total_score + " pts";
-      head.appendChild(name);
-      head.appendChild(score);
-      row.appendChild(head);
-      body.appendChild(row);
+    window.SS.showWinnerScreen({
+      winnerId,
+      rows,
+      youId,
+      isHost: youId === view.hostId,
+      onRematch: () => socket.emit("rematch", { code, user_id: youId }),
     });
-
-    const footer = document.getElementById("roundend-footer");
-    footer.innerHTML = "";
-
-    if (youId === view.hostId) {
-      const again = document.createElement("button");
-      again.className = "btn-primary";
-      again.textContent = "Play again";
-      again.addEventListener("click", () => {
-        again.disabled = true;
-        socket.emit("rematch", { code, user_id: youId });
-      });
-      footer.appendChild(again);
-    } else {
-      const wait = document.createElement("span");
-      wait.className = "waiting";
-      wait.style.marginRight = "auto";
-      wait.textContent = "Waiting for the host to start a rematch\u2026";
-      footer.appendChild(wait);
-    }
-
-    const home = document.createElement("button");
-    home.className = "btn-ghost";
-    home.style.width = "auto";
-    home.textContent = "Back to home";
-    home.addEventListener("click", () => { window.location.href = "/"; });
-    footer.appendChild(home);
-
-    modal.classList.add("open");
   }
 
   // ---- reactions ---- (shared: static/js/core/reactions.js)
@@ -513,7 +456,7 @@
     if (window.SS.themes) window.SS.themes.syncVisibility(view.hostId === youId);
   }
   function syncTableTheme() {
-    if (window.SS.themes) window.SS.themes.apply(view.tableTheme || "default");
+    if (window.SS.themes) window.SS.themes.apply(view.tableTheme || "casino");
   }
   socket.on("table_theme_updated", (data) => {
     view.tableTheme = data.theme;
