@@ -252,11 +252,19 @@
     deck.classList.toggle("clickable", !!myDraw);
 
     const discard = document.getElementById("discard");
+    const center = state.center || [];
+    // table_state fires on plenty of changes that don't touch the center
+    // pile (a draw, a timer resync) — rebuilding these <img> elements every
+    // time anyway causes a visible flicker (tear down + recreate the same
+    // cards), which reads as "thrown twice". Skip the rebuild when the pile
+    // itself hasn't actually changed.
+    const sig = center.map((c) => c.id).join(",");
+    if (discard.dataset.sig === sig) return;
+    discard.dataset.sig = sig;
+
     const empty = document.getElementById("discard-empty");
     // Clear previously rendered center cards (keep label + empty marker).
     discard.querySelectorAll(".card").forEach((el) => el.remove());
-
-    const center = state.center || [];
     empty.style.display = center.length ? "none" : "block";
     center.forEach((card, i) => {
       const img = cardImg(card, "center-card");
@@ -300,8 +308,22 @@
 
   function renderHand(state) {
     const hand = document.getElementById("hand");
-    hand.innerHTML = "";
     const cards = sortedHand(state.hand);
+    const boxView = window.SS.viewMode && window.SS.viewMode.get("super_seven") === "box";
+    // table_state fires on every opponent's move too, and this player's own
+    // hand hasn't changed on most of those - rebuilding all the card <img>
+    // elements anyway causes a visible flicker of your OWN hand right when
+    // it happens to coincide with the turnPing sound (turn passing to you
+    // after the mover's post-throw draw), reading as "my cards got thrown
+    // again". Skip the rebuild when nothing relevant actually changed.
+    const sig = cards.map((c) => c.id).join(",") + "|" + (state.justDrawnId || "") + "|" + (boxView ? "box" : "fan");
+    if (hand.dataset.sig === sig) {
+      if (window.Selection) window.Selection.refresh();
+      return;
+    }
+    hand.dataset.sig = sig;
+
+    hand.innerHTML = "";
     const slots = cards.map((card) => {
       const slot = document.createElement("div");
       slot.className = "card-slot";
@@ -316,8 +338,17 @@
       return slot;
     });
     // Fan/overlap math (core/seats.js) needs the slots already in the DOM
-    // to measure real card width, so it runs after the loop above.
-    window.SS.layoutHandFan(hand, slots);
+    // to measure real card width, so it runs after the loop above. Which
+    // layout runs is a per-player preference (core/view_mode.js), not tied
+    // to screen width — Super Seven defaults to the fan (always exactly 7
+    // cards, never a problem to fit), but a player can switch to Box view
+    // like Bluff's default if they prefer it.
+    hand.classList.toggle("hand-flat-scroll", boxView);
+    if (boxView) {
+      window.SS.layoutHandGrid(hand, slots);
+    } else {
+      window.SS.layoutHandFan(hand, slots);
+    }
     if (window.Selection) window.Selection.refresh();
   }
 
