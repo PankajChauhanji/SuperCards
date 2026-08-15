@@ -152,9 +152,18 @@
     if (data.drawn) {
       view.justDrawnId = data.drawn;
       clearTimeout(drawnTimer);
+      // Found via live instrumentation on Super Seven (same code shape
+      // here): this used to call Table.render(view) — a full destructive
+      // rebuild of the whole hand — just to clear one card's highlight
+      // outline. The 5s timer fires on its own clock from whenever YOU
+      // drew, unrelated to anything else going on, so it can land within a
+      // second of an opponent's throw and read as "my cards got thrown
+      // again". Removing the one class directly gives the same visual
+      // result (the gold outline disappears) with no rebuild.
       drawnTimer = setTimeout(() => {
         view.justDrawnId = null;
-        if (view.state === "IN_TURN") Table.render(view);
+        const slot = document.querySelector('.card-slot.just-drawn');
+        if (slot) slot.classList.remove("just-drawn");
       }, 5000);
     } else {
       view.justDrawnId = null;
