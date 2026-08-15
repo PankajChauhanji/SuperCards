@@ -473,6 +473,69 @@
    or it would win at every width, including mobile, and shadow it. */
 .bluff-hand .hand-card { width: 58px; height: 82px; }
 
+/* Box view (core/view_mode.js): a flat, wrapped, boxed, scrollable grid —
+   the alternative to the fan for hands too big to fit one overlapped row
+   comfortably at any width (a 2-player Bluff hand can run to 50+ cards).
+   A per-player preference, not gated to mobile — sized here for the
+   larger desktop cards; the ≤600px override below re-sizes it down for
+   the smaller phone cards.
+   justify-content:center (not flex-start) does double duty on a wrapped
+   flex container: it centers every row's items as a group, which both
+   removes the empty space that piled up on the right with flex-start AND
+   centers a short last row, instead of that row hugging the left edge
+   while the earlier full rows look centered. Cards still fill row 1
+   before wrapping to row 2 — justify-content only distributes the extra
+   space within a row, it doesn't change which row an item packs into. */
+.hand.hand-flat-scroll {
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+  gap: 6px 4px;
+  /* Capped at exactly 7 cards wide (Super Seven's full hand: 7*58px cards
+     + 6*4px gaps + 8px padding each side) rather than stretching to fill
+     .myhand-wrap's full width — otherwise a 7-card (or shorter) hand sits
+     centered in a box far wider than it needs, reading as lopsided empty
+     space even with justify-content:center. Bluff's bigger hands wrap
+     within this same width; the ≤600px override below shrinks it to match
+     the smaller phone cards. */
+  max-width: 446px;
+  margin: 0 auto;
+  max-height: 232px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  /* Extra top padding: a selected/hovered card in the first row grows
+     slightly toward the top, and needs headroom so it doesn't get clipped
+     by this container's own overflow-y. */
+  padding: 14px 8px 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) transparent;
+}
+.hand.hand-flat-scroll::-webkit-scrollbar { width: 6px; }
+.hand.hand-flat-scroll::-webkit-scrollbar-track { background: transparent; }
+.hand.hand-flat-scroll::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 999px; }
+/* One consistent card size for box view across BOTH games at each
+   breakpoint, rather than each game's own (larger) standard-view size —
+   smaller cards fit two full rows more comfortably. Higher specificity
+   (3 classes) than .card.hand-card / .bluff-hand .hand-card (2 classes
+   each) so this wins regardless of source order. */
+.hand.hand-flat-scroll .hand-card { width: 58px; height: 82px; }
+@media (max-width: 600px) {
+  .hand.hand-flat-scroll .hand-card { width: 46px; height: 66px; }
+}
+/* Box view's selected state: a much smaller bump (~2%) with no vertical
+   lift, unlike the fan's — in a tightly packed grid a bigger lift would
+   push a first-row card's growth past this container's own top edge and
+   get clipped by overflow-y. Hover (unscoped rule below) stays as-is. */
+.hand-flat-scroll .card-slot.selected .hand-card {
+  transform: scale(1.02);
+}
+.hand-flat-scroll .card-slot.selected:hover .hand-card {
+  transform: scale(1.02);
+}
+
 .badge.safe { background: var(--turn); color: var(--ink); }
 
 @media (max-width: 720px) {
@@ -507,6 +570,13 @@
   .card.hand-card { width: 60px; height: 84px; }
   .bluff-hand .hand-card { width: 46px; height: 66px; }
   .myhand-wrap { max-width: 100%; }
+
+  /* Box view's cards are smaller here too — shrink the box to match,
+     still fitting about two rows. Same 7-cards-wide cap, recomputed for
+     the smaller mobile card size (7*46px + 6*4px + 16px padding); on a
+     narrower phone it simply never reaches this width, same as any
+     max-width. */
+  .hand.hand-flat-scroll { max-height: 156px; max-width: 362px; }
 }
 
 /* ---------- card selection ---------- */
@@ -568,13 +638,21 @@
 .card-slot.selected .hand-card {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
-  transform: scale(1.06) translateY(-8px);
+  transform: scale(1.05) translateY(-8px);
 }
 /* Comes after .selected so hovering a selected card still shows the full
    enlarge-preview (equal specificity — last rule wins). Kept small — just
    enough lift/scale to read the card clearly, not a dramatic zoom. */
 .card-slot:hover .hand-card {
   transform: scale(1.08) translate(-6px, -10px);
+}
+/* Touch devices simulate :hover after a tap and it doesn't clear until a
+   different element is tapped, so a selected card on mobile would otherwise
+   get stuck at the full hover-preview size (matching the rule above at
+   equal specificity) instead of settling to its own modest selected scale.
+   Higher specificity here (two classes + :hover) wins regardless of order. */
+.card-slot.selected:hover .hand-card {
+  transform: scale(1.05) translateY(-8px);
 }
 
 /* ---------- action bar ---------- */
