@@ -33,7 +33,7 @@ const PRECACHE_URLS = [
   "/static/js/core/waking.js",
   "/static/js/home.js",
   "/static/img/super_cards_symbol.svg",
-  "/static/icons/icon.svg",
+  "/static/icons/super_cards_icon.svg",
 ];
 
 /* ── Install ─────────────────────────────────────────────────────────── */
