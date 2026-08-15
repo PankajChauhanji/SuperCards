@@ -166,6 +166,20 @@
     });
   }
 
+  // Flat, wrapping, scrollable grid — the alternative to the fan for hands
+  // that don't work as a single overlapped row on a small screen (Bluff can
+  // run to 50+ cards for one player in a 2-player game; squeezed into one
+  // row that's a 1px sliver per card, untappable). No overlap math needed:
+  // just clear whatever the fan set, and let CSS (.hand-flat-scroll on the
+  // container) handle wrapping/height/scroll.
+  function layoutHandGrid(container, slots) {
+    slots.forEach((slot) => {
+      slot.style.marginLeft = "";
+      slot.style.setProperty("--rot", "0deg");
+      slot.style.setProperty("--fan-y", "0px");
+    });
+  }
+
   // Seats arrive pre-ordered clockwise-from-you (each variant rotates its
   // own turn order before calling this), so left-to-right position IS the
   // turn sequence — no TURN/NEXT label needed, only `active` for whoever's
@@ -195,4 +209,5 @@
   SS.renderOpponentSeats = renderOpponentSeats;
   SS.renderMySeat = renderMySeat;
   SS.layoutHandFan = layoutHandFan;
+  SS.layoutHandGrid = layoutHandGrid;
 })();
