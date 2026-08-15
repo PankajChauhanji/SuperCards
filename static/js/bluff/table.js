@@ -121,18 +121,27 @@
     
     const count = state.centerCount || 0;
     countSpan.textContent = count;
-    
-    discard.querySelectorAll(".card").forEach((el) => el.remove());
 
     empty.style.display = count ? "none" : "block";
     if (badgeCount) {
       badgeCount.style.display = count ? "block" : "none";
       badgeCount.textContent = count;
     }
-    for(let i = 0; i < Math.min(count, 10); i++) {
-      const img = backImg("center-card");
-      img.style.marginLeft = i === 0 ? "0" : "-34px";
-      discard.appendChild(img);
+    // table_state fires on plenty of changes that don't touch the center
+    // pile — rebuilding these <img> elements every time anyway causes a
+    // visible flicker (tear down + recreate the same card backs), which
+    // reads as "thrown twice". Skip the rebuild when the count hasn't
+    // actually changed (Bluff only ever shows backs/count, never faces, so
+    // the count alone is a complete signature).
+    const sig = String(count);
+    if (discard.dataset.sig !== sig) {
+      discard.dataset.sig = sig;
+      discard.querySelectorAll(".card").forEach((el) => el.remove());
+      for(let i = 0; i < Math.min(count, 10); i++) {
+        const img = backImg("center-card");
+        img.style.marginLeft = i === 0 ? "0" : "-34px";
+        discard.appendChild(img);
+      }
     }
     
     const trDisp = document.getElementById("target-rank-display");
@@ -178,7 +187,6 @@
 
   function renderHand(state) {
     const hand = document.getElementById("hand");
-    hand.innerHTML = "";
 
     // Sort hand in descending order of rank
     const sortedHand = (state.hand || []).slice().sort((a, b) => {
@@ -186,7 +194,19 @@
       const suitOrder = { S: 0, H: 1, D: 2, C: 3 };
       return (suitOrder[a.suit] || 0) - (suitOrder[b.suit] || 0);
     });
+    const boxView = !window.SS.viewMode || window.SS.viewMode.get("bluff") === "box";
+    // table_state fires on every opponent's move too, and this player's own
+    // hand hasn't changed on most of those - rebuilding all the card <img>
+    // elements anyway causes a visible flicker of your OWN hand, reading as
+    // "my cards got thrown again". Skip the rebuild when nothing changed.
+    const sig = sortedHand.map((c) => c.id).join(",") + "|" + (boxView ? "box" : "fan");
+    if (hand.dataset.sig === sig) {
+      if (window.Selection) window.Selection.refresh();
+      return;
+    }
+    hand.dataset.sig = sig;
 
+    hand.innerHTML = "";
     const slots = sortedHand.map((card) => {
       const slot = document.createElement("div");
       slot.className = "card-slot";
@@ -200,11 +220,18 @@
       return slot;
     });
     // Fan/overlap math (core/seats.js) needs the slots already in the DOM
-    // to measure real card width, so it runs after the loop above. Bluff
-    // hands can run past 20 cards early in a small game \u2014 this always
-    // fits them in one row by collapsing the overlap further, down to a
-    // floor that keeps each card's rank/suit corner readable.
-    window.SS.layoutHandFan(hand, slots);
+    // to measure real card width, so it runs after the loop above. Which
+    // layout runs is a per-player preference (core/view_mode.js), not tied
+    // to screen width \u2014 a Bluff hand can run to 50+ cards for one player in
+    // a 2-player game, which squeezed into one fanned row becomes a 1px
+    // sliver per card and untappable at ANY width, not just mobile. Box
+    // view (flat wrapping grid in a scrollable box) is the default here.
+    hand.classList.toggle("hand-flat-scroll", boxView);
+    if (boxView) {
+      window.SS.layoutHandGrid(hand, slots);
+    } else {
+      window.SS.layoutHandFan(hand, slots);
+    }
     if (window.Selection) window.Selection.refresh();
   }
 
