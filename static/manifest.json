@@ -10,37 +10,37 @@
   "categories": ["games", "entertainment"],
   "icons": [
     {
-      "src": "/static/icons/icon.svg",
+      "src": "/static/icons/super_cards_icon.svg",
       "type": "image/svg+xml",
       "sizes": "any",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon.svg",
+      "src": "/static/icons/super_cards_icon.svg",
       "type": "image/svg+xml",
       "sizes": "any",
       "purpose": "maskable"
     },
     {
-      "src": "/static/icons/icon-192.png",
+      "src": "/static/icons/super_cards_icon_192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon-512.png",
+      "src": "/static/icons/super_cards_icon_512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon-192.png",
+      "src": "/static/icons/super_cards_icon_192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "/static/icons/icon-512.png",
+      "src": "/static/icons/super_cards_icon_512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
