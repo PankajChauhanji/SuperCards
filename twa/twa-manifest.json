@@ -14,8 +14,8 @@
   "backgroundColor": "#0f1f1c",
   "enableNotifications": false,
   "startUrl": "/",
-  "iconUrl": "https://super-cards.onrender.com/static/icons/icon-512.png",
-  "maskableIconUrl": "https://super-cards.onrender.com/static/icons/icon-512.png",
+  "iconUrl": "https://super-cards.onrender.com/static/icons/super_cards_icon_512.png",
+  "maskableIconUrl": "https://super-cards.onrender.com/static/icons/super_cards_icon_512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "/home/k10280/android-toolchain/keys/super-cards.keystore",
