@@ -13,9 +13,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Super Cards" />
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" />
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/icon.svg') }}" />
-  <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/super_cards_icon_192.png') }}" />
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/super_cards_icon.svg') }}" />
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/super_cards_icon_192.png') }}" />
 
   <!-- Install experience. Loaded in <head> because Chrome can fire
        beforeinstallprompt before a bottom-of-body script would have registered. -->
@@ -43,6 +43,7 @@
       <button class="icon-btn" id="mute-btn" title="Sound on/off" aria-label="Sound on/off">&#128266;</button>
 
       {% include 'partials/theme_selector.html' %}
+      {% include 'partials/view_mode_selector.html' %}
 
       <span class="topbar-divider" aria-hidden="true"></span>
 
@@ -181,6 +182,7 @@
   <!-- Shared chrome (reactions, themes, rules modal, mute/copy/spectator) -->
   <script src="{{ url_for('static', filename='js/core/reactions.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/themes.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/view_mode.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/rules_modal.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/chrome.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/lobby.js') }}"></script>
