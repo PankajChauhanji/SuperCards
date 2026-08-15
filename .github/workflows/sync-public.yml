@@ -85,26 +85,32 @@ jobs:
             fi
           }
 
-          # ── Core game engine (room state, rules, scoring, manager) ──
+          # ── Core game engine (room state, registry, manager, player data) ──
           remove_file game/core/manager.py
+          remove_file game/core/player.py
+          remove_file game/core/registry.py
           remove_file game/core/room_base.py
           remove_file game/core/states.py
-          remove_file game/core/player.py
 
-          # ── Core socket handlers (game flow, lobby, director loop) ──
+          # ── Core socket handlers and server-side communication ──
+          remove_file sockets/common.py
+          remove_file sockets/connection.py
           remove_file sockets/director.py
           remove_file sockets/lobby.py
-          remove_file sockets/connection.py
-          remove_file sockets/common.py
 
-          # UI JS files (internal logic, not needed for public) ──
-          remove_file sockets/static/js/core/socket.js
-          remove_file sockets/static/js/core/rules_modal.js
-          remove_file sockets/static/js/core/identity.js
-          remove_file sockets/static/js/core/chrome.js
-          remove_file sockets/static/js/core/lobby.js
+          # ── Server-side presenters / social hooks not needed in public repo ──
+          remove_file sockets/presenter.py
+          remove_file sockets/social.py
 
-          # ── Test files (expose internal logic and edge cases) ──
+          # ── Front-end JS internals tied to private app logic ──
+          remove_file static/js/core/action_log.js
+          remove_file static/js/core/chrome.js
+          remove_file static/js/core/connection.js
+          remove_file static/js/core/identity.js
+          remove_file static/js/core/lobby.js
+          remove_file static/js/core/quit.js
+          remove_file static/js/core/rules_modal.js
+          remove_file static/js/core/socket.js
 
           # ── Pycache folders (compiled bytecode, never needed in any repo) ──
           remove_dir game/__pycache__
