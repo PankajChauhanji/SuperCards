@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="60" y1="40" x2="450" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#123E33"/>
+      <stop offset="0.5" stop-color="#082A22"/>
+      <stop offset="1" stop-color="#041A16"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="66" y1="330" x2="450" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E9C6F"/>
+      <stop offset="0.5" stop-color="#1D7555"/>
+      <stop offset="1" stop-color="#0F4D3A"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="240" y1="360" x2="280" y2="435" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF2A5"/>
+      <stop offset="0.35" stop-color="#FFD24D"/>
+      <stop offset="1" stop-color="#B77A11"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FFFDF3"/>
+      <stop offset="1" stop-color="#F1E8CF"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity="0.32"/>
+    </filter>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.22"/>
+    </filter>
+    <clipPath id="round">
+      <rect x="10" y="10" width="492" height="492" rx="92"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect x="10" y="10" width="492" height="492" rx="92" fill="url(#bg)"/>
+  <rect x="11.5" y="11.5" width="489" height="489" rx="90.5" stroke="#2A6D57" stroke-width="3"/>
+
+  <g clip-path="url(#round)">
+    <!-- subtle liquid highlights -->
+    <path d="M-15 110C75 58 132 83 211 58C285 34 352 28 531 88V168C391 124 311 145 226 155C134 166 77 150 -15 194V110Z" fill="#1D5B48" opacity="0.28"/>
+    <circle cx="423" cy="104" r="36" fill="#2C8063" opacity="0.12"/>
+    <circle cx="102" cy="424" r="52" fill="#3A9B75" opacity="0.08"/>
+
+    <!-- cards -->
+    <g filter="url(#shadow)">
+      <!-- Spade -->
+      <g transform="rotate(-16 170 260)">
+        <rect x="105" y="118" width="130" height="214" rx="24" fill="url(#card)"/>
+        <rect x="106.5" y="119.5" width="127" height="211" rx="22.5" stroke="#B9A982" stroke-width="3"/>
+        <text x="121" y="160" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#102A24">A</text>
+        <path d="M171 261c-22-25-44-40-44-68 0-23 18-35 36-19 3-10 11-17 22-17 17 0 28 14 28 32 0 26-20 48-42 72Zm0 0v33m-18-6h36" fill="#102A24"/>
+      </g>
+      <!-- Heart -->
+      <g transform="rotate(-5 246 235)">
+        <rect x="180" y="92" width="132" height="226" rx="24" fill="url(#card)"/>
+        <rect x="181.5" y="93.5" width="129" height="223" rx="22.5" stroke="#B9A982" stroke-width="3"/>
+        <text x="197" y="136" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#C93331">A</text>
+        <path d="M246 260c-9-17-42-36-42-61 0-18 13-31 29-31 8 0 15 4 20 11 5-7 12-11 20-11 16 0 29 13 29 31 0 25-33 44-42 61-4 7-10 7-14 0Z" fill="#D63A36"/>
+      </g>
+      <!-- Club -->
+      <g transform="rotate(5 320 238)">
+        <rect x="249" y="94" width="132" height="226" rx="24" fill="url(#card)"/>
+        <rect x="250.5" y="95.5" width="129" height="223" rx="22.5" stroke="#B9A982" stroke-width="3"/>
+        <text x="266" y="138" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#102A24">A</text>
+        <path d="M315 242c-14-8-29-20-29-38 0-17 12-29 28-29 8 0 15 3 20 11 5-8 12-11 20-11 16 0 28 12 28 29 0 18-15 30-29 38 5 7 9 15 9 22h-24v28h12v8h-48v-8h12v-28h-24c0-7 4-15 9-22Z" fill="#102A24"/>
+      </g>
+      <!-- Diamond -->
+      <g transform="rotate(16 384 260)">
+        <rect x="307" y="118" width="130" height="214" rx="24" fill="url(#card)"/>
+        <rect x="308.5" y="119.5" width="127" height="211" rx="22.5" stroke="#B9A982" stroke-width="3"/>
+        <text x="322" y="160" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#C93331">A</text>
+        <path d="M372 249l24-32 24 32-24 44-24-44Z" fill="#D63A36"/>
+      </g>
+    </g>
+
+    <!-- Liquid wave / foreground ribbon -->
+    <path d="M-20 314C66 365 113 371 174 335C237 298 280 286 335 316C381 341 422 355 533 296V420H-20V314Z" fill="url(#wave)" filter="url(#soft)"/>
+    <path d="M-10 313C66 359 111 365 170 332C234 296 281 283 337 312C382 335 425 346 522 293" stroke="#E9B92F" stroke-width="7" stroke-linecap="round" opacity="0.95"/>
+    <path d="M-10 326C70 369 113 377 176 341C235 308 280 296 332 323C378 346 427 355 522 304" stroke="#8AF0B5" stroke-width="2" stroke-linecap="round" opacity="0.24"/>
+
+    <!-- Gold sparkle -->
+    <g filter="url(#soft)">
+      <path d="M256 370c9 18 14 23 32 32-18 9-23 14-32 32-9-18-14-23-32-32 18-9 23-14 32-32Z" fill="url(#gold)"/>
+      <path d="M213 401c7 3 13 8 18 15-7 0-14-2-20-6l-8-5 10-4Zm86 0c-7 3-13 8-18 15 7 0 14-2 20-6l8-5-10-4Z" fill="url(#gold)"/>
+    </g>
+
+    <!-- subtle bottom glow -->
+    <ellipse cx="256" cy="470" rx="150" ry="22" fill="#2E9C6F" opacity="0.08"/>
+  </g>
+
+  <!-- safe-area highlight -->
+  <rect x="10" y="10" width="492" height="492" rx="92" stroke="#6DAB82" stroke-opacity="0.18" stroke-width="2"/>
+</svg>

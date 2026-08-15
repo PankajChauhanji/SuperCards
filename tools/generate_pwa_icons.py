@@ -6,8 +6,8 @@ Usage:
     python3 tools/generate_pwa_icons.py
 
 Produces:
-    static/icons/icon-192.png
-    static/icons/icon-512.png
+    static/icons/super_cards_icon_192.png
+    static/icons/super_cards_icon_512.png
 """
 
 import os
@@ -30,12 +30,12 @@ except ImportError:
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ICONS_DIR = os.path.join(ROOT, "static", "icons")
 
-SOURCE_SVG = os.path.join(ICONS_DIR, "icon.svg")
+SOURCE_SVG = os.path.join(ICONS_DIR, "super_cards_icon.svg")
 
 TARGETS = [
     # (filename, size)
-    ("icon-192.png", 192),
-    ("icon-512.png", 512),
+    ("super_cards_icon_192.png", 192),
+    ("super_cards_icon_512.png", 512),
 ]
 
 
