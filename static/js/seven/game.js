@@ -154,9 +154,19 @@
     if (data.drawn) {
       view.justDrawnId = data.drawn;
       clearTimeout(drawnTimer);
+      // Found via live instrumentation: this used to call Table.render(view)
+      // — a full destructive rebuild of the whole hand — just to clear one
+      // card's highlight outline. Since the 5s timer is scheduled from
+      // whenever YOU drew, it fires on its own clock, unrelated to
+      // anything else going on; when it happened to land within a second
+      // of an opponent's throw (both being seconds-scale, human-paced
+      // events, not rare), the resulting hand-wide flicker read as "my
+      // cards got thrown again". Removing the one class directly gives the
+      // same visual result (the gold outline disappears) with no rebuild.
       drawnTimer = setTimeout(() => {
         view.justDrawnId = null;
-        if (view.state === "IN_TURN") Table.render(view);
+        const slot = document.querySelector('.card-slot.just-drawn');
+        if (slot) slot.classList.remove("just-drawn");
       }, 5000);
     } else {
       view.justDrawnId = null;
