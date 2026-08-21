@@ -132,5 +132,43 @@ for deck_name, required in DECKS:
         continue
     audit(deck_name)
 
+
+
+# ---------------------------------------------------------------------------
+# The declared default deck, and everything that must agree with it.
+# ---------------------------------------------------------------------------
+# Royal is meant to be what a first-time player sees, on phone and desktop alike.
+# Two things can quietly break that: core/deck.js changing its DEFAULT, or a table
+# template still hardcoding the other deck's back (which costs the majority of
+# players a wasted fetch and can flash the wrong card on a slow connection).
+deck_js = open(os.path.join(REPO, "static", "js", "core", "deck.js"), encoding="utf-8").read()
+
+m_default = re.search(r'const DEFAULT\s*=\s*"([a-z_]+)"', deck_js)
+m_dirs = re.findall(r'(\w+):\s*"(cards(?:_v2)?)"', deck_js)
+dirs = dict(m_dirs)
+
+check(m_default is not None, "core/deck.js declares a DEFAULT deck")
+default_name = m_default.group(1) if m_default else None
+check(default_name == "royal",
+      "the default deck is Royal, not Standard (found %r)" % default_name)
+check(dirs.get(default_name) == "cards_v2",
+      "Royal maps to cards_v2 (found %r)" % dirs.get(default_name))
+
+default_dir = dirs.get(default_name)
+template_backs = []
+for game in sorted(os.listdir(os.path.join(REPO, "templates", "games"))):
+    tpl = os.path.join(REPO, "templates", "games", game, "table.html")
+    if not os.path.isfile(tpl):
+        continue
+    with open(tpl, encoding="utf-8") as fh:
+        for ref in re.findall(r"filename='img/(cards(?:_v2)?)/", fh.read()):
+            template_backs.append((game, ref))
+
+wrong = [f"{g} -> {d}" for g, d in template_backs if d != default_dir]
+check(not wrong,
+      "every table template renders the DEFAULT deck's back%s"
+      % ("" if not wrong else " — %s (default is %s)" % ("; ".join(wrong), default_dir)))
+check(bool(template_backs), "at least one template deck back was found to check")
+
 print("\n%d/%d card-asset checks passed" % (sum(results), len(results)))
 sys.exit(0 if all(results) else 1)
