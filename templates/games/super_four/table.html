@@ -63,7 +63,13 @@
 
       <div class="s4-center-row">
         <div class="s4-pile s4-deck" id="s4-deck" title="Draw pile">
-          <img src="{{ url_for('static', filename='img/cards/back.svg') }}" alt="deck" />
+          {# cards_v2 is the DEFAULT deck (core/deck.js). Pointing at it here means the
+             common case needs no correction: the previous path fetched the Standard back
+             and then had deck.js rewrite it, which wasted a request and could flash the
+             wrong card on a slow connection. A player who prefers Standard still gets it —
+             deck.js repaints on load. Kept honest by tests/test_card_assets.py, which
+             asserts this path matches deck.js's declared default. #}
+          <img src="{{ url_for('static', filename='img/cards_v2/back.svg') }}" alt="deck" />
           <span class="pile-count" id="s4-deck-count">0</span>
           <span class="pile-label">Deck</span>
         </div>
