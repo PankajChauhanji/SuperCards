@@ -43,6 +43,8 @@
   // ---- attach / reconnect ----
   function enter() { socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId }); }
   socket.on("connect", enter);
+  // See core/connection.js: foreground resync, not just on `connect`.
+  if (window.SS.onResync) window.SS.onResync(enter);
   if (socket.connected) enter();
 
   // ---- lobby / roster events (shared shape) ----
