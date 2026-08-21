@@ -14,13 +14,17 @@ the same messages.
 import time
 
 from flask import request
-from flask_socketio import emit as _femit
 
 from game.core.states import STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
 from game.super_four import ai, powers
 from game.super_four.room import PHASE_DRAW, PHASE_DECIDE, PHASE_POWER, PHASE_MATCH, PHASE_PREVIEW
-from sockets import director, presenter
+from game.super_four.visibility import public_card_ids
+from sockets import audience, director, presenter
+# Guarded drop-in for flask_socketio.emit — see sockets/audience.py.
+from sockets.audience import emit as _femit
 from sockets.common import error
+
+audience.register("super_four", public_card_ids)
 
 GAME = "super_four"
 TOAST_MS = 1600                      # rules.txt: messages stay ~1.5 seconds
