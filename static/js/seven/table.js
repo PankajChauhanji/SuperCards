@@ -2,7 +2,6 @@
 // scoreboard, opponent seats (counts only), the deck/center piles, and the
 // player's own face-up hand. No game actions live here (those arrive Phase 2).
 (function () {
-  const CARD_PATH = "/static/img/cards/";
 
   // Stable per-player identity colours (indexed by player.color).
   const PALETTE = ["#4ea1ff", "#ff9f43", "#a98cf0", "#f06ea9", "#43c6c6", "#d6c04a"];
@@ -24,13 +23,19 @@
     if (!isTurn || state.state !== "IN_TURN" || typeof state.secondsLeft !== "number") return null;
     const total = (state.settings && state.settings.turn_timer) || 40;
     const remaining = Math.max(0, state.secondsLeft);
-    return { pct: Math.max(0, Math.min(1, remaining / total)), label: remaining + "s left" };
+    return {
+      pct: Math.max(0, Math.min(1, remaining / total)),
+      // "left" is redundant next to a depleting ring; seconds lets the
+      // seat go semibold under 5s (core/seats.js).
+      label: remaining + "s",
+      seconds: remaining,
+    };
   }
 
   function cardImg(card, className) {
     const img = document.createElement("img");
     img.className = "card " + (className || "");
-    img.src = CARD_PATH + card.face + ".svg";
+    img.src = window.SS.cardSrc(card.face);
     img.alt = card.code + " " + card.suit;
     img.draggable = false;
     return img;
@@ -39,7 +44,7 @@
   function backImg(className) {
     const img = document.createElement("img");
     img.className = "card " + (className || "");
-    img.src = CARD_PATH + "back.svg";
+    img.src = window.SS.cardSrc("back");
     img.alt = "card";
     img.draggable = false;
     return img;
@@ -235,6 +240,7 @@
           ringPct: p.is_safe ? 0 : Math.min(1, (p.score || 0) / maxScore),
           timerPct: timer ? timer.pct : null,
           timerLabel: timer ? timer.label : null,
+          timerSeconds: timer ? timer.seconds : null,
           active: isTurn,
           connected: p.connected,
           eliminated: p.eliminated,
@@ -283,7 +289,7 @@
     const maxScore = (state.settings && state.settings.max_score) || 100;
 
     window.SS.renderMySeat(wrap, {
-      name: window.SS.shortName(me.name) + " (you)",
+      name: window.SS.shortName(me.name),
       color: colorOf(me),
       cardCount: me.card_count,
       score: me.score,
@@ -291,6 +297,7 @@
       ringPct: me.is_safe ? 0 : Math.min(1, (me.score || 0) / maxScore),
       timerPct: timer ? timer.pct : null,
       timerLabel: timer ? timer.label : null,
+          timerSeconds: timer ? timer.seconds : null,
       active: isTurn,
       connected: me.connected,
       eliminated: me.eliminated,
