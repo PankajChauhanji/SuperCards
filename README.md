@@ -193,3 +193,5 @@ This writes updated card artwork into the static image folders used by the clien
 Copyright (c) 2024 PankajChauhanji. All Rights Reserved.
 
 Viewing of this source code is permitted for reference purposes only. Copying, modification, distribution, or use of this code in any form is strictly prohibited without explicit written permission from the author.
+
+Minor repo housekeeping: added a small README note for a commit test.
