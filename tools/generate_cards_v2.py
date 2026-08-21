@@ -1,606 +1,357 @@
+#!/usr/bin/env python3
+"""Deck v2 — the colourful "deluxe" deck, with figurative court cards.
 
-"""Super Cards v4 - clean, modern SVG playing-card generator.
+    python3 tools/generate_cards_v2.py                    # -> static/img/cards_v2/
+    python3 tools/generate_cards_v2.py --out /tmp/deck
+    python3 tools/generate_cards_v2.py --sheet /tmp/v2.png
 
-Design principles
------------------
-1. Classic playing-card readability comes first.
-2. Number cards use standard pip counts and spacing.
-3. No filled red/green liquid blocks and no middle-crossing ribbons.
-4. Modern styling comes from very subtle corner curves and gold details.
-5. Every corner index is built independently; no suit glyphs overlap.
-6. J/Q/K use distinct silhouettes, with a shared crown design.
-   - Jack: young knight, cap + sword.
-   - Queen: long hair, shared crown, jewelry, gown.
-   - King: beard, shared crown, sword + mantle.
-7. All artwork is SVG geometry; no external images or fonts are required.
+This is the alternative to the clean deck in generate_cards.py, not a replacement.
+It writes to **static/img/cards_v2/** on purpose: the previous version wrote into
+static/img/cards, so running it silently replaced the live deck the whole app
+loads. Nothing in the app points at cards_v2 yet — swapping decks is a deliberate
+copy, or a future setting.
 
-Run from the project root:
-    python3 tools/generate_cards.py
+Two things make this deck "colourful" rather than merely decorated:
+
+* A **four-colour suit scheme** — spades ink, hearts red, diamonds blue, clubs
+  green. This is a real convention in online play, and it is functional as well as
+  bright: suit is legible from colour alone, which matters here because
+  `FAN_MIN_OVERLAP_RATIO = 0.25` means a fanned hand often shows nothing but
+  corners. The clean deck stays two-colour for players who want tradition.
+* **Double-ended court cards.** Real court cards are point-symmetric: one bust,
+  repeated rotated 180°. That reads as a proper playing card from a glance, and it
+  is what the old v2 was reaching for with its lopsided single figures and a flag
+  floating in the corner.
+
+Suit geometry comes from tools/card_art.py, shared with the clean deck, so the
+club-with-no-top-lobe and self-intersecting-stem bugs cannot come back here.
 """
-
-from __future__ import annotations
-
+import argparse
 import os
-from html import escape
+import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(HERE)
-OUT = os.path.join(PROJECT_ROOT, "static", "img", "cards")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-W, H = 180, 252
+from card_art import H, W, contact_sheet, suit, svg  # noqa: E402
 
-# ---------------------------------------------------------------------------
-# Theme
-# ---------------------------------------------------------------------------
+IVORY = "#fdfaf3"
+GOLD = "#c9a227"
+GOLD_DK = "#a5811b"
+INK = "#1b2430"
+SKIN = "#f0d3b4"
+HAIR = "#2d2a33"
 
-C = {
-    "cream": "#FFF8EA",
-    "cream2": "#F7EEDC",
-    "ink": "#102B24",
-    "green": "#1F5B48",
-    "green2": "#2D765E",
-    "red": "#C74639",
-    "red2": "#D86250",
-    "gold": "#D9AA3B",
-    "gold2": "#F0D16A",
-    "gold3": "#9A711D",
-    "skin": "#E7B17C",
-    "skin_shadow": "#CB8E58",
-    "black": "#0C1714",
-}
-
+# Four-colour deck: suit is readable from colour alone.
 SUITS = {
-    "S": {"color": C["ink"]},
-    "H": {"color": C["red"]},
-    "D": {"color": C["red"]},
-    "C": {"color": C["ink"]},
+    "S": {"color": "#1b2430", "tint": "#eceef2"},
+    "H": {"color": "#d5342b", "tint": "#fbeceb"},
+    "D": {"color": "#2f6fd0", "tint": "#eaf1fb"},
+    "C": {"color": "#1f8a4c", "tint": "#e9f6ee"},
 }
-
 RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+COURT = ("J", "Q", "K")
 
-# Coordinates are normalized to the central area of the card.
+# ---------------------------------------------------------------------------
+# Furniture
+# ---------------------------------------------------------------------------
+
+
+def frame(code):
+    """Suit-coloured border over a faintly suit-tinted face: colour everywhere,
+    while the face stays light enough for ink pips to keep full contrast."""
+    c = SUITS[code]
+    return (f'<rect x="2.5" y="2.5" width="{W - 5}" height="{H - 5}" rx="17" '
+            f'fill="{c["tint"]}" stroke="{c["color"]}" stroke-width="5"/>'
+            f'<rect x="10" y="10" width="{W - 20}" height="{H - 20}" rx="11" '
+            f'fill="{IVORY}" stroke="{GOLD}" stroke-width="1.4"/>')
+
+
+def corners(rank, code):
+    color = SUITS[code]["color"]
+    size = 32 if rank == "10" else 36
+    one = (f'<text x="0" y="0" font-family="Georgia, \'Times New Roman\', serif" '
+           f'font-weight="700" font-size="{size}" text-anchor="middle" '
+           f'fill="{color}">{rank}</text>'
+           + suit(code, 0, 19, 20, color))
+    return (f'<g transform="translate(30 50)">{one}</g>'
+            f'<g transform="translate({W - 30} {H - 50}) rotate(180)">{one}</g>')
+
+
+_L, _R, _M = 0.0, 1.0, 0.5
 PIPS = {
-    2:  [(0.50, 0.22), (0.50, 0.78)],
-    3:  [(0.50, 0.18), (0.50, 0.50), (0.50, 0.82)],
-    4:  [(0.30, 0.24), (0.70, 0.24), (0.30, 0.76), (0.70, 0.76)],
-    5:  [(0.30, 0.20), (0.70, 0.20), (0.50, 0.50), (0.30, 0.80), (0.70, 0.80)],
-    6:  [(0.30, 0.16), (0.70, 0.16), (0.30, 0.50), (0.70, 0.50), (0.30, 0.84), (0.70, 0.84)],
-    7:  [(0.30, 0.13), (0.70, 0.13), (0.50, 0.30), (0.30, 0.50),
-         (0.70, 0.50), (0.30, 0.87), (0.70, 0.87)],
-    8:  [(0.30, 0.12), (0.70, 0.12), (0.30, 0.35), (0.70, 0.35),
-         (0.30, 0.65), (0.70, 0.65), (0.30, 0.88), (0.70, 0.88)],
-    9:  [(0.30, 0.11), (0.70, 0.11), (0.30, 0.33), (0.70, 0.33), (0.50, 0.50),
-         (0.30, 0.67), (0.70, 0.67), (0.30, 0.89), (0.70, 0.89)],
-    10: [(0.30, 0.10), (0.70, 0.10), (0.30, 0.30), (0.70, 0.30),
-         (0.30, 0.50), (0.70, 0.50), (0.30, 0.70), (0.70, 0.70),
-         (0.30, 0.90), (0.70, 0.90)],
+    "2":  [(_M, 0.00), (_M, 1.00)],
+    "3":  [(_M, 0.00), (_M, 0.50), (_M, 1.00)],
+    "4":  [(_L, 0.00), (_R, 0.00), (_L, 1.00), (_R, 1.00)],
+    "5":  [(_L, 0.00), (_R, 0.00), (_M, 0.50), (_L, 1.00), (_R, 1.00)],
+    "6":  [(_L, 0.00), (_R, 0.00), (_L, 0.50), (_R, 0.50), (_L, 1.00), (_R, 1.00)],
+    "7":  [(_L, 0.00), (_R, 0.00), (_M, 0.25), (_L, 0.50), (_R, 0.50),
+           (_L, 1.00), (_R, 1.00)],
+    "8":  [(_L, 0.00), (_R, 0.00), (_M, 0.25), (_L, 0.50), (_R, 0.50),
+           (_M, 0.75), (_L, 1.00), (_R, 1.00)],
+    "9":  [(_L, 0.00), (_R, 0.00), (_L, 0.3333), (_R, 0.3333), (_M, 0.50),
+           (_L, 0.6667), (_R, 0.6667), (_L, 1.00), (_R, 1.00)],
+    "10": [(_L, 0.00), (_R, 0.00), (_L, 0.3333), (_R, 0.3333), (_M, 0.1667),
+           (_L, 0.6667), (_R, 0.6667), (_M, 0.8333), (_L, 1.00), (_R, 1.00)],
 }
+BAND_X0, BAND_X1 = 64, 116
+BAND_Y0, BAND_Y1 = 74, 206
+PIP = 25
+
+
+def pips(rank, code):
+    color = SUITS[code]["color"]
+    out = []
+    for fx, fy in PIPS[rank]:
+        out.append(suit(code,
+                        BAND_X0 + (BAND_X1 - BAND_X0) * fx,
+                        BAND_Y0 + (BAND_Y1 - BAND_Y0) * fy,
+                        PIP, color))
+    return "".join(out)
+
 
 # ---------------------------------------------------------------------------
-# SVG primitives
+# Court figures — ONE figure per card, not the traditional double-ended mirror.
 # ---------------------------------------------------------------------------
+# A physical deck is double-ended so it reads the same however you hold it. On a
+# screen a card is never upside down, so that convention costs half the artwork
+# area and buys nothing. Spending the whole card on one figure roughly doubles the
+# head size (44px vs 32px in the source), which is what makes King, Queen and Jack
+# actually distinguishable rather than three similar silhouettes.
+#
+# Coordinates below are absolute card space, since nothing is rotated any more.
+# Vertical budget: crown 32-62, head 62-106, collar 114-132, robe 126-196,
+# plinth 194-212. Kept clear of the corner indices at x 12-48 and x 132-168.
 
-def defs() -> str:
-    return f"""
-    <defs>
-      <linearGradient id="cardSurface" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="{C["cream"]}"/>
-        <stop offset="100%" stop-color="{C["cream2"]}"/>
-      </linearGradient>
-
-      <linearGradient id="goldMetal" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="{C["gold2"]}"/>
-        <stop offset="50%" stop-color="{C["gold"]}"/>
-        <stop offset="100%" stop-color="{C["gold3"]}"/>
-      </linearGradient>
-
-      <filter id="cardShadow" x="-15%" y="-15%" width="130%" height="140%">
-        <feDropShadow dx="0" dy="2" stdDeviation="2.2"
-                      flood-color="#000000" flood-opacity="0.17"/>
-      </filter>
-
-      <filter id="artShadow" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="1" stdDeviation="1.0"
-                      flood-color="#000000" flood-opacity="0.12"/>
-      </filter>
-    </defs>
-    """
+HAIR_K = "#4a3f3a"
+HAIR_Q = "#6b3524"
+HAIR_J = "#8a5a3c"
 
 
-def svg_start(label: str) -> list[str]:
-    return [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
-        f'width="{W}" height="{H}" role="img" aria-label="{escape(label)}">',
-        defs(),
+def plinth(code):
+    """The small pedestal the figure stands on, so the portrait has a base
+    instead of floating in the middle of the card."""
+    color = SUITS[code]["color"]
+    return (f'<path d="M-34 18 L-28 2 L28 2 L34 18 Z" fill="{GOLD}"/>'
+            f'<rect x="-30" y="-3" width="60" height="5" rx="2" fill="{GOLD_DK}"/>'
+            f'<rect x="-34" y="18" width="68" height="3.5" rx="1.5" fill="{GOLD_DK}"/>'
+            + suit(code, 0, 10, 13, color))
+
+
+def crown(rank, code):
+    """Deliberately different silhouettes: tall and spiked, low and arched, or a
+    soft plumed cap. This is the fastest way to tell the three courts apart."""
+    jewel = SUITS[code]["color"]
+    if rank == "K":
+        return (f'<path d="M-30 2 L-30 -20 L-19 -7 L-10 -31 L0 -14 L10 -31 '
+                f'L19 -7 L30 -20 L30 2 Z" fill="{GOLD}"/>'
+                f'<rect x="-31" y="1" width="62" height="10" rx="3" fill="{GOLD_DK}"/>'
+                f'<circle cx="-16" cy="6" r="3" fill="{jewel}"/>'
+                f'<circle cx="0" cy="6" r="3" fill="{jewel}"/>'
+                f'<circle cx="16" cy="6" r="3" fill="{jewel}"/>')
+    if rank == "Q":
+        return (f'<path d="M-23 2 L-23 -9 C-15 -9 -11 -15 -9 -21 '
+                f'C-5 -13 -3 -10 0 -10 C3 -10 5 -13 9 -21 '
+                f'C11 -15 15 -9 23 -9 L23 2 Z" fill="{GOLD}"/>'
+                f'<rect x="-24" y="1" width="48" height="8" rx="3" fill="{GOLD_DK}"/>'
+                f'<circle cx="0" cy="-24" r="4" fill="{GOLD}"/>'
+                f'<circle cx="0" cy="6" r="2.6" fill="{jewel}"/>')
+    # Jack: a soft cap with a plume. No band of jewels — he is not royalty.
+    return (f'<path d="M-21 4 C-21 -13 -10 -20 1 -20 C13 -20 20 -14 20 -4 '
+            f'L20 4 Z" fill="{GOLD}"/>'
+            f'<path d="M15 -17 C24 -28 32 -26 34 -19 C27 -19 22 -15 19 -9 Z" '
+            f'fill="{GOLD_DK}"/>'
+            f'<rect x="-22" y="3" width="43" height="7" rx="3" fill="{GOLD_DK}"/>')
+
+
+def hair(rank):
+    """King short with a beard, Queen long and flowing, Jack shoulder-length —
+    a second differentiator that survives even when the crown is small."""
+    if rank == "K":
+        return (f'<path d="M-22 84 C-22 66 -12 56 0 56 C12 56 22 66 22 84 '
+                f'C18 74 10 70 0 70 C-10 70 -18 74 -22 84 Z" fill="{HAIR_K}"/>'
+                f'<path d="M-22 82 L-26 96 L-18 94 Z" fill="{HAIR_K}"/>'
+                f'<path d="M22 82 L26 96 L18 94 Z" fill="{HAIR_K}"/>')
+    if rank == "Q":
+        return (f'<path d="M-22 84 C-22 64 -12 55 0 55 C12 55 22 64 22 84 '
+                f'C18 74 10 70 0 70 C-10 70 -18 74 -22 84 Z" fill="{HAIR_Q}"/>'
+                # Long panels either side, falling past the shoulders.
+                f'<path d="M-22 78 C-30 96 -30 124 -24 146 L-13 146 '
+                f'C-17 124 -17 100 -13 86 Z" fill="{HAIR_Q}"/>'
+                f'<path d="M22 78 C30 96 30 124 24 146 L13 146 '
+                f'C17 124 17 100 13 86 Z" fill="{HAIR_Q}"/>')
+    return (f'<path d="M-22 84 C-22 65 -12 56 0 56 C12 56 22 65 22 84 '
+            f'C18 74 10 70 0 70 C-10 70 -18 74 -22 84 Z" fill="{HAIR_J}"/>'
+            f'<path d="M-22 80 C-27 92 -27 108 -23 118 L-14 118 '
+            f'C-17 106 -17 92 -14 84 Z" fill="{HAIR_J}"/>'
+            f'<path d="M22 80 C27 92 27 108 23 118 L14 118 '
+            f'C17 106 17 92 14 84 Z" fill="{HAIR_J}"/>')
+
+
+def robe(rank, code):
+    """Broad and epauletted for the King, softer for the Queen, a sashed tunic
+    for the Jack."""
+    color = SUITS[code]["color"]
+    if rank == "K":
+        return (f'<path d="M-42 196 L-36 140 C-31 128 -15 123 0 123 '
+                f'C15 123 31 128 36 140 L42 196 Z" fill="{color}"/>'
+                # Epaulettes.
+                f'<path d="M-40 150 C-34 138 -24 133 -18 133 L-20 145 '
+                f'C-27 145 -33 149 -36 156 Z" fill="{GOLD}"/>'
+                f'<path d="M40 150 C34 138 24 133 18 133 L20 145 '
+                f'C27 145 33 149 36 156 Z" fill="{GOLD}"/>'
+                # Placket down the centre.
+                f'<rect x="-4" y="138" width="8" height="58" fill="{GOLD}" opacity="0.85"/>')
+    if rank == "Q":
+        return (f'<path d="M-38 196 L-32 144 C-27 131 -13 126 0 126 '
+                f'C13 126 27 131 32 144 L38 196 Z" fill="{color}"/>'
+                # Pendant on a chain.
+                f'<path d="M-11 132 C-6 142 6 142 11 132" stroke="{GOLD}" '
+                f'stroke-width="1.8" fill="none"/>'
+                f'<circle cx="0" cy="146" r="5" fill="{GOLD}"/>')
+    return (f'<path d="M-37 196 L-31 142 C-26 130 -13 125 0 125 '
+            f'C13 125 26 130 31 142 L37 196 Z" fill="{color}"/>'
+            # Diagonal sash.
+            f'<path d="M-30 146 L-24 136 L34 178 L32 190 Z" fill="{GOLD}" '
+            f'opacity="0.9"/>')
+
+
+def face(rank):
+    """Head, features, and the King's beard. Two eyes, brows and a mouth is the
+    whole budget — anything finer is invisible at the size cards render."""
+    parts = [f'<rect x="-8" y="96" width="16" height="30" fill="{SKIN}"/>',
+             f'<circle cx="0" cy="84" r="22" fill="{SKIN}"/>']
+    if rank == "K":
+        # Beard first, so the mouth sits on top of it.
+        parts.append(f'<path d="M-18 88 C-18 110 -9 120 0 120 C9 120 18 110 18 88 '
+                     f'C13 98 -13 98 -18 88 Z" fill="{HAIR_K}"/>')
+    parts += [
+        f'<circle cx="-7.5" cy="82" r="2.4" fill="{INK}"/>',
+        f'<circle cx="7.5" cy="82" r="2.4" fill="{INK}"/>',
+        f'<path d="M-11 75 C-9 72.5 -5 72.5 -3.5 74" stroke="{INK}" '
+        f'stroke-width="1.5" fill="none" stroke-linecap="round"/>',
+        f'<path d="M11 75 C9 72.5 5 72.5 3.5 74" stroke="{INK}" '
+        f'stroke-width="1.5" fill="none" stroke-linecap="round"/>',
+        f'<path d="M-5 93 C-2 96 2 96 5 93" stroke="{INK}" stroke-width="1.7" '
+        f'fill="none" stroke-linecap="round"/>',
     ]
+    return "".join(parts)
 
 
-def card_frame(parts: list[str]) -> None:
-    parts.extend([
-        f'<rect x="3" y="3" width="174" height="246" rx="18" fill="url(#cardSurface)" '
-        f'stroke="{C["gold3"]}" stroke-width="2.1" filter="url(#cardShadow)"/>',
-        f'<rect x="8" y="8" width="164" height="236" rx="15" fill="none" '
-        f'stroke="{C["gold"]}" stroke-width="1.15"/>',
-        f'<rect x="13" y="13" width="154" height="226" rx="12" fill="none" '
-        f'stroke="{C["gold2"]}" stroke-width="0.55" opacity="0.45"/>',
-    ])
+def collar(rank, code):
+    color = SUITS[code]["color"]
+    if rank == "K":
+        return (f'<path d="M-19 120 L0 136 L19 120 L14 115 L0 128 L-14 115 Z" '
+                f'fill="{GOLD}"/>')
+    if rank == "Q":
+        return (f'<path d="M-17 124 L0 140 L17 124 L13 120 L0 132 L-13 120 Z" '
+                f'fill="{GOLD}"/>')
+    return (f'<path d="M-16 123 L0 137 L16 123 L12 119 L0 130 L-12 119 Z" '
+            f'fill="{GOLD}"/>')
 
 
-def vector_suit(suit: str, x: float, y: float, size: float, color: str) -> str:
-    """Draw one clean, traditional-looking suit as standalone SVG geometry."""
-    s = size / 40.0
+def court(rank, code):
+    """One figure, standing on a plinth.
 
-    if suit == "H":
-        # Heart with broad, even lobes and a clean pointed bottom.
-        path = (
-            "M0 17 "
-            "C-4 12 -20 3 -21 -7 "
-            "C-22 -17 -15 -22 -7 -22 "
-            "C-3 -22 -1 -20 0 -16 "
-            "C2 -20 4 -22 9 -22 "
-            "C17 -22 22 -16 21 -7 "
-            "C20 3 4 12 0 17 Z"
-        )
-
-    elif suit == "D":
-        # Rounded diamond, closer in visual weight to the reference deck.
-        path = (
-            "M0 -20 "
-            "C5 -14 13 -6 17 0 "
-            "C13 6 5 14 0 20 "
-            "C-5 14 -13 6 -17 0 "
-            "C-13 -6 -5 -14 0 -20 Z"
-        )
-
-    elif suit == "S":
-        # Classic spade with pointed crown, broad shoulders and a narrow stem.
-        path = (
-            "M0 -22 "
-            "C-3 -16 -18 -5 -22 4 "
-            "C-25 12 -20 20 -13 21 "
-            "C-8 22 -4 19 0 14 "
-            "C4 19 8 22 13 21 "
-            "C20 20 25 12 22 4 "
-            "C18 -5 3 -16 0 -22 Z "
-            "M-5 12 L5 12 L2 25 L8 25 L8 29 "
-            "L-8 29 L-8 25 L-2 25 Z"
-        )
-
-    elif suit == "C":
-        # Cleaner three-lobed club with a separate tapered stem.
-        path = (
-            "M0 -5 "
-            "C-3 -13 -9 -18 -16 -17 "
-            "C-24 -16 -27 -8 -23 -2 "
-            "C-21 2 -17 4 -13 4 "
-            "C-19 11 -16 18 -9 20 "
-            "C-5 21 -2 19 0 16 "
-            "C2 19 5 21 9 20 "
-            "C16 18 19 11 13 4 "
-            "C17 4 21 2 23 -2 "
-            "C27 -8 24 -16 16 -17 "
-            "C9 -18 3 -13 0 -5 Z "
-            "M-3 15 L3 15 L2 27 L7 27 L7 31 "
-            "L-7 31 L-7 27 L-2 27 Z"
-        )
-    else:
-        raise ValueError(f"Unknown suit: {suit}")
-
-    return (
-        f'<g transform="translate({x:.2f} {y:.2f}) scale({s:.5f})" '
-        f'fill="{color}" stroke="none"><path d="{path}"/></g>'
-    )
-
-
-def corner_index(parts: list[str], rank: str, suit: str, color: str) -> None:
-    """Draw clean top-left and bottom-right indices with isolated geometry."""
-    rank_size = 30 if len(rank) == 1 else 25
-
-    # Top-left: rank, then suit.
-    parts.append(
-        f'<text x="22" y="39" font-size="{rank_size}" text-anchor="middle" '
-        f'fill="{color}" font-family="Georgia, Times New Roman, serif" font-weight="700">'
-        f'{escape(rank)}</text>'
-    )
-    parts.append(vector_suit(suit, 22, 61, 15, color))
-
-    # Bottom-right: exact visual mirror of the top index.
-    # We build it in its final location, then rotate the two primitives in place.
-    # Final upright positions before rotation are rank at y=213 and suit at y=193.
-    # Using pivot (158, 203) maps them to the same lower-right footprint after 180°.
-    pivot_x, pivot_y = 158, 203
-
-    parts.append(
-        f'<g transform="rotate(180 {pivot_x} {pivot_y})">'
-        f'<text x="158" y="193" font-size="{rank_size}" text-anchor="middle" '
-        f'fill="{color}" font-family="Georgia, Times New Roman, serif" font-weight="700">'
-        f'{escape(rank)}</text>'
-        f'</g>'
-    )
-    parts.append(
-        f'<g transform="rotate(180 {pivot_x} {pivot_y})">'
-        f'{vector_suit(suit, 158, 213, 15, color)}'
-        f'</g>'
-    )
-
-
-def corner_curve(parts: list[str], suit: str) -> None:
-    """Modern liquid-inspired corner ribbons, kept out of the play area."""
-    fill_color = C["red2"] if suit in {"H", "D"} else C["green2"]
-
-    # Upper-right filled corner.
-    parts.append(
-        f'<path d="M110 10 C128 17 149 11 169 22 L169 61 '
-        f'C152 51 141 52 127 56 C116 59 109 55 104 48 '
-        f'C112 36 115 22 110 10 Z" fill="{fill_color}" opacity="0.92"/>'
-    )
-    parts.append(
-        f'<path d="M111 12 C130 18 150 14 168 23" fill="none" '
-        f'stroke="{C["gold"]}" stroke-width="2.1" stroke-linecap="round" opacity="0.95"/>'
-    )
-    parts.append(
-        f'<path d="M112 16 C131 22 150 18 168 27" fill="none" '
-        f'stroke="#FFFFFF" stroke-width="0.65" stroke-linecap="round" opacity="0.22"/>'
-    )
-
-    # Lower-left filled corner, kept away from bottom-right index.
-    parts.append(
-        f'<path d="M11 191 C27 201 42 201 56 195 C68 190 78 186 91 191 '
-        f'C104 196 114 204 130 207 C98 222 56 235 11 238 Z" '
-        f'fill="{fill_color}" opacity="0.90"/>'
-    )
-    parts.append(
-        f'<path d="M12 191 C28 202 42 202 57 196 C70 191 79 188 92 193 '
-        f'C104 199 114 205 129 208" fill="none" '
-        f'stroke="{C["gold"]}" stroke-width="2.0" stroke-linecap="round" opacity="0.95"/>'
-    )
-
-
-def tiny_sparkle(parts: list[str], x: float, y: float, scale: float = 1.0) -> None:
-    parts.append(
-        f'<path d="M{x} {y-3.5*scale} L{x+1*scale} {y-1*scale} '
-        f'L{x+3.5*scale} {y} L{x+1*scale} {y+1*scale} '
-        f'L{x} {y+3.5*scale} L{x-1*scale} {y+1*scale} '
-        f'L{x-3.5*scale} {y} L{x-1*scale} {y-1*scale} Z" '
-        f'fill="{C["gold"]}" opacity="0.55"/>'
-    )
-
-
-def pip_positions(rank: int):
-    x0, x1 = 62, 118
-    y0, y1 = 79, 202
-    return [(x0 + (x1 - x0) * px, y0 + (y1 - y0) * py) for px, py in PIPS[rank]]
-
-
-def add_pips(parts: list[str], rank: int, suit: str, color: str) -> None:
-    for index, (x, y) in enumerate(pip_positions(rank)):
-        parts.append(vector_suit(suit, x, y, 16.5, color))
-        # Decorative dots sit well outside the pip itself.
-        if rank >= 9 and index in {0, len(PIPS[rank]) - 1}:
-            tiny_sparkle(parts, x + (7 if x < 90 else -7), y, 0.45)
-
-
-# ---------------------------------------------------------------------------
-# Number + Ace
-# ---------------------------------------------------------------------------
-
-def number_card(rank: int, suit: str) -> str:
-    info = SUITS[suit]
-    parts = svg_start(f"{rank} of {suit}")
-    card_frame(parts)
-    corner_curve(parts, suit)
-    corner_index(parts, str(rank), suit, info["color"])
-
-    # Faint decorative oval, intentionally below visibility threshold at gameplay size.
-    parts.append(
-        f'<ellipse cx="90" cy="141" rx="31" ry="61" fill="none" '
-        f'stroke="{C["gold"]}" stroke-width="0.6" opacity="0.06"/>'
-    )
-
-    add_pips(parts, rank, suit, info["color"])
-
-    tiny_sparkle(parts, 44, 91, 0.5)
-    tiny_sparkle(parts, 136, 91, 0.45)
-
-    parts.append("</svg>")
-    return "\n".join(parts)
-
-
-def ace_card(suit: str) -> str:
-    info = SUITS[suit]
-    parts = svg_start(f"Ace of {suit}")
-    card_frame(parts)
-    corner_curve(parts, suit)
-    corner_index(parts, "A", suit, info["color"])
-
-    parts.extend([
-        f'<circle cx="90" cy="142" r="43" fill="none" stroke="{C["gold"]}" stroke-width="1.0" opacity="0.5"/>',
-        f'<circle cx="90" cy="142" r="35" fill="none" stroke="{C["gold"]}" stroke-width="0.6" opacity="0.28"/>',
-        f'<path d="M90 98 L96 132 L126 142 L96 152 L90 186 L84 152 L54 142 L84 132 Z" '
-        f'fill="none" stroke="{C["gold"]}" stroke-width="1.1" opacity="0.7"/>',
-        vector_suit(suit, 90, 142, 68, info["color"]),
-    ])
-
-    for x, y, scale in [(44, 105, .58), (136, 105, .48), (44, 180, .48), (136, 180, .58)]:
-        tiny_sparkle(parts, x, y, scale)
-
-    parts.append("</svg>")
-    return "\n".join(parts)
-
-
-# ---------------------------------------------------------------------------
-# Shared face-card components
-# ---------------------------------------------------------------------------
-
-def shared_crown() -> str:
-    """One shared crown design for Queen and King."""
-    return f"""
-      <g>
-        <path d="M-31 -52 L-25 -77 L-12 -58 L0 -80 L13 -58 L26 -77 L31 -52 Z"
-              fill="url(#goldMetal)" stroke="{C["gold3"]}" stroke-width="1.2"/>
-        <rect x="-31" y="-52" width="62" height="8" rx="2.2"
-              fill="{C["gold"]}" stroke="{C["gold3"]}" stroke-width="1"/>
-        <circle cx="-12" cy="-59" r="2.3" fill="{C["cream"]}"/>
-        <circle cx="0" cy="-67" r="2.7" fill="{C["cream"]}"/>
-        <circle cx="13" cy="-59" r="2.3" fill="{C["cream"]}"/>
-      </g>
+    Every part above is drawn x-centred on 0 with absolute y, so the whole figure
+    is shifted to the card's centre line exactly once here. Draw order is
+    back-to-front: robe, then collar, then face, then hair over the hairline, then
+    the crown on top of that.
     """
+    return (f'<g transform="translate(90 0)">'
+            + robe(rank, code)
+            + collar(rank, code)
+            + face(rank)
+            + hair(rank)
+            + f'<g transform="translate(0 50)">{crown(rank, code)}</g>'
+            + f'<g transform="translate(0 194)">{plinth(code)}</g>'
+            + "</g>")
 
 
-def jack_art(parts: list[str], suit: str) -> None:
-    color = SUITS[suit]["color"]
-    parts.append(
-        f"""
-        <g transform="translate(90 139)" filter="url(#artShadow)">
-          <!-- shield -->
-          <path d="M-45 -41 Q0 -60 45 -41 L39 50 Q0 70 -39 50 Z"
-                fill="none" stroke="{C["gold"]}" stroke-width="1.1" opacity="0.35"/>
-
-          <!-- feathered cap -->
-          <path d="M-14 -44 Q-9 -67 14 -77 Q13 -58 3 -43 Z"
-                fill="{C["green2"]}" stroke="{C["gold3"]}" stroke-width="1"/>
-          <path d="M-32 -42 Q-17 -60 10 -58 Q26 -54 31 -41 Q2 -49 -32 -42 Z"
-                fill="{C["green"]}" stroke="{C["gold3"]}" stroke-width="1.2"/>
-          <path d="M-31 -39 Q-2 -48 31 -39"
-                fill="none" stroke="{C["gold"]}" stroke-width="1.8"/>
-
-          <!-- face, clearly younger/profiled -->
-          <path d="M-11 -31 Q-7 -49 10 -49 Q23 -45 23 -29 L32 -21
-                   L23 -17 L21 1 Q9 14 -6 8 L-19 -5 Z"
-                fill="{C["skin"]}" stroke="{C["gold3"]}" stroke-width="1.0"/>
-          <path d="M20 -27 L31 -21" stroke="{C["black"]}" stroke-width="1.0" stroke-linecap="round"/>
-          <circle cx="8" cy="-31" r="1.4" fill="{C["black"]}"/>
-
-          <!-- neck + pointed collar -->
-          <path d="M-7 7 L0 24 L8 7" fill="{C["skin"]}" stroke="{C["gold3"]}" stroke-width="1"/>
-          <path d="M-10 8 L0 28 L10 8 L18 25 L0 38 L-18 25 Z"
-                fill="{C["cream"]}" stroke="{C["gold"]}" stroke-width="1"/>
-
-          <!-- tunic -->
-          <path d="M-28 27 Q0 17 28 27 L41 59 Q0 73 -41 59 Z"
-                fill="{C["green"]}" stroke="{C["gold3"]}" stroke-width="1.15"/>
-          <path d="M-15 29 L0 43 L15 29" fill="none" stroke="{C["gold2"]}" stroke-width="1.5"/>
-
-          <!-- sword -->
-          <path d="M-37 55 L-31 55 L-2 -50 L4 -65 L1 -43 L-25 58 Z"
-                fill="url(#goldMetal)" stroke="{C["gold3"]}" stroke-width="0.95"/>
-          <path d="M-43 49 Q-34 43 -25 49" fill="none" stroke="{C["gold"]}" stroke-width="4.5" stroke-linecap="round"/>
-          <circle cx="-34" cy="46" r="2.3" fill="{C["gold2"]}"/>
-
-          <circle cx="0" cy="52" r="8.5" fill="{C["cream"]}" stroke="{C["gold"]}" stroke-width="1"/>
-          {vector_suit(suit, 0, 52, 12, color)}
-        </g>
-        """
-    )
-
-
-def queen_art(parts: list[str], suit: str) -> None:
-    color = SUITS[suit]["color"]
-    parts.append(
-        f"""
-        <g transform="translate(90 141)" filter="url(#artShadow)">
-          <!-- long flowing hair -->
-          <path d="M-34 -17 Q-35 -56 5 -63 Q34 -55 35 -18
-                   L50 48 Q27 66 0 68 Q-29 65 -48 46 Z"
-                fill="{C["ink"]}" stroke="{C["gold3"]}" stroke-width="1.1"/>
-
-          <!-- shared queen/king crown -->
-          {shared_crown()}
-
-          <!-- face -->
-          <path d="M-17 -29 Q-11 -51 5 -54 Q21 -50 23 -30 L19 -7
-                   Q9 8 -5 8 L-18 -5 Z"
-                fill="{C["skin"]}" stroke="{C["gold3"]}" stroke-width="1"/>
-          <path d="M-20 -31 Q-14 -55 8 -57 Q28 -52 31 -32
-                   Q15 -37 6 -26 Q0 -16 -14 -10 Q-25 -17 -20 -31 Z"
-                fill="{C["ink"]}" stroke="{C["gold3"]}" stroke-width="1"/>
-          <circle cx="9" cy="-29" r="1.5" fill="{C["black"]}"/>
-
-          <!-- queen jewelry -->
-          <circle cx="29" cy="0" r="3.1" fill="{C["gold2"]}" stroke="{C["gold3"]}" stroke-width="0.7"/>
-          <path d="M-11 3 Q0 12 11 3" fill="none" stroke="{C["gold2"]}" stroke-width="1.2"/>
-          <circle cx="0" cy="12" r="3.1" fill="{C["gold2"]}" stroke="{C["gold3"]}" stroke-width="0.7"/>
-
-          <!-- gown -->
-          <path d="M-36 12 Q0 0 36 12 L49 62 Q0 76 -49 62 Z"
-                fill="{C["red"]}" stroke="{C["gold3"]}" stroke-width="1.15"/>
-          <path d="M-23 34 Q0 46 23 34" fill="none" stroke="{C["gold2"]}" stroke-width="1.6"/>
-          <path d="M-11 14 L0 30 L11 14" fill="none" stroke="{C["gold2"]}" stroke-width="1.4"/>
-
-          <circle cx="38" cy="10" r="8.5" fill="{C["cream"]}" stroke="{C["gold"]}" stroke-width="1"/>
-          {vector_suit(suit, 38, 10, 12, color)}
-        </g>
-        """
-    )
-
-
-def king_art(parts: list[str], suit: str) -> None:
-    color = SUITS[suit]["color"]
-    parts.append(
-        f"""
-        <g transform="translate(90 141)" filter="url(#artShadow)">
-          <!-- broad king mantle -->
-          <path d="M-50 15 Q0 -1 50 15 L56 64 Q0 80 -56 64 Z"
-                fill="{C["green"]}" stroke="{C["gold3"]}" stroke-width="1.25"/>
-          <path d="M-40 42 Q0 55 40 42" fill="none" stroke="{C["gold2"]}" stroke-width="1.9"/>
-
-          <!-- same crown used by Queen -->
-          {shared_crown()}
-
-          <!-- front-facing head -->
-          <path d="M-22 -30 Q-18 -55 2 -58 Q22 -55 25 -30
-                   L20 2 Q8 17 -7 13 L-22 1 Z"
-                fill="{C["skin"]}" stroke="{C["gold3"]}" stroke-width="1"/>
-
-          <!-- king's short hair -->
-          <path d="M-23 -31 Q-18 -57 5 -60 Q27 -55 31 -33
-                   L19 -29 L11 -44 L-4 -37 L-14 -21 Z"
-                fill="{C["black"]}" stroke="{C["gold3"]}" stroke-width="1"/>
-
-          <!-- eyes -->
-          <circle cx="-8" cy="-28" r="1.5" fill="{C["black"]}"/>
-          <circle cx="10" cy="-28" r="1.5" fill="{C["black"]}"/>
-          <path d="M-5 -16 Q2 -12 8 -16" fill="none" stroke="{C["skin_shadow"]}"
-                stroke-width="1" stroke-linecap="round"/>
-
-          <!-- moustache + full beard: makes King clearly different from Queen -->
-          <path d="M-2 -9 Q2 -13 7 -9 Q3 -5 -2 -9 Z" fill="{C["black"]}"/>
-          <path d="M-13 -3 Q1 22 16 -3 L13 16 Q1 32 -11 15 Z" fill="{C["black"]}"/>
-
-          <!-- KING SWORD -->
-          <path d="M-44 58 L-38 58 L-7 -42 L-1 -63 L-3 -40 L-31 60 Z"
-                fill="url(#goldMetal)" stroke="{C["gold3"]}" stroke-width="1"/>
-          <path d="M-49 51 Q-40 45 -30 51" fill="none"
-                stroke="{C["gold"]}" stroke-width="4.5" stroke-linecap="round"/>
-          <circle cx="-39" cy="49" r="2.4" fill="{C["gold2"]}"/>
-
-          <!-- suit medallion -->
-          <circle cx="0" cy="41" r="9" fill="{C["cream"]}"
-                  stroke="{C["gold"]}" stroke-width="1"/>
-          {vector_suit(suit, 0, 41, 13, color)}
-        </g>
-        """
-    )
-
-
-def face_card(rank: str, suit: str) -> str:
-    info = SUITS[suit]
-    parts = svg_start(f"{rank} of {suit}")
-    card_frame(parts)
-    corner_curve(parts, suit)
-    corner_index(parts, rank, suit, info["color"])
-
-    if rank == "J":
-        jack_art(parts, suit)
-    elif rank == "Q":
-        queen_art(parts, suit)
-    elif rank == "K":
-        king_art(parts, suit)
+# ---------------------------------------------------------------------------
+# Cards
+# ---------------------------------------------------------------------------
+def card(rank, code):
+    color = SUITS[code]["color"]
+    parts = [frame(code), corners(rank, code)]
+    if rank == "A":
+        parts.append(f'<circle cx="90" cy="128" r="50" fill="none" stroke="{GOLD}" '
+                     f'stroke-width="2.5"/>')
+        parts.append(f'<circle cx="90" cy="128" r="42" fill="{SUITS[code]["tint"]}"/>')
+        parts.append(suit(code, 90, 128, 86, color))
+    elif rank in COURT:
+        parts.append(court(rank, code))
     else:
-        raise ValueError(rank)
-
-    for x, y, scale in [(50, 96, .40), (130, 96, .35), (50, 188, .35), (130, 188, .40)]:
-        tiny_sparkle(parts, x, y, scale)
-
-    parts.append("</svg>")
-    return "\n".join(parts)
+        parts.append(pips(rank, code))
+    return svg("\n".join(parts))
 
 
-# ---------------------------------------------------------------------------
-# Back
-# ---------------------------------------------------------------------------
-
-def card_back() -> str:
-    lattice = "".join(
-        f'<line x1="{x}" y1="18" x2="{x+216}" y2="234"/>'
-        f'<line x1="{x+216}" y1="18" x2="{x}" y2="234"/>'
-        for x in range(-180, 200, 24)
-    )
-
-    return f"""
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}">
-      <defs>
-        <linearGradient id="backBase" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#0B2A20"/>
-          <stop offset="55%" stop-color="#174C3B"/>
-          <stop offset="100%" stop-color="#082019"/>
-        </linearGradient>
-        <linearGradient id="backGold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="{C["gold2"]}"/>
-          <stop offset="50%" stop-color="{C["gold"]}"/>
-          <stop offset="100%" stop-color="{C["gold3"]}"/>
-        </linearGradient>
-      </defs>
-
-      <rect x="3" y="3" width="174" height="246" rx="18" fill="url(#backBase)"
-            stroke="{C["gold3"]}" stroke-width="2.2"/>
-      <rect x="9" y="9" width="162" height="234" rx="15" fill="none"
-            stroke="{C["gold"]}" stroke-width="1.2"/>
-      <rect x="15" y="15" width="150" height="222" rx="11" fill="none"
-            stroke="{C["green2"]}" stroke-width="1"/>
-
-      <g stroke="{C["gold"]}" stroke-width="0.55" opacity="0.11">{lattice}</g>
-
-      <path d="M16 62 C38 51 52 55 69 61 C86 67 101 68 118 59 C137 49 151 53 164 45"
-            fill="none" stroke="{C["gold"]}" stroke-width="1.8" stroke-linecap="round" opacity="0.82"/>
-      <path d="M16 190 C37 201 52 198 69 191 C86 184 101 188 118 196 C137 205 151 201 164 209"
-            fill="none" stroke="{C["gold"]}" stroke-width="1.8" stroke-linecap="round" opacity="0.82"/>
-
-      <circle cx="90" cy="126" r="46" fill="#0A261D" opacity="0.70"
-              stroke="{C["gold3"]}" stroke-width="1"/>
-      <circle cx="90" cy="126" r="38" fill="none"
-              stroke="{C["gold"]}" stroke-width="1.15"/>
-      <circle cx="90" cy="126" r="31" fill="none"
-              stroke="{C["gold2"]}" stroke-width="0.6" opacity="0.55"/>
-
-      <text x="90" y="131" font-size="61" font-family="Georgia, serif" font-weight="700"
-            fill="url(#backGold)" text-anchor="middle" dominant-baseline="central">7</text>
-
-      {vector_suit("S", 69, 49, 10, C["gold2"])}
-      {vector_suit("H", 87, 49, 10, C["gold2"])}
-      {vector_suit("D", 105, 49, 10, C["gold2"])}
-      {vector_suit("C", 123, 49, 10, C["gold2"])}
-
-      {vector_suit("C", 69, 203, 10, C["gold2"])}
-      {vector_suit("D", 87, 203, 10, C["gold2"])}
-      {vector_suit("H", 105, 203, 10, C["gold2"])}
-      {vector_suit("S", 123, 203, 10, C["gold2"])}
-
-      <path d="M90 77 L94 85 L103 89 L94 93 L90 101 L86 93 L77 89 L86 85 Z"
-            fill="url(#backGold)"/>
-      <path d="M90 151 L94 159 L103 163 L94 167 L90 175 L86 167 L77 163 L86 159 Z"
-            fill="url(#backGold)"/>
-    </svg>
-    """
+def back():
+    """Colourful back: all four suit colours, so the deluxe deck announces itself
+    before a single face is turned over."""
+    body = f'''<defs>
+    <linearGradient id="v2base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#243049"/>
+      <stop offset="1" stop-color="#141b29"/>
+    </linearGradient>
+    <linearGradient id="v2gloss" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2.5" y="2.5" width="{W - 5}" height="{H - 5}" rx="17"
+        fill="url(#v2base)" stroke="{GOLD}" stroke-width="5"/>
+  <rect x="12" y="12" width="{W - 24}" height="{H - 24}" rx="10" fill="none"
+        stroke="{GOLD}" stroke-width="1.3" opacity="0.55"/>
+  <g opacity="0.9">
+    {suit("S", 90, 74, 34, SUITS["S"]["color"])}
+    {suit("H", 90, 74, 0.001, SUITS["H"]["color"])}
+  </g>
+  <g transform="translate(90 126)">
+    <circle cx="0" cy="0" r="46" fill="none" stroke="{GOLD}" stroke-width="1.6"
+            opacity="0.6"/>
+    {suit("H", -22, -22, 30, SUITS["H"]["color"])}
+    {suit("D", 22, -22, 30, SUITS["D"]["color"])}
+    {suit("C", -22, 22, 30, SUITS["C"]["color"])}
+    {suit("S", 22, 22, 30, "#e8ecf5")}
+    <circle cx="0" cy="0" r="9" fill="{GOLD}"/>
+  </g>
+  <rect x="2.5" y="2.5" width="{W - 5}" height="{H - 5}" rx="17" fill="url(#v2gloss)"/>'''
+    return svg(body)
 
 
-# ---------------------------------------------------------------------------
-# Generate
-# ---------------------------------------------------------------------------
-
-def write_card(filename: str, content: str) -> None:
-    os.makedirs(OUT, exist_ok=True)
-    with open(os.path.join(OUT, filename), "w", encoding="utf-8") as fh:
-        fh.write(content)
-
-
-def main() -> None:
-    count = 0
-
-    for suit in SUITS:
+def build():
+    deck = {}
+    for code in SUITS:
         for rank in RANKS:
-            if rank == "A":
-                svg = ace_card(suit)
-            elif rank in {"J", "Q", "K"}:
-                svg = face_card(rank, suit)
-            else:
-                svg = number_card(int(rank), suit)
+            deck[f"{rank}{code}.svg"] = card(rank, code)
+    deck["back.svg"] = back()
+    return deck
 
-            write_card(f"{rank}{suit}.svg", svg)
-            count += 1
 
-    write_card("back.svg", card_back())
-    print(f"Wrote {count} card faces + back.svg to {os.path.normpath(OUT)}")
+def main():
+    here = os.path.dirname(os.path.abspath(__file__))
+    # NOT static/img/cards: that is the live deck the whole app loads.
+    default_out = os.path.join(here, "..", "static", "img", "cards_v2")
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--out", default=default_out, help="output directory")
+    ap.add_argument("--sheet", help="also render a contact-sheet PNG here")
+    ap.add_argument("--sheet-scale", type=float, default=1.0,
+                    help="contact sheet scale (1.0 = real 62px gameplay size)")
+    args = ap.parse_args()
+
+    deck = build()
+    os.makedirs(args.out, exist_ok=True)
+    for name, text in deck.items():
+        with open(os.path.join(args.out, name), "w", encoding="utf-8") as fh:
+            fh.write(text)
+    print(f"Wrote {len(deck)} files to {os.path.normpath(args.out)}")
+
+    if args.sheet:
+        path, size = contact_sheet(deck, args.sheet, RANKS,
+                                   cell_px=62 * args.sheet_scale,
+                                   bg=(26, 28, 32))
+        print(f"Contact sheet: {path} {size}")
 
 
 if __name__ == "__main__":
