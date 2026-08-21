@@ -525,3 +525,33 @@ body.theme-forest .s4-seat { background: #06210f !important; border-color: rgba(
 .theme-opt:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+
+/* ==================================================================
+   Chrome bloom per theme
+   ==================================================================
+   Each theme contributes ONE value: the hue washed behind the page by
+   body.room-page::after (see base.css). Everything else about the chrome —
+   panels, borders, body text, muted text — stays graphite on every theme, so
+   contrast is audited once rather than fourteen times.
+
+   Hues are hand-picked to sit next to each felt, not derived from it. Deriving
+   fails exactly where it matters: Hacker wants acid green over near-black and
+   Horror wants desaturated blood, and neither falls out of "darken the felt".
+
+   Alpha is the tuning knob. 0.05-0.10 for dark/subtle felts, up to ~0.14 for
+   the vivid ones. If the bloom's edge is visible, it is too high. */
+
+body.theme-casino        { --bloom: rgba( 63, 158, 100, 0.13); }  /* green felt   */
+body.theme-marble        { --bloom: rgba(170, 176, 186, 0.07); }  /* cool stone   */
+body.theme-red_casino    { --bloom: rgba(200,  62,  62, 0.12); }  /* deep red     */
+body.theme-ocean_glow    { --bloom: rgba( 56, 170, 200, 0.14); }  /* teal / cyan  */
+body.theme-sunset_mirage { --bloom: rgba(214, 106,  54, 0.13); }  /* burnt orange */
+body.theme-poker         { --bloom: rgba( 46, 140,  84, 0.12); }  /* club green   */
+body.theme-royal         { --bloom: rgba(158,  56, 104, 0.12); }  /* wine         */
+body.theme-hacker        { --bloom: rgba( 10, 240, 216, 0.10); }  /* terminal     */
+body.theme-horror        { --bloom: rgba(150,  30,  35, 0.13); }  /* blood        */
+body.theme-pirate        { --bloom: rgba( 92, 138, 120, 0.11); }  /* sea / brass  */
+body.theme-space         { --bloom: rgba(120,  80, 200, 0.14); }  /* indigo       */
+body.theme-egyptian      { --bloom: rgba(201, 162,  39, 0.11); }  /* sand / gold  */
+body.theme-wildwest      { --bloom: rgba(160, 102,  58, 0.12); }  /* leather      */
+body.theme-forest        { --bloom: rgba( 52, 150,  86, 0.12); }  /* pine         */
