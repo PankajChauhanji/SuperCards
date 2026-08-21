@@ -5,7 +5,8 @@ animation lives entirely on the client. Whitelisting keeps the channel from
 being used to broadcast arbitrary text.
 """
 import time
-from flask_socketio import emit
+# Guarded drop-in for flask_socketio.emit — see sockets/audience.py.
+from sockets.audience import emit
 
 ALLOWED_REACTIONS = {
     "😂", "😲", "🤯", "😭", "😡", "🔥", "⚡", "👏", "😎", "🎉",
