@@ -1,0 +1,19 @@
+{# Per-user card-deck choice. Shown for every game — unlike the hand-view
+   control, the deck applies everywhere. Reuses the theme selector's markup and
+   CSS; core/deck.js reveals the wrap and wires the dropdown. #}
+<div class="theme-select-wrap" id="deck-select-wrap" style="display:none">
+  <button class="theme-select-btn" id="deck-select-btn" title="Select card deck" aria-label="Select card deck">
+    <span class="theme-icon" id="current-deck-icon">&#128081;</span>
+    <span class="theme-name" id="current-deck-name">Royal deck</span>
+  </button>
+  <div class="theme-dropdown" id="deck-dropdown" role="menu" aria-hidden="true" hidden>
+    <button class="theme-opt" type="button" data-deck="royal" title="Four-colour suits and illustrated court cards">
+      <span class="theme-opt-icon">&#128081;</span>
+      <span class="theme-opt-label">Royal deck</span>
+    </button>
+    <button class="theme-opt" type="button" data-deck="standard" title="Traditional two-colour deck, clean and plain">
+      <span class="theme-opt-icon">&#127183;</span>
+      <span class="theme-opt-label">Standard deck</span>
+    </button>
+  </div>
+</div>
