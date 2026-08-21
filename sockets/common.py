@@ -7,7 +7,10 @@ user_id instead of the volatile sid.
 """
 from typing import Optional, Tuple
 
-from flask_socketio import emit
+# Guarded drop-in for flask_socketio.emit — see sockets/audience.py. This
+# module only emits errors to the requesting socket, but routing every
+# emit through one place is what keeps the guard total.
+from sockets.audience import emit
 
 SID_INDEX = {}  # sid -> (code, user_id)
 
