@@ -10,14 +10,22 @@ import time
 from typing import Any, Dict, Optional
 
 from config import ROOM_CODE_LENGTH, EMPTY_ROOM_TTL
-from game.core import registry
+from game.core import registry, store
 
 
 class RoomManager:
-    def __init__(self):
+    def __init__(self, restore: bool = False):
         # Values are game-specific Room instances; typed loosely so the manager
         # stays game-agnostic (see game.core.registry for the concrete classes).
         self.rooms: Dict[str, Any] = {}
+        if restore:
+            # Rooms from a previous process, if that process ran this same code.
+            # Off by default so tests and tools get a clean manager; app.py opts in.
+            self.rooms.update(store.load())
+
+    def snapshot(self) -> bool:
+        """Persist the current rooms so a restart does not end live games."""
+        return store.save(self.rooms)
 
     def _generate_code(self) -> str:
         while True:
