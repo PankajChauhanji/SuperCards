@@ -31,6 +31,17 @@ class GameSpec:
     settings_bounds: dict
     min_players: int
     max_players: int
+    # False renders the landing-page tile as a disabled "coming soon" — for a
+    # game whose backend is registered before its client bundle exists. This
+    # lives on the spec, not in app.py: a hardcoded list there meant registering
+    # game #4 and having it silently fail to appear, with no error anywhere.
+    ready: bool = True
+    # Whether the game scores discrete rounds and passes through STATE_ROUND_END.
+    # Super Seven and Super 4 do; Bluff is a single race to an empty hand and
+    # goes straight to STATE_GAME_END. Round-based games must therefore provide
+    # ``round_end_payload`` (the shared lobby resends it on a mid-round-end
+    # reconnect) — which is exactly what tests/test_platform_contract.py checks.
+    has_rounds: bool = True
 
 
 _GAMES: Dict[str, GameSpec] = {}
@@ -87,6 +98,9 @@ register(
         settings_bounds=bluff_settings.SETTINGS_BOUNDS,
         min_players=bluff_settings.MIN_PLAYERS,
         max_players=bluff_settings.MAX_PLAYERS,
+        # Bluff is one continuous race to an empty hand: no per-round scoring,
+        # so it never enters STATE_ROUND_END and has no round_end_payload.
+        has_rounds=False,
     )
 )
 
