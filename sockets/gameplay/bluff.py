@@ -1,9 +1,13 @@
 """Bluff gameplay: socket handlers + turn-timer ticker.
 """
-from flask_socketio import emit
+from game.bluff.visibility import public_card_ids
 from game.core.states import STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
-from sockets import director, presenter
+from sockets import audience, director, presenter
+# Guarded drop-in for flask_socketio.emit — see sockets/audience.py.
+from sockets.audience import emit
 from sockets.common import error
+
+audience.register("bluff", public_card_ids)
 
 GAME = "bluff"
 
