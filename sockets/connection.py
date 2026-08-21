@@ -6,7 +6,8 @@ but only if the disconnecting sid is still that player's current sid, which
 avoids a stale page-unload socket knocking a freshly reconnected player offline.
 """
 from flask import request
-from flask_socketio import emit
+# Guarded drop-in for flask_socketio.emit — see sockets/audience.py.
+from sockets.audience import emit
 
 from sockets.common import unbind_sid
 
