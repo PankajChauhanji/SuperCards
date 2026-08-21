@@ -10,7 +10,10 @@ Only enter_room binds the sid and joins the Socket.IO room, so navigating away
 from the index page never marks anyone disconnected.
 """
 from flask import request
-from flask_socketio import join_room as sio_join, leave_room as sio_leave, emit
+from flask_socketio import join_room as sio_join, leave_room as sio_leave
+# Guarded drop-in for flask_socketio.emit — this module deals rounds and
+# broadcasts round_start/round_end, so it carries card payloads too.
+from sockets.audience import emit
 
 from game.core import registry
 from game.core.states import STATE_LOBBY, STATE_ROUND_END, STATE_GAME_END
