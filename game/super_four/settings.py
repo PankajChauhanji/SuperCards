@@ -1,10 +1,14 @@
 """Super 4 gameplay settings (variant-owned; surfaced via the game registry).
 
-Sources of truth for rules/scoring, keep in sync when any default below changes:
-  - this file (the running behavior)
+This file is the only source of truth. The numbers below are also *stated in
+prose* for humans in:
   - DESIGN.md (design decisions / rationale)
-  - docs/README.md "Super Four rule book"
   - static/rules/super_four/{en,hi}.html (player-facing rules)
+
+You do not have to remember to update those by hand: ``tests/test_settings_docs.py``
+pins each documented number to the default here and fails naming the file and the
+value when they diverge. Change a default, run the suite, and it will tell you
+exactly which sentences to edit.
 """
 
 # ---- Room / table limits ----
