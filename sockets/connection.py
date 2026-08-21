@@ -19,6 +19,19 @@ def register(socketio, manager):
         # Real attachment is driven by enter_room once the game page loads.
         pass
 
+    @socketio.on("client_ping")
+    def on_client_ping(_data=None):
+        """Acknowledge a liveness probe. Deliberately touches no room state.
+
+        A phone returning from the background holds a socket the CLIENT still
+        believes is open — `socket.connected` is true while the transport is
+        already dead. The client cannot detect that locally at all, so it asks
+        instead: an ack that never arrives means the socket is a zombie and has to
+        be torn down and rebuilt. Without this the player looks online to their own
+        screen and offline to everyone else until a full page reload.
+        """
+        return {"ok": True}
+
     @socketio.on("disconnect")
     def on_disconnect():
         sid = request.sid
