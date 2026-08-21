@@ -27,13 +27,22 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/lobby.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}" />
+  <!-- After table.css: it overrides the side-column geometry for the phone sheet. -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/table_sheet.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/reactions.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/winner.css') }}" />
   <!-- Must stay last: it re-states paddings from the sheets above to add device insets. -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/safe-area.css') }}" />
 </head>
-<body>
+{# room-page: lets the shared footer and topbar quieten down at a live table
+   without changing how they look on the landing page. #}
+<body class="room-page">
+  {# Ambient wash in the current table theme's colour. Sits behind everything
+     (z-index -1, pointer-events none) so panels and text keep constant
+     contrast on every theme — see the "theme bloom" block in base.css. #}
+  <div id="theme-bloom" aria-hidden="true"></div>
+
   <div class="topbar">
     {% include 'games/' + game_type + '/branding.html' %}
     <div class="topbar-right">
@@ -44,6 +53,7 @@
 
       {% include 'partials/theme_selector.html' %}
       {% include 'partials/view_mode_selector.html' %}
+      {% include 'partials/deck_selector.html' %}
 
       <span class="topbar-divider" aria-hidden="true"></span>
 
@@ -183,8 +193,14 @@
   <script src="{{ url_for('static', filename='js/core/reactions.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/themes.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/view_mode.js') }}"></script>
+  <!-- Must precede the variant bundle: it defines SS.cardSrc, which every
+       game uses to build card URLs. -->
+  <script src="{{ url_for('static', filename='js/core/deck.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/rules_modal.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/chrome.js') }}"></script>
+  <!-- After chrome.js and reactions.js: it clears the collapse state those wire
+       up, and nests its button inside the reactions dock. -->
+  <script src="{{ url_for('static', filename='js/core/table_sheet.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/lobby.js') }}"></script>
   <!-- Variant gameplay bundle, selected by game_type -->
   {% include 'games/' + game_type + '/scripts.html' %}
