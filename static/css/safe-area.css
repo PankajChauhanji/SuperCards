@@ -30,11 +30,28 @@
   padding-bottom: calc(2rem + env(safe-area-inset-bottom));
 }
 
+/* Wide screens reserve an empty right gutter the same width as the Scores
+   column, which is what actually centres the felt on screen — see the
+   "centre the TABLE" block in table.css for the reasoning. It has to live here
+   rather than there because this file owns the last word on .table-view's
+   horizontal padding, so the same declaration written in table.css is
+   overwritten by the rule above. */
+@media (min-width: 1700px) {
+  .table-view {
+    padding-right: calc(
+      var(--side-col) + var(--side-gap) + var(--page-pad) + env(safe-area-inset-right)
+    );
+  }
+}
+
 /* Fixed-position furniture has to clear the gesture bar itself. */
 #toast {
   bottom: calc(1.5rem + env(safe-area-inset-bottom));
 }
 
+/* Note: the phone table sheet (.ts-sheet) applies its own bottom inset in
+   table_sheet.css, where its base padding lives — deliberately not restated
+   here, so there is only one place that decides its spacing. */
 .reaction-dock {
   right: calc(16px + env(safe-area-inset-right));
   bottom: calc(16px + env(safe-area-inset-bottom));
