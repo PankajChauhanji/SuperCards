@@ -35,7 +35,8 @@
   if ($("room-code")) $("room-code").textContent = code;
 
   const SUIT = { H: "♥", D: "♦", S: "♠", C: "♣" };
-  const cardImg = (face) => `/static/img/cards/${face}.svg`;
+  // Deck choice is per-user (core/deck.js); never hardcode the directory.
+  const cardImg = (face) => window.SS.cardSrc(face);
   const kkey = (o, s) => o + ":" + s;
   const nameOf = (uid) => { const p = view.players.find((x) => x.user_id === uid); return p ? p.name : "Someone"; };
 
