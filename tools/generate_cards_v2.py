@@ -34,8 +34,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from card_art import H, W, contact_sheet, suit, svg  # noqa: E402
 
-# Minor: non-functional comment to record a small repo change for commits
-
 IVORY = "#fdfaf3"
 GOLD = "#c9a227"
 GOLD_DK = "#a5811b"
