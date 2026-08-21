@@ -74,9 +74,9 @@
         dropdown.setAttribute("hidden", "");
         dropdown.setAttribute("aria-hidden", "true");
         // Reflect immediately rather than waiting for the next server event.
-        if (window.Table && window.SS.view && window.SS.view.state === "IN_TURN") {
-          window.Table.render(window.SS.view);
-        }
+        // Deliberately NOT gated on state === "IN_TURN": a change made at round
+        // end or between rounds used to apply only after a full page reload.
+        if (window.SS.repaintUI) window.SS.repaintUI();
       });
     });
     document.addEventListener("click", () => {
