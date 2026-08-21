@@ -11,6 +11,10 @@ handles the process — this guarantees start_background_task() works correctly.
 import eventlet
 eventlet.monkey_patch()
 
+import os
+import time
+import uuid
+
 from flask import Flask, render_template, redirect, url_for, send_from_directory, jsonify, abort
 from flask_socketio import SocketIO
 
@@ -19,23 +23,29 @@ from game.core import registry
 from game.core.manager import RoomManager
 from sockets import register_handlers
 
+# Identifies this process. Two consecutive /healthz calls returning different
+# boot_ids means more than one process is serving — the split-room failure the
+# single-worker rule exists to prevent. Cheaper than reading it off symptoms.
+BOOT_ID = uuid.uuid4().hex[:12]
+BOOT_TS = time.time()
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
 
 socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=config.CORS_ORIGINS)
 
-manager = RoomManager()
+# restore=True picks up rooms left by a previous process (same code only — see
+# game/core/store.py), so a crash or idle restart does not end live games.
+manager = RoomManager(restore=True)
 register_handlers(socketio, manager)
 
 
 @app.route("/")
 def index():
-    # The landing-page picker is driven by the registry. A game is selectable
-    # only once its frontend bundle exists; others render as disabled "coming
-    # soon" tiles. (Super 4's backend is registered before its UI is built.)
-    ready = {"super_seven", "super_four", "bluff"}
+    # The landing-page picker is driven entirely by the registry, including
+    # readiness — see GameSpec.ready. Nothing here needs editing to add a game.
     games = [
-        {"key": spec.key, "display_name": spec.display_name, "ready": spec.key in ready}
+        {"key": spec.key, "display_name": spec.display_name, "ready": spec.ready}
         for spec in registry.all_games().values()
     ]
     return render_template("index.html", games=games)
@@ -85,6 +95,33 @@ def assetlinks():
     ])
 
 
+@app.route("/healthz")
+def healthz():
+    """Liveness + a way to *detect* a split-brain instead of diagnosing one.
+
+    Deliberately exposes counts only — never room codes. A code is the sole
+    credential needed to walk into someone's game, so listing them here would
+    turn a health check into a lobby-crasher.
+    """
+    rooms = manager.rooms
+    by_game = {}
+    connected = 0
+    for game_room in rooms.values():
+        key = getattr(game_room, "game_type", "unknown")
+        by_game[key] = by_game.get(key, 0) + 1
+        connected += sum(1 for p in game_room.players.values() if p.connected)
+    return jsonify({
+        "ok": True,
+        "boot_id": BOOT_ID,          # differs per process — compare across calls
+        "pid": os.getpid(),
+        "uptime_seconds": int(time.time() - BOOT_TS),
+        "rooms": len(rooms),
+        "rooms_by_game": by_game,
+        "players_connected": connected,
+        "games_registered": sorted(registry.all_games()),
+    })
+
+
 @app.route("/room/<code>")
 def room(code):
     code = code.strip().upper()
@@ -118,6 +155,38 @@ def _port_already_serving(port: int) -> bool:
         return False
 
 
+def _install_shutdown_snapshot():
+    """Snapshot rooms on SIGTERM/SIGINT — the signal a deploy or restart sends.
+
+    Also snapshots periodically, because a hard kill (SIGKILL, OOM, a yanked
+    container) never runs a handler. The periodic write is cheap: it only fires
+    while rooms actually exist.
+    """
+    import signal
+
+    def on_signal(signum, _frame):
+        saved = manager.snapshot()
+        print("shutting down on signal %d — rooms snapshotted: %s"
+              % (signum, saved), flush=True)
+        raise SystemExit(0)
+
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            signal.signal(sig, on_signal)
+        except (ValueError, OSError):
+            pass  # not the main thread / unsupported platform: periodic save covers it
+
+    def periodic():
+        while True:
+            socketio.sleep(20)
+            try:
+                if manager.rooms:
+                    manager.snapshot()
+            except Exception:
+                pass  # persistence must never take the server down
+    socketio.start_background_task(periodic)
+
+
 if __name__ == "__main__":
     if _port_already_serving(config.PORT):
         raise SystemExit(
@@ -126,6 +195,7 @@ if __name__ == "__main__":
             f"Find it with:  ss -ltnp | grep :{config.PORT}   and stop it, or "
             "start this server on another port:  PORT=5001 python3 app.py"
         )
+    _install_shutdown_snapshot()
     socketio.run(
         app,
         host="0.0.0.0",
