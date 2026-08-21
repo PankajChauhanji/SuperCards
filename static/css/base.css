@@ -3,23 +3,51 @@
    in reserve for the active turn / Stop / selection, gold for host + start. */
 
 :root {
-  --bg:      #0f1f1c;
-  --bg-2:    #142925;
-  --panel:   #193430;
-  --panel-2: #1f3e38;
-  --line:    #2c4d46;
+  /* ---- chrome: neutral graphite ----
+     Deliberately desaturated. The app ships fourteen table themes, from Casino
+     Felt to Horror to Space Galaxy, and the chrome used to be fixed dark green —
+     so exactly one of the fourteen harmonised with its own frame. Neutral chrome
+     never competes with any of them, and it leaves the felt as the only
+     saturated surface on screen, which is where the eye should go.
+
+     Hue comes back as --bloom below: a soft wash *behind* content, never under
+     it, so contrast is identical on every theme and only has to be checked once.
+     The previous green palette is kept in .chrome-classic further down. */
+  --bg:      #141516;
+  --bg-2:    #1b1d1f;
+  --panel:   #212426;
+  --panel-2: #2a2d30;
+  --line:    #35393c;
   --cream:   #f3ecdc;
-  --ink:     #15201d;
-  --text:    #e7efe9;
-  --muted:   #93a9a1;
+  --ink:     #15171a;
+  --text:    #e9eaea;
+  --muted:   #9aa0a2;
   --accent:  #e8593f;  /* active turn, Stop, danger, selection */
   --gold:    #e6b23c;  /* host badge, Start, confirm */
   --turn:    #57d98a;  /* current player's boundary */
   --felt:    #14302a;
+
+  /* Ambient wash behind the table, set per table theme in themes.css. Neutral
+     by default so an unthemed page (or a theme with no bloom yet) still looks
+     finished rather than broken. Kept low-alpha on purpose: if you can see
+     where the bloom begins, it is too strong. */
+  --bloom:   rgba(150, 160, 168, 0.07);
   --radius:  14px;
   --shadow:  0 18px 40px -24px rgba(0, 0, 0, 0.7);
   --display: "Space Grotesk", system-ui, sans-serif;
   --body:    "Inter", system-ui, sans-serif;
+
+  /* ---- page rails ----
+     One set of vertical guides for a room page, so the table, the topbar's
+     contents and the footer's contents all start and end on the same lines
+     instead of each choosing its own inset. --page-max is the normal cap;
+     --page-max-wide takes over once the screen is wide enough to also balance
+     the side column (see the wide-screen block in table.css). */
+  --page-max:      1400px;
+  --page-max-wide: 1760px;
+  --side-col:      280px;    /* the Scores / Action History column */
+  --side-gap:      1.5rem;   /* gap between that column and the felt */
+  --page-pad:      1.5rem;   /* inset from the rail to content */
 }
 
 * { box-sizing: border-box; }
@@ -36,6 +64,76 @@ body {
     radial-gradient(120% 90% at 50% -10%, var(--bg-2) 0%, var(--bg) 60%);
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
+}
+
+/* ---------- theme bloom ----------
+   The table theme's hue, washed across the page behind everything.
+
+   Two decisions worth keeping:
+
+   1. It is a *masked solid colour*, not a gradient. CSS cannot interpolate
+      between two gradients, so a gradient here would snap harshly when the host
+      changes theme — and after this change the host repaints everyone's whole
+      interface, not just the felt. background-color does interpolate, so the
+      mask gives the same soft shape with a 420ms cross-fade.
+
+   2. z-index: -1 puts it above the page background but behind every panel,
+      which is the whole point: panels and text sit on solid --panel / --bg, so
+      contrast is constant on all fourteen themes.
+
+   3. It is a real element (#theme-bloom in game.html), not a ::after. Chrome
+      resolves var() inside a pseudo-element against the ROOT rather than the
+      originating element, so `body.theme-x { --bloom }` never reached a
+      body::after — and getComputedStyle on a pseudo reports the same wrong
+      value, meaning the bug is invisible to measurement as well as broken in
+      some browsers. A real element resolves the variable normally and can be
+      asserted against.
+
+   4. There is deliberately NO transition, and it has now been tested twice.
+      `transition: background-color` on this element freezes it: the colour comes
+      from a var(), the variable updates, the paint does not, and the bloom sticks
+      on whichever theme loaded first. Transitioning the registered custom
+      property instead (`transition: --bloom` on body) freezes it the same way —
+      measured with @property genuinely parsing, so this is not the earlier
+      false negative. Either way the value stops tracking the theme.
+      At ~10% alpha an instant switch is imperceptible, so the wash simply snaps.
+      If you reintroduce a transition here, switch themes and confirm the bloom
+      colour actually changes before believing it works.
+
+   --bloom is registered below so `syntax: "<color>"` type-checks it: a malformed
+   value falls back to the initial rather than silently breaking the layer.
+
+   Room pages only. The home page has its own felt-textured hero. */
+@property --bloom {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgba(150, 160, 168, 0.07);
+}
+
+#theme-bloom {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--bloom);
+  -webkit-mask-image: radial-gradient(78% 58% at 50% 0%, #000 0%, transparent 74%);
+          mask-image: radial-gradient(78% 58% at 50% 0%, #000 0%, transparent 74%);
+}
+
+/* ---------- escape hatch: the original green chrome ----------
+   Add `chrome-classic` to <body> in templates/game.html to get the pre-graphite
+   look back, for side-by-side comparison or a straight revert. Kept as real
+   code rather than a comment so it cannot rot. */
+body.chrome-classic {
+  --bg:      #0f1f1c;
+  --bg-2:    #142925;
+  --panel:   #193430;
+  --panel-2: #1f3e38;
+  --line:    #2c4d46;
+  --ink:     #15201d;
+  --text:    #e7efe9;
+  --muted:   #93a9a1;
+  --bloom:   rgba(87, 217, 138, 0.05);
 }
 /* Home page only: a flex column so the felt-backdrop hero grows to fill the
    viewport and the footer sticks to the bottom on short pages, without
