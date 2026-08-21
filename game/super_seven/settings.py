@@ -6,8 +6,9 @@ shared config.py, so each game owns its own settings. The registry exposes
 DEFAULT_SETTINGS / SETTINGS_BOUNDS / MIN_PLAYERS / MAX_PLAYERS to the shared
 lobby via the game's GameSpec.
 
-Keep in sync when any default changes: docs/README.md "Super Seven rule book" and
-static/rules/super_seven/{en,hi}.html.
+This file is the only source of truth. Where these numbers are also stated in
+prose (README rule book, static/rules/super_seven/{en,hi}.html), add a claim to
+tests/test_settings_docs.py so drift fails a test instead of relying on memory.
 """
 
 # ---- Room / table limits ----
