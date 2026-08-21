@@ -2,11 +2,35 @@
 .table-view {
   position: relative;
   display: flex;
-  gap: 1.5rem;
-  padding: 1rem 1.5rem 2rem;
-  max-width: 1400px;
+  gap: var(--side-gap);
+  padding: 1rem var(--page-pad) 2rem;
+  max-width: var(--page-max);
   margin: 0 auto;
   align-items: flex-start;
+}
+
+/* ---------- wide screens: centre the TABLE, not just the page block --------
+   .table-view was already centred, but the Scores / Action History column is
+   absolutely positioned at its left edge and .felt is pushed right to clear it.
+   So the block was centred while the felt — the thing the eye actually reads as
+   "the table" — sat ~300px right of screen centre. That imbalance was most of
+   why a wide desktop looked lopsided.
+
+   Reserving an equal, empty gutter on the right makes the felt symmetric inside
+   the container, so a centred container finally means a centred table. The felt
+   also gets *wider* here, not narrower, because the cap rises with it.
+
+   Gated at 1700px deliberately: below that, the reserved gutter would have to
+   come out of the felt's own width, and the felt should never get narrower to
+   buy symmetry. Both numbers are the variables in base.css if this wants
+   tuning.
+
+   NOTE: the reserved gutter itself is the padding-right in safe-area.css, not
+   here. That file loads last and owns the final word on .table-view's
+   horizontal padding (it adds the device insets), so a padding-right written
+   here is silently overwritten — which is exactly what happened first try. */
+@media (min-width: 1700px) {
+  .table-view { max-width: var(--page-max-wide); }
 }
 
 /* The scoreboard is a fixed-height column (top:1rem → bottom:2rem) holding TWO
@@ -16,8 +40,8 @@
   position: absolute;
   top: 1rem;
   bottom: 2rem;
-  left: 1.5rem;
-  width: 280px;
+  left: var(--page-pad);
+  width: var(--side-col);
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -230,8 +254,8 @@
 
 /* felt */
 .felt {
-  margin-left: calc(280px + 1.5rem);
-  width: calc(100% - 280px - 1.5rem);
+  margin-left: calc(var(--side-col) + var(--side-gap));
+  width: calc(100% - var(--side-col) - var(--side-gap));
   flex: 1 1 auto;
   min-width: 0;
   background:
@@ -287,14 +311,20 @@
   background: conic-gradient(var(--timer-color, transparent) 0% var(--timer-pct, 0%), transparent var(--timer-pct, 0%) 100%);
   transition: background 0.3s ease;
 }
+/* Now a plain wrapper. It used to paint the elimination arc, 3px inside the
+   timer arc and in the same green-to-red ramp, so the two were near
+   indistinguishable — worst on phones where they were 50px and 44px. Elimination
+   moved inside the avatar as a liquid level (.opp-avatar.gauge below). */
+/* Now a bare wrapper with no size of its own. It used to be 56px, which is what
+   made the timer read as a thick band: the arc showed from 62px all the way in
+   to the avatar. Sizing the avatar directly against the 62px outer is what makes
+   the ring a hairline (see .opp-avatar below). */
 .opp-ring {
-  width: 56px;
-  height: 56px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: conic-gradient(var(--ring-color, var(--line)) 0% var(--ring-pct, 0%), var(--line) var(--ring-pct, 0%) 100%);
+  background: none;
 }
 /* Sole turn indicator now that seats sit in clockwise-from-you order (no
    more TURN/NEXT text badges) — a gentle pulse so it reads at a glance.
@@ -309,9 +339,12 @@
   50% { box-shadow: 0 0 0 3px var(--turn), 0 0 22px 6px rgba(87, 217, 138, 0.7); }
 }
 
+/* 58px inside a 62px outer leaves the timer as a 2px hairline instead of the old
+   5px band, and hands the reclaimed radius to the face — the ring is a countdown,
+   not a frame, so it should be the thinnest thing here. */
 .opp-avatar {
-  width: 46px;
-  height: 46px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   border: 2px solid var(--bg);
   display: flex;
@@ -319,34 +352,177 @@
   justify-content: center;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.3rem;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  flex: 0 0 auto;
 }
-.opp-seat.no-ring .opp-ring,
-.my-seat.no-ring .opp-ring { background: none; }
 .opp-seat.no-ring .opp-avatar,
-.my-seat.no-ring .opp-avatar { width: 52px; height: 52px; border: 2px solid var(--line); }
+.my-seat.no-ring .opp-avatar { border: 2px solid var(--line); }
 
-/* Timer status line replacing the score line while this seat's turn clock
-   is running (see core/seats.js buildSeatEl) — greener/bolder than the
-   plain score text so the countdown reads as "live". */
-.opp-score.timer { color: var(--turn); font-weight: 600; }
+/* ---------- the elimination gauge ----------
+   A liquid level inside the avatar that DRAINS as the score climbs: full and
+   calm means healthy, near-empty means nearly out. That direction is the
+   intuitive one — a battery discharging rather than a tank filling with poison —
+   and it frees the ring to mean one thing only (whose turn, how long left).
 
+   With the score arc gone there is spare radius, so the gauge avatar takes the
+   same 52px the ring-less avatars already use: a level reads better at 52px than
+   a 4px arc ever did at 56px.
+
+   Identity moves to the rim (border-color, set per player in core/seats.js),
+   because a player-coloured fill would collide with the level's own colour. */
+.opp-avatar.gauge {
+  width: 58px;
+  height: 58px;
+  position: relative;
+  overflow: hidden;
+  background: #0c1512;
+  border-width: 2px;
+  border-style: solid;
+}
+.opp-avatar.gauge .av-level {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* height + background come from core/seats.js. The transition is the one
+     animation worth having: the level visibly settling when scores land at
+     round end. */
+  transition: height 700ms cubic-bezier(0.3, 0, 0.2, 1), background 700ms ease;
+}
+.opp-avatar.gauge .av-ini {
+  position: relative;
+  z-index: 2;
+  font-weight: 700;
+}
+
+/* Wave surface — on every gauge, so an opponent's level looks alive rather than
+   like a flat block of colour.
+   Cost is controlled by layer count rather than by excluding opponents: they get
+   ONE rotating layer, your own seat gets two (a slightly richer surface on the
+   one you actually watch), and a table of more than 10 seats drops the animation
+   entirely via .dense from core/seats.js. That keeps the worst case near 10
+   composited layers instead of the 40 that animating everything twice would
+   cost on a page already holding a wake lock (todos §9). */
+.opp-avatar.gauge .av-level::before,
+.my-seat .opp-avatar.gauge .av-level::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -9px;
+  width: 70px;
+  height: 70px;
+  margin-left: -35px;
+  background: inherit;
+  border-radius: 43%;
+  animation: av-wave 5s linear infinite;
+}
+.my-seat .opp-avatar.gauge .av-level::after {
+  animation-duration: 7.5s;
+  animation-direction: reverse;
+  opacity: 0.55;
+}
+@keyframes av-wave { to { transform: rotate(360deg); } }
+.opponents.dense .opp-avatar.gauge .av-level::before { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .opp-avatar.gauge .av-level::before,
+  .my-seat .opp-avatar.gauge .av-level::after { animation: none; }
+}
+
+/* ---------- name plate ----------
+   One capsule instead of two text lines floating on the felt. The backing is
+   load-bearing: --muted on Casino Felt's upper gradient measures about 1.8:1,
+   and Red Casino and Sunset are no better, so plain text legibility depended on
+   which of the fourteen themes the host picked. One plate fixes all of them.
+
+   One horizontal row for every seat, not a two-line stack. Stacked, the plate
+   grew almost as tall as the avatar and competed with it; on one line it reads as
+   a name tag under a portrait. The name flexes and ellipsises, the score is
+   pinned right, and --plate-max is the arc's real per-seat spacing (set in
+   core/seats.js) so plates can be wider than the 74px seat without colliding. */
+.seat-plate {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  /* Every value here is bought back as name letters: the padding and gap used to
+     spend ~22px of a plate that is sometimes only 56px wide. */
+  gap: 0.28rem;
+  max-width: var(--plate-max, 100%);
+  padding: 0.14rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+}
+.seat-plate .opp-name {
+  flex: 1 1 auto;
+  min-width: 0;              /* lets ellipsis actually engage inside a flex row */
+  font-size: 0.68rem;
+  font-weight: 500;          /* lighter than the old 600: a label, not a heading */
+  letter-spacing: -0.01em;   /* a touch narrower, so more of the name survives */
+}
+.seat-plate .opp-score { flex: 0 0 auto; font-size: 0.64rem; }
+/* Crowded arc: no room for both, so the name wins. Set by core/seats.js from the
+   arc's real spacing. The live countdown is exempt — it is the one number that
+   matters more than the name while a clock is running. */
+.opponents.tight .opp-seat .opp-score:not(.timer) { display: none; }
+.seat-you {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--cream);
+  background: var(--line);
+  border-radius: 999px;
+  padding: 0 0.3rem;
+}
+/* Your own seat is rendered under the hand, not into the arc, so it is not
+   width-constrained by neighbouring seats and can lay everything out in one
+   row: name, the you pill, score, and the countdown together. */
+.my-seat .seat-plate {
+  gap: 0.4rem;
+  padding: 0.22rem 0.7rem;
+  max-width: none;
+}
+.my-seat .seat-plate .opp-name { flex: 0 0 auto; max-width: none; font-size: 0.76rem; }
+/* Thin separators so the single row reads as distinct facts rather than one
+   run-on string: "xenone you · 0 pts · 38s". */
+.my-seat .seat-plate .opp-score::before {
+  content: "·";
+  color: var(--line);
+  margin-right: 0.4rem;
+}
+
+/* Live countdown. The colour is set inline from the ring's current colour, so
+   the two halves of one signal escalate together — this used to be a static
+   green while the ring reddened. */
+.opp-score.timer { font-weight: 600; }
+.opp-score.timer.urgent { font-weight: 800; }
+
+/* Hand size, drawn as a little card rather than a pill — it is a count of cards,
+   so the shape should say so. Card proportions, card corners, a cream face, and a
+   few degrees of tilt so it reads as resting on the table rather than as a badge.
+   Moved off gold too: after the graphite change gold is the chrome accent, and
+   this is game state. */
 .opp-count {
   position: absolute;
-  bottom: -3px;
-  right: -6px;
-  background: var(--gold);
-  color: var(--ink);
+  bottom: -4px;
+  right: -8px;
+  min-width: 17px;
+  height: 23px;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cream);
+  color: #1b1d1f;
   font-family: var(--display);
   font-weight: 700;
   font-size: 0.68rem;
-  border-radius: 999px;
-  padding: 0.05rem 0.35rem;
-  border: 2px solid var(--bg);
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  transform: rotate(-7deg);
 }
-.opp-count.safe { background: var(--turn); }
+/* Emptied your hand: the card goes green and reads 0. */
+.opp-count.safe { background: var(--turn); color: var(--ink); }
 
 .opp-name {
   font-weight: 600;
@@ -363,12 +539,16 @@
   .opponents { height: 118px; }
   .opp-seat { width: 60px; }
   .opp-ring-outer { width: 50px; height: 50px; }
-  .opp-ring { width: 44px; height: 44px; }
-  .opp-avatar { width: 36px; height: 36px; font-size: 0.88rem; }
-  .opp-seat.no-ring .opp-avatar { width: 40px; height: 40px; }
-  .opp-count { font-size: 0.6rem; padding: 0.02rem 0.28rem; }
-  .opp-name { font-size: 0.68rem; }
-  .opp-score { font-size: 0.62rem; }
+  /* 46px inside the 50px outer keeps the same 2px hairline ring as desktop. */
+  .opp-avatar,
+  .opp-seat.no-ring .opp-avatar,
+  .opp-avatar.gauge { width: 46px; height: 46px; font-size: 1.05rem; }
+  .opp-count { min-width: 15px; height: 20px; font-size: 0.6rem; right: -7px; }
+  .seat-plate .opp-name { font-size: 0.64rem; }
+  .seat-plate .opp-score { font-size: 0.6rem; }
+  .seat-plate { padding: 0.1rem 0.4rem; gap: 0.28rem; }
+  .my-seat .seat-plate { padding: 0.16rem 0.55rem; gap: 0.3rem; }
+  .my-seat .seat-plate .opp-name { font-size: 0.7rem; }
 }
 
 /* center row */
@@ -442,9 +622,8 @@
 .my-seat.offline { opacity: 0.5; }
 .my-seat.out { opacity: 0.4; filter: grayscale(0.6); }
 .my-seat .opp-ring-outer { width: 66px; height: 66px; }
-.my-seat .opp-ring { width: 60px; height: 60px; }
-.my-seat .opp-avatar { width: 50px; height: 50px; font-size: 1.15rem; }
-.my-seat.no-ring .opp-avatar { width: 56px; height: 56px; }
+.my-seat .opp-avatar,
+.my-seat.no-ring .opp-avatar { width: 62px; height: 62px; font-size: 1.4rem; }
 .my-seat .opp-name { font-size: 0.85rem; }
 .my-seat .opp-score { font-size: 0.76rem; }
 
@@ -555,9 +734,8 @@
      query "sounds" more specific — an override placed before the base rule
      it's meant to override silently loses. */
   .my-seat .opp-ring-outer { width: 54px; height: 54px; }
-  .my-seat .opp-ring { width: 48px; height: 48px; }
-  .my-seat .opp-avatar { width: 40px; height: 40px; font-size: 0.95rem; }
-  .my-seat.no-ring .opp-avatar { width: 44px; height: 44px; }
+  .my-seat .opp-avatar,
+  .my-seat.no-ring .opp-avatar { width: 50px; height: 50px; font-size: 1.15rem; }
   .my-seat .opp-name { font-size: 0.72rem; }
   .my-seat .opp-score { font-size: 0.66rem; }
 }
@@ -787,7 +965,7 @@
 /* ---------- footer ---------- */
 .site-footer {
   border-top: 1px solid var(--line);
-  padding: 1.1rem 1.4rem;
+  padding: 1.1rem var(--page-pad);
   background: linear-gradient(0deg, var(--panel) 0%, var(--bg-2) 100%);
   box-shadow: 0 -1px 0 rgba(230, 178, 60, 0.14);
 }
@@ -852,6 +1030,74 @@
   transition: filter 0.15s ease;
 }
 .footer-install-cta:hover { filter: brightness(1.06); }
+
+/* ---------- footer at a live table ----------------------------------------
+   Same footer, different job. On the landing page it is legitimate marketing
+   space and stays exactly as it was. At a table it is chrome sitting under a
+   game, so it flattens and quietens: no gradient, no gold glow along the top,
+   tighter height, smaller type.
+
+   The install CTA is the deliberate exception being overridden here. Its
+   comment above ("the one CTA allowed to be filled/loud") is right for the
+   landing page, but on a room page a filled-gold pill was the single loudest
+   element on screen — louder than the felt's own frame and the turn indicator,
+   which is backwards while someone is deciding a move. It becomes an outline
+   pill here and keeps its full prominence on the landing page.
+
+   Room pages get this via body.room-page (set in templates/game.html). */
+/* `.compact` is matched too, on purpose: reactions.css styles
+   `.site-footer.compact` and loads after this file, so a plain
+   `.room-page .site-footer` ties on specificity and loses on source order —
+   leaving 16px of horizontal padding that knocked the footer content off the
+   page rail at any width where the max-width below is not binding. */
+.room-page .site-footer,
+.room-page .site-footer.compact {
+  background: var(--bg-2);
+  box-shadow: none;
+  padding: 0.6rem 0;          /* the inset moves onto .footer-main, below */
+}
+
+/* The bar keeps its full-bleed background, but its CONTENTS mirror
+   .table-view's box model exactly — same cap, same centring, same padding
+   (including the reserved right gutter on wide screens). The result is that the
+   footer brand starts on the same line as the Scores column and the CTAs end on
+   the same line as the felt, instead of the footer running out to the window
+   edges on its own. That single alignment is most of what made the page read as
+   scattered along the bottom. */
+.room-page .footer-main {
+  gap: 1rem;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--page-pad);
+}
+@media (min-width: 1700px) {
+  .room-page .footer-main {
+    max-width: var(--page-max-wide);
+    padding-right: calc(var(--side-col) + var(--side-gap) + var(--page-pad));
+  }
+}
+.room-page .footer-brand-name { font-size: 0.85rem; font-weight: 600; }
+/* "Multiplayer card games, no signup" is a pitch for someone deciding whether
+   to play. They are already playing. */
+.room-page .footer-tagline { display: none; }
+.room-page .footer-links { gap: 0.85rem; }
+.room-page .footer-links a { font-size: 0.74rem; }
+.room-page .footer-right { gap: 0.55rem; }
+.room-page .footer-star-cta,
+.room-page .footer-install-cta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.32rem 0.7rem;
+}
+.room-page .footer-install-cta {
+  color: var(--gold);
+  background: rgba(230, 178, 60, 0.06);
+  border-color: rgba(230, 178, 60, 0.4);
+}
+.room-page .footer-install-cta:hover {
+  filter: none;
+  background: rgba(230, 178, 60, 0.13);
+}
 
 /* ---------- Batch 1 enhancements ---------- */
 /* 3-second pick countdown on the deck */
