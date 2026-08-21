@@ -21,12 +21,18 @@ class TestBluffLogic(unittest.TestCase):
     def get_cards(self, uid, count):
         return self.room.players[uid].hand[:count]
 
+    # Show is deliberately two-phase: apply_show() only decides the outcome so
+    # the client can animate the reveal, and resolve_show() then moves the pile.
+    # Assertions about hand sizes must run after BOTH phases, the same order
+    # sockets/gameplay/bluff.py uses.
     def test_truthful_play_and_challenge(self):
         self.room.apply_play("u1", self.get_cards("u1", 2), "A")
         result = self.room.apply_show("u2")
         self.assertFalse(result["is_bluff"])
         self.assertEqual(result["loser"], "u2")
         self.assertEqual(result["winner"], "u1")
+        self.room.resolve_show(result)
+        # u1 played 2 of its 3 cards; u2 loses the challenge and eats the pile.
         self.assertEqual(len(self.room.players["u2"].hand), 5)
         self.assertEqual(len(self.room.players["u1"].hand), 1)
 
@@ -35,6 +41,8 @@ class TestBluffLogic(unittest.TestCase):
         result = self.room.apply_show("u2")
         self.assertTrue(result["is_bluff"])
         self.assertEqual(result["loser"], "u1")
+        self.room.resolve_show(result)
+        # Caught bluffing: u1 takes back its 2 cards, so it is down to 1 + 2.
         self.assertEqual(len(self.room.players["u1"].hand), 3)
 
     def test_passing_clears_table(self):
