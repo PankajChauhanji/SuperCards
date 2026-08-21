@@ -198,6 +198,8 @@ manual-instructions-only:
 - [x] New `core/install.js`: real one-tap **Install now** button; platform-filtered
       steps (Android users no longer scroll past iPhone steps); install entry
       points hide once installed. Loaded from `<head>` — Chrome fires
+
+- Note: minor documentation update recorded in a commit.
       `beforeinstallprompt` early enough to beat a bottom-of-body script.
 
 **Mobile hardening:**
@@ -761,6 +763,83 @@ Both decks are now selectable from the topbar, per player.
       the render path goes through the helper rather than only the repaint.
 - [x] Service worker checked: `PRECACHE_URLS` does not list card paths, so neither deck is
       stale-cached by the SW.
+
+### 16b. Royal really is the default, on phone and desktop — ✅ VERIFIED (2026-08-21)
+
+Checked with `localStorage` cleared (a genuine first-time player) at **1440px and 375px**:
+resolved default `royal`, label "Royal deck", every card served from `cards_v2`, and on mobile
+the selector sits inside the collapsed hamburger where it is visible and hittable once opened.
+
+**One flaw the check surfaced and fixed.** Both table templates hardcoded
+`img/cards/back.svg` — the *Standard* back. So every default-deck player fetched the wrong
+card back and had `deck.js` rewrite it: one wasted request and a possible flash of the wrong
+art on a slow connection. Confirmed by `performance.getEntriesByType('resource')`, which
+listed a `/img/cards/back.svg` fetch. The templates now render the default deck, and a
+Standard-preferring player still gets corrected on load as before — the wasted fetch moved
+from the majority to the minority.
+
+- [x] `tests/test_card_assets.py` now pins this down: `core/deck.js` must declare `DEFAULT`,
+      it must be `royal`, Royal must map to `cards_v2`, and **every** table template must
+      render the default deck's back. Verified by reverting one template — it fails naming
+      the offending game and the expected directory.
+
+> Suite note: one socket test failed once during this work and passed on the next three runs,
+> with nothing in its output but the harmless "websocket-client package not installed" notice.
+> Treating it as a flake for now; worth watching rather than assuming it is gone.
+
+## 17. Mobile: state not updating without a full reload — ✅ FIXED (2026-08-21)
+
+Reported from real phones (never reproducible in a desktop mobile-emulation view):
+changing the card deck or the hand view did not apply until the page was reloaded, and after
+switching apps and coming back a player could show as absent and be unable to act.
+
+**Three separate bugs, one shared symptom.**
+
+**1. `resume()` did nothing in exactly the case it was written for.** `core/connection.js`
+guarded on `if (!socket.connected)` — but its own docstring describes the failure precisely:
+a phone back from the pocket "comes back holding a socket the client still believes is open."
+`socket.connected` reads **true** while the transport is already dead, so the guard was false
+and nothing reconnected. Socket.IO cannot detect this locally.
+- Fixed with an **application-level liveness probe**: a new ack-only `client_ping` handler in
+  `sockets/connection.py`, and on becoming visible the client emits it and waits. No ack
+  inside 2.5s ⇒ zombie ⇒ tear the socket down and rebuild. An ack ⇒ the socket is genuinely
+  live, and it still resyncs, because a background gap can miss broadcasts.
+
+**2. Resync was wired only to the `connect` event.** No reconnect meant no `enter_room`, and
+`enter_room` is what re-attaches the sid server-side — which is what actually clears "player
+is absent". Added `SS.onResync()`; all three game bundles register their `enter()`, and
+returning to the foreground runs it whether or not a reconnect happened.
+
+**3. The hand-view change was gated on `state === "IN_TURN"`.** `core/view_mode.js` only
+re-rendered mid-turn, so a change made at round end, at game end, or in the lobby applied
+**only after a page reload** — exactly the report. Now it calls the shared `SS.repaintUI()`
+unconditionally. Deck switching does the same, so the JS-measured hand-fan geometry is rebuilt
+rather than left stale after a src swap.
+
+`SS.repaintUI()` also runs on foreground resume: a page frozen in the background can come back
+with stale geometry, because the viewport may have resized (URL bar collapse) while the JS was
+suspended and the fan layout is measured in JavaScript.
+
+**Verified** — the probe paths, driven directly since the harness page is `visibilityState:
+"hidden"` and would otherwise short-circuit `resume()` (an environment artifact, not a code
+fault):
+- healthy socket ⇒ probe acks ⇒ resync fires `enter_room` ⇒ `room_joined` observed, **sid
+  unchanged** (no needless reconnect);
+- zombie socket (probe emit swallowed so no ack) ⇒ rebuild ⇒ **sid changes** ⇒ `room_joined`
+  ⇒ `/healthz players_connected` back to full;
+- view mode and deck both apply instantly while `state === "GAME_END"` — the exact case the
+  old `IN_TURN` guard blocked.
+
+> **Not verifiable here, and worth checking on a real device:** a genuinely zombied socket
+> cannot be reproduced in a desktop browser, because closing the transport there fires a clean
+> `disconnect` and Socket.IO's own auto-reconnect handles it (confirmed: `engine.close()`
+> recovered by itself in 1.2s). The probe is the mechanism for the case desktop never
+> produces, so the real-phone background/foreground cycle is the test that matters.
+
+**Deliberately not added:** a periodic background liveness poll. Socket.IO's own heartbeat
+covers an active page, and polling on a timer would spend battery on a table that is idle
+anyway. If zombie sockets still appear on a phone left open and untouched, that is the next
+thing to try.
 
 ---
 
