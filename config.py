@@ -31,5 +31,3 @@ TWA_SHA256_FINGERPRINT = os.environ.get(
     "83:19:0C:E6:A2:70:61:89:AA:BC:F6:C1:1C:70:53:DE:"
     "4D:F8:18:28:C3:34:A2:0E:5E:3F:06:DD:F0:EF:5B:7C",
 )
-
-# Housekeeping: small doc-only change recorded for commit testing.
