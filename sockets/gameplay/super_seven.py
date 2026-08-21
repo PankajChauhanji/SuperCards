@@ -13,12 +13,16 @@ single-player Suryavanshi bot.
 """
 import time
 
-from flask_socketio import emit
-
 from game.core.states import STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
 from game.super_seven.rules import infer_action
-from sockets import director, presenter
+from game.super_seven.visibility import public_card_ids
+from sockets import audience, director, presenter
+# Guarded drop-in for flask_socketio.emit: a hand accidentally addressed to the
+# room instead of one socket is caught here. See sockets/audience.py.
+from sockets.audience import emit
 from sockets.common import error
+
+audience.register("super_seven", public_card_ids)
 
 GAME = "super_seven"
 
