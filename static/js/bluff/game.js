@@ -392,7 +392,7 @@
         r.hand.forEach((c) => {
           const img = document.createElement("img");
           img.className = "card re-card";
-          img.src = "/static/img/cards/" + c.face + ".svg";
+          img.src = window.SS.cardSrc(c.face);
           img.alt = c.code + c.suit;
           cards.appendChild(img);
         });
