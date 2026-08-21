@@ -198,8 +198,6 @@ manual-instructions-only:
 - [x] New `core/install.js`: real one-tap **Install now** button; platform-filtered
       steps (Android users no longer scroll past iPhone steps); install entry
       points hide once installed. Loaded from `<head>` — Chrome fires
-
-- Note: minor documentation update recorded in a commit.
       `beforeinstallprompt` early enough to beat a bottom-of-body script.
 
 **Mobile hardening:**
