@@ -38,6 +38,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Minor: non-functional comment to record a small repo change for commits
+
 from card_art import H, W, contact_sheet, suit, svg
 
 CREAM = "#fbf7ec"
