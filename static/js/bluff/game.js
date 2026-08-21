@@ -62,6 +62,9 @@
     socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId });
   }
   socket.on("connect", enter);
+  // Returning to the foreground must re-attach too: a zombie socket fires no
+  // `connect`, so this is what clears the "player is absent" state.
+  if (window.SS.onResync) window.SS.onResync(enter);
   if (socket.connected) enter();
 
   // ---- server events ----
