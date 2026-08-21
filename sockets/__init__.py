@@ -16,5 +16,3 @@ def register_handlers(socketio, manager):
     gameplay.register(socketio, manager)
     director.register(socketio, manager)
     social.register(socketio, manager)
-
-# Minor: recorded a non-functional comment for commit grouping.
