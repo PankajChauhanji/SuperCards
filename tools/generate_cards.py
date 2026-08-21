@@ -1,177 +1,247 @@
-"""Generate the card image set as SVG files.
+#!/usr/bin/env python3
+"""Generate the playing-card SVGs used by every game.
 
-Produces 52 faces (e.g. 7H.svg, AS.svg, 10C.svg, KD.svg) plus back.svg into
-static/img/cards/. Faces are a clean minimal design: rank+suit in opposite
-corners and a large central suit glyph (or custom illustrations for face cards J, Q, K and Ace).
-The back uses the table's pine/gold palette so it sits naturally on the felt.
+    python3 tools/generate_cards.py                 # writes static/img/cards/
+    python3 tools/generate_cards.py --out /tmp/deck # writes somewhere else
+    python3 tools/generate_cards.py --sheet a.png   # also render a contact sheet
 
-Run from the project root:  python tools/generate_cards.py
+Design brief, derived from how the cards are actually drawn rather than from
+taste:
+
+* The source is 180x252, but the LARGEST a card is ever rendered in this app is
+  **62px wide** (the centre pile). Hand cards are 58px, 46px on phones, and the
+  round-end reveal is 38px. So the real canvas is ~62px and any detail finer than
+  about a third scale cannot be perceived. The previous v2 deck carried
+  decoration at `stroke-width="0.6" opacity="0.06"`, which is invisible by
+  construction.
+* `FAN_MIN_OVERLAP_RATIO = 0.25` in core/seats.js means a fanned hand always
+  overlaps by at least a quarter, usually far more — so the **corner index does
+  nearly all the work**. It gets the space it deserves.
+* Fourteen table themes sit behind these cards, from Casino green to Red Casino
+  to Hacker's near-black. The face is therefore opaque cream: a translucent card
+  would change identity with the theme, and rank/suit is the one thing in this
+  game that must never be ambiguous.
+
+Suits are GEOMETRY, never text. The previous version drew them as Unicode glyphs
+("♠") in Georgia, which meant the shapes came from the viewer's operating system:
+missing fonts render tofu boxes, and several mobile browsers substitute the
+colour emoji face instead. Clubs here are three real circles and the spade/club
+feet are simple closed shapes, so the lobe topology and the winding cannot be
+wrong the way hand-tuned bezier stems were.
+
+Ranks stay as <text>, which is safe: they are ASCII, so every fallback font has
+them.
 """
+import argparse
 import os
+import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "..", "static", "img", "cards")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from card_art import H, W, contact_sheet, suit, svg
+
+CREAM = "#fbf7ec"
+INK = "#16211d"
+RED = "#c2352b"
+GOLD = "#c9a227"
+EDGE = "#ddd3ba"          # quiet edge for number cards
+BACK_BASE = "#132320"
 
 SUITS = {
-    "S": ("\u2660", "#1c2b27"),  # ♠
-    "H": ("\u2665", "#cf3b2e"),  # ♥
-    "D": ("\u2666", "#cf3b2e"),  # ♦
-    "C": ("\u2663", "#1c2b27"),  # ♣
+    "S": INK,
+    "H": RED,
+    "D": RED,
+    "C": INK,
 }
-RANKS = {1: "A", 11: "J", 12: "Q", 13: "K"}
-for n in range(2, 11):
-    RANKS[n] = str(n)
+RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+COURT = ("J", "Q", "K")
 
-FACE = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
-  <g fill="{color}" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <g>
-      <text x="24" y="44" font-size="{rank_size}" text-anchor="middle">{rank}</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
-    </g>
-    <g transform="rotate(180 90 126)">
-      <text x="24" y="44" font-size="{rank_size}" text-anchor="middle">{rank}</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
-    </g>
-    <text x="90" y="138" font-size="104" text-anchor="middle" dominant-baseline="central">{suit}</text>
+# ---------------------------------------------------------------------------
+# Card furniture
+# ---------------------------------------------------------------------------
+def frame(royal):
+    """Opaque cream face. Aces and court cards earn the gold edge; the rest get
+    a quiet warm one, so rank hierarchy is legible before you read anything."""
+    stroke, width = (GOLD, 3) if royal else (EDGE, 2)
+    return (f'<rect x="3" y="3" width="{W - 6}" height="{H - 6}" rx="16" '
+            f'fill="{CREAM}" stroke="{stroke}" stroke-width="{width}"/>')
+
+
+def corners(rank, code, color):
+    """The element that actually gets seen. Ranks are text (ASCII, so any font
+    works); the suit beneath is geometry."""
+    size = 34 if rank == "10" else 38
+    one = (f'<text x="0" y="0" font-family="Georgia, \'Times New Roman\', serif" '
+           f'font-weight="700" font-size="{size}" text-anchor="middle" '
+           f'fill="{color}">{rank}</text>'
+           + suit(code, 0, 20, 21, color))
+    return (f'<g transform="translate(27 47)">{one}</g>'
+            f'<g transform="translate({W - 27} {H - 47}) rotate(180)">{one}</g>')
+
+
+# Standard English pip layouts, as fractions of the pip band.
+_COL_L, _COL_R, _MID = 0.0, 1.0, 0.5
+PIPS = {
+    "2":  [(_MID, 0.00), (_MID, 1.00)],
+    "3":  [(_MID, 0.00), (_MID, 0.50), (_MID, 1.00)],
+    "4":  [(_COL_L, 0.00), (_COL_R, 0.00), (_COL_L, 1.00), (_COL_R, 1.00)],
+    "5":  [(_COL_L, 0.00), (_COL_R, 0.00), (_MID, 0.50),
+           (_COL_L, 1.00), (_COL_R, 1.00)],
+    "6":  [(_COL_L, 0.00), (_COL_R, 0.00), (_COL_L, 0.50), (_COL_R, 0.50),
+           (_COL_L, 1.00), (_COL_R, 1.00)],
+    "7":  [(_COL_L, 0.00), (_COL_R, 0.00), (_MID, 0.25), (_COL_L, 0.50),
+           (_COL_R, 0.50), (_COL_L, 1.00), (_COL_R, 1.00)],
+    "8":  [(_COL_L, 0.00), (_COL_R, 0.00), (_MID, 0.25), (_COL_L, 0.50),
+           (_COL_R, 0.50), (_MID, 0.75), (_COL_L, 1.00), (_COL_R, 1.00)],
+    "9":  [(_COL_L, 0.00), (_COL_R, 0.00), (_COL_L, 0.3333), (_COL_R, 0.3333),
+           (_MID, 0.50), (_COL_L, 0.6667), (_COL_R, 0.6667),
+           (_COL_L, 1.00), (_COL_R, 1.00)],
+    "10": [(_COL_L, 0.00), (_COL_R, 0.00), (_COL_L, 0.3333), (_COL_R, 0.3333),
+           (_MID, 0.1667), (_COL_L, 0.6667), (_COL_R, 0.6667),
+           (_MID, 0.8333), (_COL_L, 1.00), (_COL_R, 1.00)],
+}
+
+# The pip band, and one pip size for the whole deck so spacing can never drift.
+BAND_X0, BAND_X1 = 62, 118
+BAND_Y0, BAND_Y1 = 73, 207
+PIP = 26
+
+
+def pips(rank, code, color):
+    out = []
+    for fx, fy in PIPS[rank]:
+        x = BAND_X0 + (BAND_X1 - BAND_X0) * fx
+        y = BAND_Y0 + (BAND_Y1 - BAND_Y0) * fy
+        out.append(suit(code, x, y, PIP, color))
+    return "".join(out)
+
+
+# ---------------------------------------------------------------------------
+# Court emblems — gold, geometric, and legible at 46px, which no figurative
+# court art is. Each is drawn in a box centred on (90, 122).
+# ---------------------------------------------------------------------------
+def emblem(rank):
+    if rank == "K":
+        # Five-point crown on a banded base.
+        return (f'<g transform="translate(90 122)" fill="{GOLD}">'
+                '<path d="M-32 12 L-32 -12 L-19 2 L-9.5 -18 L0 -4 L9.5 -18 '
+                'L19 2 L32 -12 L32 12 Z"/>'
+                '<rect x="-32" y="16" width="64" height="10" rx="3"/>'
+                '<circle cx="-16" cy="21" r="2.6" fill="' + CREAM + '"/>'
+                '<circle cx="0" cy="21" r="2.6" fill="' + CREAM + '"/>'
+                '<circle cx="16" cy="21" r="2.6" fill="' + CREAM + '"/>'
+                '</g>')
+    if rank == "Q":
+        # Three-lobed coronet with a centre pearl.
+        return (f'<g transform="translate(90 122)" fill="{GOLD}">'
+                '<path d="M-30 12 L-30 -6 C-22 -6 -18 -12 -17 -18 '
+                'C-12 -10 -6 -6 0 -6 C6 -6 12 -10 17 -18 '
+                'C18 -12 22 -6 30 -6 L30 12 Z"/>'
+                '<rect x="-30" y="16" width="60" height="10" rx="3"/>'
+                '<circle cx="0" cy="-14" r="4.4"/>'
+                '</g>')
+    # Jack: a knave's shield. Deliberately a different silhouette from the King's
+    # crown and the Queen's coronet — pointed at the bottom rather than toothed at
+    # the top — so the three courts are distinguishable at 46px by shape alone.
+    return (f'<g transform="translate(90 120)" fill="{GOLD}">'
+            '<path d="M-27 -22 L27 -22 L27 2 C27 18 13 28 0 33 '
+            'C-13 28 -27 18 -27 2 Z"/>'
+            f'<path d="M-16 -4 L0 -15 L16 -4 L16 8 L0 -3 L-16 8 Z" fill="{CREAM}"/>'
+            '</g>')
+
+
+# ---------------------------------------------------------------------------
+# Card builders
+# ---------------------------------------------------------------------------
+def svg(body):
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
+            f'width="{W}" height="{H}">\n' + body + "\n</svg>\n")
+
+
+def card(rank, code):
+    color = SUITS[code]
+    royal = rank == "A" or rank in COURT
+    parts = [frame(royal), corners(rank, code, color)]
+
+    if rank == "A":
+        # One large suit, ringed. Aces read as special at any size.
+        parts.append(f'<circle cx="90" cy="130" r="52" fill="none" '
+                     f'stroke="{GOLD}" stroke-width="2.5" opacity="0.85"/>')
+        parts.append(suit(code, 90, 130, 92, color))
+    elif rank in COURT:
+        parts.append(emblem(rank))
+        parts.append(suit(code, 90, 190, 34, color))
+    else:
+        parts.append(pips(rank, code, color))
+    return svg("\n".join(parts))
+
+
+def back():
+    """The most-seen card in the game: every opponent's hand, and the deck.
+
+    It carries no rank, so this is the one place a bolder, glossier treatment
+    costs nothing in legibility — which is exactly where the "modern web" look
+    belongs.
+    """
+    body = f'''<defs>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b3330"/>
+      <stop offset="1" stop-color="{BACK_BASE}"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="{W - 6}" height="{H - 6}" rx="16" fill="url(#base)"
+        stroke="{GOLD}" stroke-width="3"/>
+  <rect x="12" y="12" width="{W - 24}" height="{H - 24}" rx="10" fill="none"
+        stroke="{GOLD}" stroke-width="1.4" opacity="0.5"/>
+  <g stroke="{GOLD}" stroke-width="1.1" opacity="0.28" fill="none">
+    <path d="M90 34 L146 126 L90 218 L34 126 Z"/>
+    <path d="M90 56 L128 126 L90 196 L52 126 Z"/>
   </g>
-</svg>
-"""
-
-FACE_A = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
-  <g fill="{color}" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <g>
-      <text x="24" y="44" font-size="34" text-anchor="middle">A</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
-    </g>
-    <g transform="rotate(180 90 126)">
-      <text x="24" y="44" font-size="34" text-anchor="middle">A</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">{suit}</text>
-    </g>
+  <g transform="translate(90 126)" fill="{GOLD}">
+    <path d="M0 -30 L9 -9 L30 0 L9 9 L0 30 L-9 9 L-30 0 L-9 -9 Z" opacity="0.95"/>
+    <circle cx="0" cy="0" r="5.5" fill="{CREAM}"/>
   </g>
-  <!-- Grand Ornate Ace Design -->
-  <g stroke="{color}" fill="none">
-    <circle cx="90" cy="138" r="60" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.65"/>
-    <circle cx="90" cy="138" r="52" stroke-width="1.0" opacity="0.4"/>
-    <path d="M 90,68 L 92,74 L 98,76 L 92,78 L 90,84 L 88,78 L 82,76 L 88,74 Z" fill="{color}" stroke="none"/>
-    <path d="M 90,192 L 92,198 L 98,200 L 92,202 L 90,208 L 88,202 L 82,200 L 88,198 Z" fill="{color}" stroke="none"/>
-    <path d="M 32,138 L 38,136 L 40,130 L 42,136 L 48,138 L 42,140 L 40,146 L 38,140 Z" fill="{color}" stroke="none"/>
-    <path d="M 132,138 L 138,136 L 140,130 L 142,136 L 148,138 L 142,140 L 140,146 L 138,140 Z" fill="{color}" stroke="none"/>
-  </g>
-  <g fill="{color}" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <text x="90" y="138" font-size="94" text-anchor="middle" dominant-baseline="central">{suit}</text>
-  </g>
-</svg>
-"""
-
-# Face cards: a clean GOLD emblem that says what the rank *is* — Jack = sword
-# (the soldier/knave), Queen = tiara, King = crown+cross — over a large suit
-# glyph in the suit colour. Reads clearly even at ~60px on the table, and stays
-# consistent with the number cards' big central pip.
-_FACE_TMPL = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
-  <!-- Corners -->
-  <g fill="{color}" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <g>
-      <text x="26" y="46" font-size="32" text-anchor="middle">{rank}</text>
-      <text x="26" y="76" font-size="26" text-anchor="middle">{suit}</text>
-    </g>
-    <g transform="rotate(180 90 126)">
-      <text x="26" y="46" font-size="32" text-anchor="middle">{rank}</text>
-      <text x="26" y="76" font-size="26" text-anchor="middle">{suit}</text>
-    </g>
-  </g>
-  <!-- Royal emblem (gold) -->
-  <g fill="#c99530" stroke="#8a6416" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
-    {emblem}
-  </g>
-  <!-- Large suit glyph -->
-  <text x="90" y="176" font-size="86" fill="{color}" text-anchor="middle" dominant-baseline="central"
-        font-family="Georgia, 'Times New Roman', serif" font-weight="700">{suit}</text>
-</svg>
-"""
-
-# Jack — an upright sword (the knave / soldier).
-EMBLEM_J = """
-    <circle cx="90" cy="54" r="5"/>
-    <rect x="86.5" y="59" width="7" height="15" rx="2"/>
-    <rect x="70" y="74" width="40" height="8" rx="3"/>
-    <path d="M 82,82 L 98,82 L 90,126 Z"/>
-"""
-
-# Queen — a rounded tiara with gems (no cross).
-EMBLEM_Q = """
-    <path d="M 58,110 Q 58,78 74,94 Q 82,70 90,88 Q 98,70 106,94 Q 122,78 122,110 Z"/>
-    <rect x="58" y="110" width="64" height="13" rx="3"/>
-    <circle cx="74" cy="92" r="3.5" fill="#fdfbf5" stroke="none"/>
-    <circle cx="90" cy="84" r="4" fill="#fdfbf5" stroke="none"/>
-    <circle cx="106" cy="92" r="3.5" fill="#fdfbf5" stroke="none"/>
-"""
-
-# King — a tall crown topped with a cross.
-EMBLEM_K = """
-    <rect x="86.5" y="40" width="7" height="16" rx="1.5"/>
-    <rect x="81" y="45" width="18" height="6" rx="1.5"/>
-    <path d="M 56,110 L 60,74 L 74,94 L 90,62 L 106,94 L 120,74 L 124,110 Z"/>
-    <rect x="56" y="110" width="68" height="13" rx="3"/>
-    <circle cx="72" cy="116" r="3.5" fill="#fdfbf5" stroke="none"/>
-    <circle cx="90" cy="116" r="3.5" fill="#fdfbf5" stroke="none"/>
-    <circle cx="108" cy="116" r="3.5" fill="#fdfbf5" stroke="none"/>
-"""
-
-FACE_J = _FACE_TMPL.replace("{emblem}", EMBLEM_J).replace("{rank}", "J")
-FACE_Q = _FACE_TMPL.replace("{emblem}", EMBLEM_Q).replace("{rank}", "Q")
-FACE_K = _FACE_TMPL.replace("{emblem}", EMBLEM_K).replace("{rank}", "K")
-
-BACK = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#173029" stroke="#0e201c" stroke-width="2"/>
-  <rect x="14" y="14" width="152" height="224" rx="10" fill="none" stroke="#e6b23c" stroke-width="2" opacity="0.85"/>
-  <g stroke="#e6b23c" stroke-width="1" opacity="0.18">
-    {lattice}
-  </g>
-  <circle cx="90" cy="126" r="46" fill="#0e201c" opacity="0.55"/>
-  <text x="90" y="126" font-size="74" font-family="'Space Grotesk', Georgia, serif" font-weight="700"
-        fill="#e6b23c" text-anchor="middle" dominant-baseline="central">7</text>
-  <g fill="#e6b23c" font-family="Georgia, serif" font-size="16" opacity="0.9" text-anchor="middle">
-    <text x="90" y="58" dominant-baseline="central">\u2660 \u2665 \u2666 \u2663</text>
-    <text x="90" y="196" dominant-baseline="central">\u2663 \u2666 \u2665 \u2660</text>
-  </g>
-</svg>
-"""
+  <rect x="3" y="3" width="{W - 6}" height="{H - 6}" rx="16" fill="url(#gloss)"/>'''
+    return svg(body)
 
 
-def lattice_lines():
-    lines = []
-    for x in range(-180, 200, 22):
-        lines.append(f'<line x1="{x}" y1="14" x2="{x + 224}" y2="238"/>')
-        lines.append(f'<line x1="{x + 224}" y1="14" x2="{x}" y2="238"/>')
-    return "\n    ".join(lines)
+# ---------------------------------------------------------------------------
+def build():
+    """Return {filename: svg text} for the whole deck."""
+    deck = {}
+    for code in SUITS:
+        for rank in RANKS:
+            deck[f"{rank}{code}.svg"] = card(rank, code)
+    deck["back.svg"] = back()
+    return deck
 
 
 def main():
-    os.makedirs(OUT, exist_ok=True)
-    count = 0
-    for suit, (glyph, color) in SUITS.items():
-        for rank, label in RANKS.items():
-            if label == "A":
-                svg = FACE_A.format(color=color, suit=glyph)
-            elif label == "J":
-                svg = FACE_J.format(color=color, suit=glyph)
-            elif label == "Q":
-                svg = FACE_Q.format(color=color, suit=glyph)
-            elif label == "K":
-                svg = FACE_K.format(color=color, suit=glyph)
-            else:
-                rank_size = 28 if len(label) > 1 else 34
-                svg = FACE.format(color=color, rank=label, suit=glyph, rank_size=rank_size)
-            
-            with open(os.path.join(OUT, f"{label}{suit}.svg"), "w", encoding="utf-8") as f:
-                f.write(svg)
-            count += 1
-    with open(os.path.join(OUT, "back.svg"), "w", encoding="utf-8") as f:
-        f.write(BACK.format(lattice=lattice_lines()))
-    print(f"Wrote {count} faces + back.svg to {os.path.normpath(OUT)}")
+    here = os.path.dirname(os.path.abspath(__file__))
+    default_out = os.path.join(here, "..", "static", "img", "cards")
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--out", default=default_out, help="output directory")
+    ap.add_argument("--sheet", help="also render a contact-sheet PNG here")
+    ap.add_argument("--sheet-scale", type=float, default=1.0,
+                    help="contact sheet scale (1.0 = real 62px gameplay size)")
+    args = ap.parse_args()
+
+    deck = build()
+    os.makedirs(args.out, exist_ok=True)
+    for name, text in deck.items():
+        with open(os.path.join(args.out, name), "w", encoding="utf-8") as fh:
+            fh.write(text)
+    print(f"Wrote {len(deck)} files to {os.path.normpath(args.out)}")
+
+    if args.sheet:
+        path, size = contact_sheet(deck, args.sheet, RANKS,
+                                   cell_px=62 * args.sheet_scale)
+        print(f"Contact sheet: {path} {size}")
 
 
 if __name__ == "__main__":
