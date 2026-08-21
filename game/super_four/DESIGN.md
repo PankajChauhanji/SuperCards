@@ -108,8 +108,13 @@ hide. Cards are never shown persistently (fixes the old "known cards stay visibl
 
 ## Rounds / session
 - **[decision]** Super 4 is round-based: each round ends at reveal with per-player totals and
-  a winner. Host can start the next round (or rematch). No cumulative elimination cap in v1
-  (the rules describe a single-round win/lose); can be added later via settings.
+  a winner. Host can start the next round (or rematch).
+- Cumulative scores **do** carry across rounds, and a player is eliminated to spectator once
+  their cumulative reaches `exit_score` — see Scoring above for the deltas and the balance
+  rationale. *(Corrected 2026-08-20: this section previously said "no cumulative elimination
+  cap in v1", which described the original 2026-07-14 model and contradicted the Scoring
+  section directly above it after the 2026-07-17 rewrite. The numbers in both sections are
+  now pinned to `settings.py` by `tests/test_settings_docs.py`.)*
 
 ## Table limits & timers **[decision]**
 - MIN_PLAYERS=2, MAX_PLAYERS=8 (memory game; keep the table readable).
