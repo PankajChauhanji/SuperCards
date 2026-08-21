@@ -1,26 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
-  <!-- Corners -->
-  <g fill="#1c2b27" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <g>
-      <text x="26" y="46" font-size="32" text-anchor="middle">J</text>
-      <text x="26" y="76" font-size="26" text-anchor="middle">♣</text>
-    </g>
-    <g transform="rotate(180 90 126)">
-      <text x="26" y="46" font-size="32" text-anchor="middle">J</text>
-      <text x="26" y="76" font-size="26" text-anchor="middle">♣</text>
-    </g>
-  </g>
-  <!-- Royal emblem (gold) -->
-  <g fill="#c99530" stroke="#8a6416" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
-    
-    <circle cx="90" cy="54" r="5"/>
-    <rect x="86.5" y="59" width="7" height="15" rx="2"/>
-    <rect x="70" y="74" width="40" height="8" rx="3"/>
-    <path d="M 82,82 L 98,82 L 90,126 Z"/>
-
-  </g>
-  <!-- Large suit glyph -->
-  <text x="90" y="176" font-size="86" fill="#1c2b27" text-anchor="middle" dominant-baseline="central"
-        font-family="Georgia, 'Times New Roman', serif" font-weight="700">♣</text>
+<rect x="3" y="3" width="174" height="246" rx="16" fill="#fbf7ec" stroke="#c9a227" stroke-width="3"/>
+<g transform="translate(27 47)"><text x="0" y="0" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="38" text-anchor="middle" fill="#16211d">J</text><g transform="translate(0.00 20.00) scale(0.50000)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g></g><g transform="translate(153 205) rotate(180)"><text x="0" y="0" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="38" text-anchor="middle" fill="#16211d">J</text><g transform="translate(0.00 20.00) scale(0.50000)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g></g>
+<g transform="translate(90 120)" fill="#c9a227"><path d="M-27 -22 L27 -22 L27 2 C27 18 13 28 0 33 C-13 28 -27 18 -27 2 Z"/><path d="M-16 -4 L0 -15 L16 -4 L16 8 L0 -3 L-16 8 Z" fill="#fbf7ec"/></g>
+<g transform="translate(90.00 190.00) scale(0.80952)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g>
 </svg>

@@ -1,27 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
-  <!-- Corners -->
-  <g fill="#cf3b2e" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <g>
-      <text x="26" y="46" font-size="32" text-anchor="middle">Q</text>
-      <text x="26" y="76" font-size="26" text-anchor="middle">♥</text>
-    </g>
-    <g transform="rotate(180 90 126)">
-      <text x="26" y="46" font-size="32" text-anchor="middle">Q</text>
-      <text x="26" y="76" font-size="26" text-anchor="middle">♥</text>
-    </g>
-  </g>
-  <!-- Royal emblem (gold) -->
-  <g fill="#c99530" stroke="#8a6416" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
-    
-    <path d="M 58,110 Q 58,78 74,94 Q 82,70 90,88 Q 98,70 106,94 Q 122,78 122,110 Z"/>
-    <rect x="58" y="110" width="64" height="13" rx="3"/>
-    <circle cx="74" cy="92" r="3.5" fill="#fdfbf5" stroke="none"/>
-    <circle cx="90" cy="84" r="4" fill="#fdfbf5" stroke="none"/>
-    <circle cx="106" cy="92" r="3.5" fill="#fdfbf5" stroke="none"/>
-
-  </g>
-  <!-- Large suit glyph -->
-  <text x="90" y="176" font-size="86" fill="#cf3b2e" text-anchor="middle" dominant-baseline="central"
-        font-family="Georgia, 'Times New Roman', serif" font-weight="700">♥</text>
+<rect x="3" y="3" width="174" height="246" rx="16" fill="#fbf7ec" stroke="#c9a227" stroke-width="3"/>
+<g transform="translate(27 47)"><text x="0" y="0" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="38" text-anchor="middle" fill="#c2352b">Q</text><g transform="translate(0.00 20.00) scale(0.50000)" fill="#c2352b"><path d="M0 18 C-3 13 -18 4 -19 -6 C-20 -15 -13 -20 -6.5 -20 C-2.5 -20 -0.8 -17.5 0 -14.5 C0.8 -17.5 2.5 -20 6.5 -20 C13 -20 20 -15 19 -6 C18 4 3 13 0 18 Z"/></g></g><g transform="translate(153 205) rotate(180)"><text x="0" y="0" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="38" text-anchor="middle" fill="#c2352b">Q</text><g transform="translate(0.00 20.00) scale(0.50000)" fill="#c2352b"><path d="M0 18 C-3 13 -18 4 -19 -6 C-20 -15 -13 -20 -6.5 -20 C-2.5 -20 -0.8 -17.5 0 -14.5 C0.8 -17.5 2.5 -20 6.5 -20 C13 -20 20 -15 19 -6 C18 4 3 13 0 18 Z"/></g></g>
+<g transform="translate(90 122)" fill="#c9a227"><path d="M-30 12 L-30 -6 C-22 -6 -18 -12 -17 -18 C-12 -10 -6 -6 0 -6 C6 -6 12 -10 17 -18 C18 -12 22 -6 30 -6 L30 12 Z"/><rect x="-30" y="16" width="60" height="10" rx="3"/><circle cx="0" cy="-14" r="4.4"/></g>
+<g transform="translate(90.00 190.00) scale(0.80952)" fill="#c2352b"><path d="M0 18 C-3 13 -18 4 -19 -6 C-20 -15 -13 -20 -6.5 -20 C-2.5 -20 -0.8 -17.5 0 -14.5 C0.8 -17.5 2.5 -20 6.5 -20 C13 -20 20 -15 19 -6 C18 4 3 13 0 18 Z"/></g>
 </svg>

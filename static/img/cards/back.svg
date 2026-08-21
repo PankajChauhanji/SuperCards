@@ -1,49 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#173029" stroke="#0e201c" stroke-width="2"/>
-  <rect x="14" y="14" width="152" height="224" rx="10" fill="none" stroke="#e6b23c" stroke-width="2" opacity="0.85"/>
-  <g stroke="#e6b23c" stroke-width="1" opacity="0.18">
-    <line x1="-180" y1="14" x2="44" y2="238"/>
-    <line x1="44" y1="14" x2="-180" y2="238"/>
-    <line x1="-158" y1="14" x2="66" y2="238"/>
-    <line x1="66" y1="14" x2="-158" y2="238"/>
-    <line x1="-136" y1="14" x2="88" y2="238"/>
-    <line x1="88" y1="14" x2="-136" y2="238"/>
-    <line x1="-114" y1="14" x2="110" y2="238"/>
-    <line x1="110" y1="14" x2="-114" y2="238"/>
-    <line x1="-92" y1="14" x2="132" y2="238"/>
-    <line x1="132" y1="14" x2="-92" y2="238"/>
-    <line x1="-70" y1="14" x2="154" y2="238"/>
-    <line x1="154" y1="14" x2="-70" y2="238"/>
-    <line x1="-48" y1="14" x2="176" y2="238"/>
-    <line x1="176" y1="14" x2="-48" y2="238"/>
-    <line x1="-26" y1="14" x2="198" y2="238"/>
-    <line x1="198" y1="14" x2="-26" y2="238"/>
-    <line x1="-4" y1="14" x2="220" y2="238"/>
-    <line x1="220" y1="14" x2="-4" y2="238"/>
-    <line x1="18" y1="14" x2="242" y2="238"/>
-    <line x1="242" y1="14" x2="18" y2="238"/>
-    <line x1="40" y1="14" x2="264" y2="238"/>
-    <line x1="264" y1="14" x2="40" y2="238"/>
-    <line x1="62" y1="14" x2="286" y2="238"/>
-    <line x1="286" y1="14" x2="62" y2="238"/>
-    <line x1="84" y1="14" x2="308" y2="238"/>
-    <line x1="308" y1="14" x2="84" y2="238"/>
-    <line x1="106" y1="14" x2="330" y2="238"/>
-    <line x1="330" y1="14" x2="106" y2="238"/>
-    <line x1="128" y1="14" x2="352" y2="238"/>
-    <line x1="352" y1="14" x2="128" y2="238"/>
-    <line x1="150" y1="14" x2="374" y2="238"/>
-    <line x1="374" y1="14" x2="150" y2="238"/>
-    <line x1="172" y1="14" x2="396" y2="238"/>
-    <line x1="396" y1="14" x2="172" y2="238"/>
-    <line x1="194" y1="14" x2="418" y2="238"/>
-    <line x1="418" y1="14" x2="194" y2="238"/>
+<defs>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b3330"/>
+      <stop offset="1" stop-color="#132320"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="174" height="246" rx="16" fill="url(#base)"
+        stroke="#c9a227" stroke-width="3"/>
+  <rect x="12" y="12" width="156" height="228" rx="10" fill="none"
+        stroke="#c9a227" stroke-width="1.4" opacity="0.5"/>
+  <g stroke="#c9a227" stroke-width="1.1" opacity="0.28" fill="none">
+    <path d="M90 34 L146 126 L90 218 L34 126 Z"/>
+    <path d="M90 56 L128 126 L90 196 L52 126 Z"/>
   </g>
-  <circle cx="90" cy="126" r="46" fill="#0e201c" opacity="0.55"/>
-  <text x="90" y="126" font-size="74" font-family="'Space Grotesk', Georgia, serif" font-weight="700"
-        fill="#e6b23c" text-anchor="middle" dominant-baseline="central">7</text>
-  <g fill="#e6b23c" font-family="Georgia, serif" font-size="16" opacity="0.9" text-anchor="middle">
-    <text x="90" y="58" dominant-baseline="central">♠ ♥ ♦ ♣</text>
-    <text x="90" y="196" dominant-baseline="central">♣ ♦ ♥ ♠</text>
+  <g transform="translate(90 126)" fill="#c9a227">
+    <path d="M0 -30 L9 -9 L30 0 L9 9 L0 30 L-9 9 L-30 0 L-9 -9 Z" opacity="0.95"/>
+    <circle cx="0" cy="0" r="5.5" fill="#fbf7ec"/>
   </g>
+  <rect x="3" y="3" width="174" height="246" rx="16" fill="url(#gloss)"/>
 </svg>

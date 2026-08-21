@@ -1,25 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
-  <g fill="#cf3b2e" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <g>
-      <text x="24" y="44" font-size="34" text-anchor="middle">A</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">♦</text>
-    </g>
-    <g transform="rotate(180 90 126)">
-      <text x="24" y="44" font-size="34" text-anchor="middle">A</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">♦</text>
-    </g>
-  </g>
-  <!-- Grand Ornate Ace Design -->
-  <g stroke="#cf3b2e" fill="none">
-    <circle cx="90" cy="138" r="60" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.65"/>
-    <circle cx="90" cy="138" r="52" stroke-width="1.0" opacity="0.4"/>
-    <path d="M 90,68 L 92,74 L 98,76 L 92,78 L 90,84 L 88,78 L 82,76 L 88,74 Z" fill="#cf3b2e" stroke="none"/>
-    <path d="M 90,192 L 92,198 L 98,200 L 92,202 L 90,208 L 88,202 L 82,200 L 88,198 Z" fill="#cf3b2e" stroke="none"/>
-    <path d="M 32,138 L 38,136 L 40,130 L 42,136 L 48,138 L 42,140 L 40,146 L 38,140 Z" fill="#cf3b2e" stroke="none"/>
-    <path d="M 132,138 L 138,136 L 140,130 L 142,136 L 148,138 L 142,140 L 140,146 L 138,140 Z" fill="#cf3b2e" stroke="none"/>
-  </g>
-  <g fill="#cf3b2e" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <text x="90" y="138" font-size="94" text-anchor="middle" dominant-baseline="central">♦</text>
-  </g>
+<rect x="3" y="3" width="174" height="246" rx="16" fill="#fbf7ec" stroke="#c9a227" stroke-width="3"/>
+<g transform="translate(27 47)"><text x="0" y="0" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="38" text-anchor="middle" fill="#c2352b">A</text><g transform="translate(0.00 20.00) scale(0.50000)" fill="#c2352b"><path d="M0 -21 L15 0 L0 21 L-15 0 Z"/></g></g><g transform="translate(153 205) rotate(180)"><text x="0" y="0" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="38" text-anchor="middle" fill="#c2352b">A</text><g transform="translate(0.00 20.00) scale(0.50000)" fill="#c2352b"><path d="M0 -21 L15 0 L0 21 L-15 0 Z"/></g></g>
+<circle cx="90" cy="130" r="52" fill="none" stroke="#c9a227" stroke-width="2.5" opacity="0.85"/>
+<g transform="translate(90.00 130.00) scale(2.19048)" fill="#c2352b"><path d="M0 -21 L15 0 L0 21 L-15 0 Z"/></g>
 </svg>

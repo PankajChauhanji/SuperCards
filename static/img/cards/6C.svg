@@ -1,14 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 252" width="180" height="252">
-  <rect x="3" y="3" width="174" height="246" rx="16" fill="#fdfbf5" stroke="#d8cfb8" stroke-width="2"/>
-  <g fill="#1c2b27" font-family="Georgia, 'Times New Roman', serif" font-weight="700">
-    <g>
-      <text x="24" y="44" font-size="34" text-anchor="middle">6</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">♣</text>
-    </g>
-    <g transform="rotate(180 90 126)">
-      <text x="24" y="44" font-size="34" text-anchor="middle">6</text>
-      <text x="24" y="72" font-size="24" text-anchor="middle">♣</text>
-    </g>
-    <text x="90" y="138" font-size="104" text-anchor="middle" dominant-baseline="central">♣</text>
-  </g>
+<rect x="3" y="3" width="174" height="246" rx="16" fill="#fbf7ec" stroke="#ddd3ba" stroke-width="2"/>
+<g transform="translate(27 47)"><text x="0" y="0" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="38" text-anchor="middle" fill="#16211d">6</text><g transform="translate(0.00 20.00) scale(0.50000)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g></g><g transform="translate(153 205) rotate(180)"><text x="0" y="0" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="38" text-anchor="middle" fill="#16211d">6</text><g transform="translate(0.00 20.00) scale(0.50000)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g></g>
+<g transform="translate(62.00 73.00) scale(0.61905)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g><g transform="translate(118.00 73.00) scale(0.61905)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g><g transform="translate(62.00 140.00) scale(0.61905)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g><g transform="translate(118.00 140.00) scale(0.61905)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g><g transform="translate(62.00 207.00) scale(0.61905)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g><g transform="translate(118.00 207.00) scale(0.61905)" fill="#16211d"><circle cx="0" cy="-11" r="8.6"/><circle cx="-10.6" cy="3" r="8.6"/><circle cx="10.6" cy="3" r="8.6"/><path d="M-7 21 C-3.2 18 -1.6 13 -1 6 L1 6 C1.6 13 3.2 18 7 21 Z"/></g>
 </svg>
