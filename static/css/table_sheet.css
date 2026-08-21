@@ -1,0 +1,240 @@
+/* Mobile table sheet — Scores + Action history, on demand.
+ *
+ * On phones the two collapsed panels cost ~104px above the felt before a card
+ * is even dealt, and the seats already show each player's score, so most of
+ * that space was buying a duplicate. Below 720px the panels move into a bottom
+ * sheet opened from a single button; above 720px nothing here applies and the
+ * desktop side column is untouched.
+ *
+ * The panels are MOVED, not copied (core/table_sheet.js relocates the existing
+ * #sb-players / #action-log nodes), so every game's render code keeps writing
+ * to the same ids and needed no changes at all.
+ *
+ * This file must load after table.css (it overrides the side-column geometry)
+ * and before safe-area.css. The sheet applies its own bottom inset below, so
+ * safe-area.css deliberately says nothing about it.
+ */
+
+/* ---- the button (lives inside .reaction-dock) ---------------------------- */
+/* No positioning of its own: it is inserted into the reactions dock, whose
+ * bottom-right corner is already the one spot proven clear of the hand tray on
+ * every game's felt (see the comment on .reaction-dock in reactions.css), and
+ * whose show/hide each game bundle already drives when the table appears. */
+.ts-fab {
+  position: relative;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  background: var(--panel);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 0 0 3px rgba(230,178,60,0.16);
+  transition: transform 0.12s ease;
+}
+.ts-fab:hover { transform: scale(1.08); }
+.ts-fab:active { transform: scale(0.96); }
+
+/* Fallback for a page with no reactions dock to nest in. */
+.ts-fab.ts-fab-standalone {
+  position: fixed;
+  right: 16px; bottom: 80px;
+  z-index: 61;
+}
+
+/* Unread marker: the real cost of hiding the log is attention, not space —
+ * without this you simply stop noticing that anything happened. */
+.ts-fab-dot {
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: #e2544a;
+  border: 2px solid var(--panel);
+}
+.ts-fab-dot[hidden] { display: none; }
+
+/* ---- backdrop + sheet ---------------------------------------------------- */
+.ts-backdrop {
+  position: fixed; inset: 0;
+  z-index: 70;
+  background: rgba(0, 0, 0, 0.42);
+}
+.ts-backdrop[hidden] { display: none; }
+
+.ts-sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 71;
+  display: flex;
+  flex-direction: column;
+  max-height: 52vh;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -12px 32px rgba(0,0,0,0.5);
+  padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  animation: ts-rise 0.16s ease-out;
+}
+.ts-sheet[hidden] { display: none; }
+
+@keyframes ts-rise {
+  from { transform: translateY(14px); opacity: 0.4; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* The rise starts 14px below the pinned bottom edge, so the sheet's resting
+   position depends on the animation actually finishing. In a tab that is not
+   compositing frames it can stall on the first frame and leave the sheet
+   offset downward, clipping its bottom padding. Honouring reduced-motion also
+   removes that failure mode for anyone who has it set. */
+@media (prefers-reduced-motion: reduce) {
+  .ts-sheet { animation: none; }
+}
+
+.ts-grip {
+  width: 36px; height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  margin: 0 auto 8px;
+  flex: 0 0 auto;
+}
+
+/* ---- tabs --------------------------------------------------------------- */
+.ts-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 20px;
+  padding: 3px;
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+}
+.ts-tab {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.62;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 7px 4px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.ts-tab.active {
+  background: var(--gold);
+  color: #1a1206;
+  opacity: 1;
+}
+.ts-tab .ts-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #e2544a;
+  margin-left: 5px;
+  vertical-align: 1px;
+}
+.ts-tab .ts-dot[hidden] { display: none; }
+
+.ts-close {
+  flex: 0 0 auto;
+  width: 32px; height: 32px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 0.95rem;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+}
+.ts-close:hover { opacity: 1; }
+
+/* ---- the relocated panels ----------------------------------------------- */
+/* table.css styles these as fixed-height side-column cards. Inside the sheet
+ * they are plain content: the sheet owns the frame, and the tabs replace the
+ * collapsible headers. */
+.ts-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
+.ts-body > .sb-players,
+.ts-body > .action-log {
+  position: static;
+  width: 100%;
+  max-height: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  flex: 1 1 auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+/* The panel's own collapse header would be a second, conflicting affordance. */
+.ts-body > .sb-players > h3,
+.ts-body > .action-log > h3 { display: none; }
+
+/* Neutralise the collapsed state inside the sheet.
+ *
+ * This is not belt-and-braces, it is load-bearing: action_log.js collapses the
+ * log by default below 720px, and it does so on DOMContentLoaded — i.e. AFTER
+ * this component has already adopted the panels and cleared the class. The
+ * result was a History tab that opened completely empty while Scores worked,
+ * because `.action-log.is-collapsed #action-log-list` sets display:none.
+ * Scores can reach the same state the other way: collapse it on desktop, then
+ * narrow the window, and the class comes along into the sheet.
+ *
+ * Rather than race whoever sets the class, the sheet simply outranks it — the
+ * tabs decide what shows in here. Selectors carry one more class than the
+ * collapsed rules they override, so they win on specificity, not source order.
+ */
+.ts-body > .action-log.is-collapsed #action-log-list,
+.ts-body > .sb-players.is-collapsed #score-list,
+.ts-body > .sb-players.is-collapsed #spectator-list { display: block; }
+.ts-body > .action-log.is-collapsed,
+.ts-body > .sb-players.is-collapsed { padding: 0; max-height: none; }
+
+.ts-body #score-list,
+.ts-body #action-log-list,
+.ts-body #spectator-list {
+  max-height: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* Spacing only. Whether this shows at all is owned by the inline style each
+   game toggles, which outranks this sheet anyway. */
+.ts-body #spectators-heading { margin-top: 1rem; }
+
+/* Match the reactions button's own shrink at this width (reactions.css line
+   ~170). Two differently-sized circles in the same right-aligned dock column
+   read as a mistake. */
+@media (max-width: 640px) {
+  .ts-fab { width: 46px; height: 46px; font-size: 1.1rem; }
+  .ts-fab-dot { width: 10px; height: 10px; }
+}
+
+/* ---- mobile-only: retire the desktop side column ------------------------ */
+@media (max-width: 720px) {
+  /* The panels have been moved out, so the aside is an empty box that would
+     still contribute the column's flex gap above the felt. */
+  body.ss-sheet-on .scoreboard { display: none; }
+}
+
+/* Above the breakpoint the sheet and its button do not exist at all — the
+   desktop side column is the design, and it stays exactly as it was. */
+@media (min-width: 721px) {
+  .ts-fab, .ts-sheet, .ts-backdrop { display: none !important; }
+}
