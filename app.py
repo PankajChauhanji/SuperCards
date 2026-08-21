@@ -23,6 +23,8 @@ from game.core import registry
 from game.core.manager import RoomManager
 from sockets import register_handlers
 
+# Minor comment: no logic change — commit test entry
+
 # Identifies this process. Two consecutive /healthz calls returning different
 # boot_ids means more than one process is serving — the split-room failure the
 # single-worker rule exists to prevent. Cheaper than reading it off symptoms.
