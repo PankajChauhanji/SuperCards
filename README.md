@@ -141,13 +141,29 @@ Open http://localhost:5000 in your browser. To test multiplayer locally, open a 
 
 ## 🌐 Deployment notes
 
-This project is a stateful WebSocket app, so it should be deployed with a single worker to preserve room state correctly.
+This project is a stateful WebSocket app: all room state lives in memory in a single
+`RoomManager`, so it must run as **exactly one process**. Two processes means two disjoint
+sets of rooms, and players get split across them ("Invalid session", "no room with that
+code" for someone who is demonstrably in the room).
+
+Start it with eventlet's own server — **not** gunicorn:
 
 ```bash
-gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT app:app
+python3 app.py
 ```
 
-A Render blueprint is included for simple hosting. The app is designed to run as one process so live rooms remain consistent and players stay in the same shared session.
+The turn-timer director runs via `socketio.start_background_task()`, which needs eventlet
+to own the process. `app.py` also refuses to boot if something is already serving its port,
+so a stale process can't silently split your players.
+
+A Render blueprint is included (`render.yaml`) and uses exactly this start command. The
+`Procfile` matches it, for platforms that look for one.
+
+Verify a running instance is the only one, and see how many rooms it holds:
+
+```bash
+curl -s localhost:5000/healthz
+```
 
 ---
 
