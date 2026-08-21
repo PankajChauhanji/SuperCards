@@ -118,6 +118,9 @@
       applyLabel(name);
       close();
       repaint();
+      // Re-render as well: the hand fan's geometry is measured in JS, and on a
+      // real phone a src swap alone left the layout untouched until a reload.
+      if (window.SS.repaintUI) window.SS.repaintUI();
     });
   });
 
