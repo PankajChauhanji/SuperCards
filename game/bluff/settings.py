@@ -1,7 +1,8 @@
 """Bluff gameplay settings.
 
-Keep in sync when any default changes: docs/bluff_rules.md and
-static/rules/bluff/en.html.
+This file is the only source of truth. Where these numbers are also stated in
+prose (docs/bluff_rules.md, static/rules/bluff/en.html), add a claim to
+tests/test_settings_docs.py so drift fails a test instead of relying on memory.
 """
 
 # ---- Room / table limits ----
