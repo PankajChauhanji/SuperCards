@@ -15,7 +15,7 @@ from flask_socketio import join_room as sio_join, leave_room as sio_leave
 # broadcasts round_start/round_end, so it carries card payloads too.
 from sockets.audience import emit
 
-from game.core import registry
+from game.core import bots, registry
 from game.core.states import STATE_LOBBY, STATE_ROUND_END, STATE_GAME_END
 from sockets import presenter
 from sockets.common import bind_sid, unbind_sid, error
@@ -83,10 +83,9 @@ def register(socketio, manager):
         settings = _clean_settings(data.get("settings"), spec)
         room = manager.create_room(user_id, name, settings, game_type)
 
-        # Register the bot — mark it connected so it counts toward MIN_PLAYERS.
-        bot = room.register_player("bot_suryavanshi", "Suryavanshi")
-        bot.is_bot = True
-        bot.connected = True   # bot is always "present"
+        # Same path a host takes when adding a bot from the lobby, so there is
+        # exactly one way a computer player enters a room.
+        bots.add_to(room)
 
         emit("room_created", {"code": room.code, "solo": True, "game_type": game_type})
 
@@ -181,14 +180,49 @@ def register(socketio, manager):
             to=code,
         )
 
-        # Reconnecting mid-game: resend the appropriate view (per-game private deal).
-        if room.in_round():
-            emit("round_start", room.public_round_state())
-            presenter.deal(room, user_id)
-        elif room.state == STATE_ROUND_END and getattr(room, "_last_result", None):
-            emit("round_end", room.round_end_payload(room._last_result))
-        elif room.state == STATE_GAME_END:
-            emit("game_end", room.game_end_payload())
+        # Reconnecting mid-game: hand off to the game's own resync hook. This
+        # branch used to be written in Super Seven's event vocabulary for every
+        # game, which left a reconnecting Super 4 player with a stale table that
+        # a page reload could not repair — the reload took the same branch. The
+        # shared layer no longer knows any game's event names.
+        presenter.resync(room, user_id)
+
+    @socketio.on("add_bot")
+    def on_add_bot(data):
+        """Host seats a computer player. Lobby only, and only up to the caps.
+
+        A bot is worth having in a room full of real people — three friends and
+        two bots is a better game than three friends alone — so this is not
+        limited to single-player rooms. It is limited to the lobby, because the
+        turn order is built when the round is dealt and inserting a player into a
+        live rotation is a different feature with different failure modes.
+        """
+        data = data or {}
+        code = (data.get("code") or "").strip().upper()
+        user_id = data.get("user_id")
+        room = manager.get_room(code)
+        if room is None:
+            return error("This room no longer exists.")
+        if not room.is_host(user_id):
+            return error("Only the host can add a computer player.")
+        if room.state != STATE_LOBBY:
+            return error("You can only add players before the game starts.")
+        if room.is_full():
+            return error("The table is full.")
+        if bots.is_full(room):
+            return error("You can have at most %d computer players." % bots.MAX_BOTS)
+
+        key = data.get("bot")
+        if key and bots.profile(key) is None:
+            return error("No such computer player.")
+
+        bot = bots.add_to(room, key)
+        emit(
+            "player_list",
+            {"players": room.public_players(), "host_id": room.host_id},
+            to=code,
+        )
+        emit("bot_added", {"user_id": bot.user_id, "name": bot.name}, to=code)
 
     @socketio.on("start_game")
     def on_start(data):
@@ -250,8 +284,6 @@ def register(socketio, manager):
             return error("That player isn't in the room.")
         if target == room.host_id:
             return error("You can't remove yourself.")
-        if room.players[target].is_bot:
-            return error("You can't remove the computer player.")
 
         target_sid = room.players[target].sid
         room.remove_player(target)
