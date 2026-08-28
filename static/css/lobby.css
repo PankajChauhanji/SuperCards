@@ -104,6 +104,79 @@
   margin-bottom: 1.25rem;
 }
 .start-row .btn-primary { max-width: 100%; }
+
+/* ---- Add bot ----------------------------------------------------------
+   Sits above Start in the same row. Deliberately a ghost button next to the
+   filled Start: seating a bot is optional setup, and two loud buttons would
+   make the host choose between them instead of reading Start as the way on.
+   The picker reuses the theme dropdown's shape (see themes.css) rather than
+   inventing a second popover style for the same "pick one of a few" job. */
+.add-bot-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+.add-bot-btn {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.88rem;
+}
+.add-bot-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.add-bot-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bot-picker {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  z-index: 80;
+  width: 200px;
+}
+/* Opens upward: the row sits at the bottom of the lobby card, so a downward
+   menu would fall off the card on a phone. */
+.bot-opt {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 0.88rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+.bot-opt:hover { background: rgba(255, 255, 255, 0.08); }
+.bot-face { font-size: 1.05rem; line-height: 1; }
+.bot-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bot-seated {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
 .waiting {
   text-align: center;
   color: var(--muted);
