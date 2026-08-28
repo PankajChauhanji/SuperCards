@@ -19,11 +19,13 @@ A highly strategic, fast-paced card game of deception, psychological warfare, an
 
 ## 🎯 Objective
 The primary goal is to be the **first player to successfully discard all cards** from your hand.
+Going out first takes 1st place — but the game plays on for the places behind you, so finishing
+second or third is worth playing for too. See [Winning the Game](#-winning-the-game--places-not-a-single-winner).
 
 ---
 
 ## ⚙️ Setup
-*   **Players:** Optimal for 3 to 6 players.
+*   **Players:** 2 to 6. Three or more makes the bluffing read properly; heads-up is supported and ends as soon as one player goes out.
 *   **The Deck:** A standard 52-card deck (Jokers are removed).
 *   **The Deal:** Deal all cards out clockwise as evenly as possible. It is perfectly fine if some players end up with one card more than others.
 
@@ -83,10 +85,32 @@ If a player starts a rank and the turn rotates all the way around the table back
 
 ---
 
-## 🏆 Winning the Game
-The first player to discard their last card wins! 
-*   *Crucial Rule:* A player's final cards can still be challenged. If they throw their last cards and the next player calls **"Show"**, the game is not over until the challenge is resolved. 
-*   If the winner lied, they pick up the pile and must keep playing. If they told the truth (or if no one calls "Show"), they are officially declared the winner.
+## 🏆 Winning the Game — Places, not a single winner
+
+Shedding your last card does not end the game; it banks you a **place**. Play continues for
+everyone still holding cards, so 1st, 2nd and 3rd are all genuinely played for rather than
+the table emptying out the moment one person finishes.
+
+*   *Crucial Rule:* A player's final cards can still be challenged. If they throw their last
+    cards and the next player calls **"Show"**, they are not out until the challenge is
+    resolved. If they lied, they pick the pile back up and keep playing; if they told the
+    truth (or nobody calls "Show"), their place is confirmed.
+
+### When the game ends
+
+Whichever of these comes first:
+
+*   **3 players have finished** — the podium is settled, and playing on would only be
+    sorting out last place.
+*   **Only one player is still holding cards** — there is no race left. This is what ends a
+    2- or 3-player table naturally, before the podium rule ever binds.
+
+### How the rest are ranked
+
+Players who went out are ranked by **when** they did it. Everyone still holding cards is
+ranked below them by **how many cards they have left, fewest first** — the *count*, not the
+values. In Bluff a card is a card, and the player one turn from going out is doing better
+than the one nursing a dozen, however those dozen happen to add up.
 
 ---
 
