@@ -359,6 +359,9 @@ def register(socketio, manager):
 
 
 # ================= director ticker (turn timer + bot) =================
+# Bot scheduling: (room_code, bot_id) -> float, plus a per-room match-window
+# entry. Keyed per bot because a room may hold several — see
+# sockets/gameplay/super_seven.py for the failure a room-wide key allows.
 _bot_act_at: dict = {}
 
 
@@ -444,7 +447,7 @@ def _tick_room(socketio, room):
             np = room.players.get(nxt) if nxt else None
             if np and np.is_bot:
                 now = time.time()
-                key = room.code + ":mw"
+                key = (room.code, nxt, "mw")
                 if key not in _bot_act_at:
                     _bot_act_at[key] = now + ai.bot_delay()
                 elif now >= _bot_act_at[key]:
@@ -458,20 +461,25 @@ def _tick_room(socketio, room):
         if acted:
             _emit_state(socketio, room)
         return
-    _bot_act_at.pop(room.code + ":mw", None)
+    # The window is over: drop every match-window schedule for this room.
+    for stale in [k for k in _bot_act_at if k[0] == room.code and k[-1] == "mw"]:
+        _bot_act_at.pop(stale, None)
 
     cur = room.current_turn_id()
     if cur is None:
         return
     p = room.players.get(cur)
     if p and p.is_bot:
+        if not director.bots_should_act(room):
+            return  # nobody left to play for — see director.bots_should_act
         now = time.time()
-        if room.code not in _bot_act_at:
-            _bot_act_at[room.code] = now + ai.bot_delay()
+        key = (room.code, cur)
+        if key not in _bot_act_at:
+            _bot_act_at[key] = now + ai.bot_delay()
             return
-        if now < _bot_act_at[room.code]:
+        if now < _bot_act_at[key]:
             return
-        del _bot_act_at[room.code]
+        del _bot_act_at[key]
         _bot_move(socketio, room, cur)
         _emit_state(socketio, room)
         return
@@ -510,6 +518,25 @@ def _refresh_public(room):
         _femit("s4_round_end", room.round_end_payload(), to=room.code)
 
 
+def _resync_one(room, user_id):
+    """Send one player the complete current state (see presenter.register_resync).
+
+    This is the hook the shared reconnect path was missing for Super 4. The
+    lobby used to emit Super Seven's event names for every game, so a Super 4
+    client — which listens for s4_state / s4_round_end — got an event it ignored
+    at STATE_GAME_END and, at STATE_ROUND_END, nothing at all. It sends the
+    game's own vocabulary, addressed to that one socket.
+    """
+    player = room.players.get(user_id)
+    if not player or player.is_bot or not player.sid:
+        return
+    _femit("s4_state", room.public_round_state(), to=player.sid)
+    _femit("your_view", room.private_view(user_id), to=player.sid)
+    if room.state in (STATE_ROUND_END, STATE_GAME_END):
+        _femit("s4_round_end", room.round_end_payload(), to=player.sid)
+
+
 director.register_ticker(GAME, _tick_room)
 presenter.register(GAME, _deal_private)
 presenter.register_refresh(GAME, _refresh_public)
+presenter.register_resync(GAME, _resync_one)
