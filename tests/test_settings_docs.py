@@ -76,6 +76,20 @@ CLAIMS = [
      r"turn_timer=(\d+)s"),
 ]
 
+# Some documented numbers are rule constants rather than host-selectable
+# settings, so they live on the variant's settings *module* instead of in its
+# DEFAULT_SETTINGS. They restate into prose exactly the same way and drift
+# exactly the same way, so they are checked the same way.
+# (import path, attribute, doc path, regex with one capture group)
+CONSTANT_CLAIMS = [
+    ("game.bluff.settings", "PODIUM_PLACES", "static/rules/bluff/en.html",
+     r"<b>(\d+) players have finished</b>"),
+    ("game.bluff.settings", "PODIUM_PLACES", "static/rules/bluff/hi.html",
+     r"<b>(\d+) खिलाड़ी खत्म कर लें</b>"),
+    ("game.bluff.settings", "PODIUM_PLACES", "docs/bluff_rules.md",
+     r"\*\*(\d+) players have finished\*\*"),
+]
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 results = []
 
@@ -130,6 +144,31 @@ for game_type, rel, key, pattern in CLAIMS:
     check(documented == expected,
           "%s — doc says %s%s" % (label, documented,
                                   "" if documented == expected else " (DRIFT)"))
+
+for module_path, attr, rel, pattern in CONSTANT_CLAIMS:
+    import importlib
+    module = importlib.import_module(module_path)
+    expected = getattr(module, attr, None)
+    label = "%s: %s = %r" % (rel.split("/")[-1], attr, expected)
+
+    if expected is None:
+        check(False, "%s — %s has no %s (stale claim)" % (label, module_path, attr))
+        continue
+    if not os.path.isfile(os.path.join(REPO, rel)):
+        check(False, "%s — %s is missing" % (label, rel))
+        continue
+
+    found = re.search(pattern, read(rel))
+    if not found:
+        check(False, "%s — the doc no longer matches its anchor %r; reword the "
+                     "claim in tests/test_settings_docs.py" % (label, pattern))
+        continue
+
+    documented = normalise(found.group(1))
+    check(documented == expected,
+          "%s — doc says %s%s" % (label, documented,
+                                  "" if documented == expected else " (DRIFT)"))
+
 
 # Guard the guard: a claim table that silently covers nothing is worthless.
 covered = {(g, k) for g, _, k, _ in CLAIMS}
