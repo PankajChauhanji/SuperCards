@@ -14,7 +14,13 @@
  * live server connection for multiplayer.
  */
 
-const CACHE_NAME = "super-cards-v4";
+/* Bump on every deploy that changes JS. Static assets are stale-while-revalidate,
+   so without a bump a returning player runs the PREVIOUS build's JavaScript for a
+   whole page load — and a client speaking an older protocol to a newer server is
+   indistinguishable, from the player's seat, from the state-desync bug this cache
+   name was last bumped for. `activate` purges every cache that is not this one,
+   so changing the name is what forces a clean fetch. */
+const CACHE_NAME = "super-cards-v6";
 
 /* Static assets to pre-cache on install for instant second loads. */
 const PRECACHE_URLS = [
