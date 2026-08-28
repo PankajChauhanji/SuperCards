@@ -27,8 +27,15 @@
     pickSecondsLeft: null,
     justDrawnId: null,
     settings: null,
+    // User ids in the order they shed their last card — the game's only ranking.
+    finishOrder: [],
   };
   window.SS.view = view; // selection.js reads this live reference
+
+  const nameOf = (uid) => {
+    const p = view.players.find((x) => x.user_id === uid);
+    return p ? p.name : "Someone";
+  };
 
   // Every Table.render() can change the felt's height (hand size, opponent
   // count) which shifts where its bottom-right corner is — reposition the
@@ -65,6 +72,9 @@
   // Returning to the foreground must re-attach too: a zombie socket fires no
   // `connect`, so this is what clears the "player is absent" state.
   if (window.SS.onResync) window.SS.onResync(enter);
+  // Repaint from state we already hold (deck swap, hand-view change, a viewport
+  // that resized while the page was frozen in the background).
+  if (window.SS.onRepaint) window.SS.onRepaint(() => Table.render(view));
   if (socket.connected) enter();
 
   // ---- server events ----
@@ -94,6 +104,10 @@
     view.hand = [];
     view.justDrawnId = null;
     view.secondsLeft = null;
+    /* A rematch is a fresh race — otherwise last game's places would suppress
+       the announcements for this one. */
+    view.finishOrder = [];
+    if (window.SS.hideWinnerScreen) window.SS.hideWinnerScreen();
     prevTurn = null;
     document.getElementById("roundend-modal").classList.remove("open");
     if (window.SS.hideWinnerScreen) window.SS.hideWinnerScreen();
@@ -135,6 +149,7 @@
     view.lastPlay = data.last_play;
     view.roundNumber = data.round_number;
     if (typeof data.turn_seconds_left === "number") view.secondsLeft = data.turn_seconds_left;
+    applyFinishOrder(data.finish_order);
 
 
     // Sound cue when the turn becomes mine.
@@ -443,13 +458,54 @@
       .sort((a, b) => (a.eliminated - b.eliminated) || (a.total_score - b.total_score));
   }
 
+  // ---- finishing places -------------------------------------------------
+  // Bluff no longer stops at the first player to shed their hand: play runs on
+  // until the podium is settled, so "who is out, and in which place" is live
+  // information the table needs while the game continues.
+  //
+  // Driven off the server's finish_order in every state payload rather than a
+  // one-shot "player is out" event: a client that missed the event would keep
+  // showing a finished player as still in the race until it reloaded, whereas
+  // state is re-sent on every resync (see sockets/sync.py).
+  const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
+
+  function ordinal(place) {
+    return ORDINALS[place - 1] || place + "th";
+  }
+
+  function applyFinishOrder(order) {
+    if (!Array.isArray(order)) return;
+    const known = view.finishOrder || [];
+    order.slice(known.length).forEach((uid, i) => {
+      const place = known.length + i + 1;
+      const who = uid === youId ? "You" : nameOf(uid);
+      const verb = uid === youId ? "are" : "is";
+      const msg = `${who} ${verb} out — ${ordinal(place)} place!`;
+      if (window.ActionLog) window.ActionLog.push(msg, "win");
+      showToast(msg, 2600);
+    });
+    view.finishOrder = order.slice();
+  }
+
   function showGameOver(winnerId, rows) {
+    const mine = (rows || []).find((r) => r.user_id === youId);
     window.SS.showWinnerScreen({
       winnerId,
       rows,
       youId,
       isHost: youId === view.hostId,
       onRematch: () => socket.emit("rematch", { code, user_id: youId }),
+      subtitle: winnerId === youId
+        ? "You shed your last card first."
+        : (mine && mine.finished
+            ? `You finished ${ordinal(mine.place)}.`
+            : "First to shed every card takes the game."),
+      // Bluff keeps no score. A player who went out is ranked by when, and
+      // everyone still holding cards by how many are left — so that is what the
+      // podium says, instead of points the game never counted.
+      scoreText: (row) => (row.finished
+        ? ordinal(row.place)
+        : row.cards_left + (row.cards_left === 1 ? " card left" : " cards left")),
     });
   }
 
