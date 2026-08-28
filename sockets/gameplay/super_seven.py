@@ -9,7 +9,7 @@ changed, so clients never drift from server truth.
 Every handler guards on room.game_type == "super_seven" so an event aimed at a
 different variant's room is ignored rather than misapplied. The director ticker
 (registered at the bottom) drives auto-play, the post-discard pick timer, and the
-single-player Suryavanshi bot.
+computer players (game/core/bots.py), whether the room is solo or has humans in it.
 """
 import time
 
@@ -47,8 +47,30 @@ def _refresh_public(room):
         emit("table_state", room.public_round_state(), to=room.code)
 
 
+def _resync_one(room, user_id):
+    """Send one player everything they need to repaint from scratch.
+
+    Used by reconnect (sockets/lobby.py) and by the periodic client sync
+    (sockets/sync.py). Same decision as _refresh_public, but addressed to a
+    single socket and paired with that player's private hand, so a returning
+    client never has to infer state from a partial payload. In the lobby there
+    is nothing to send: room_joined + player_list already carry it all.
+    """
+    player = room.players.get(user_id)
+    if not player or not player.sid:
+        return
+    if room.in_round():
+        emit("round_start", room.public_round_state(), to=player.sid)
+        _deal_private(room, user_id)
+    elif room.state == STATE_ROUND_END and getattr(room, "_last_result", None):
+        emit("round_end", room.round_end_payload(room._last_result), to=player.sid)
+    elif room.state == STATE_GAME_END:
+        emit("game_end", room.game_end_payload(), to=player.sid)
+
+
 presenter.register(GAME, _deal_private)
 presenter.register_refresh(GAME, _refresh_public)
+presenter.register_resync(GAME, _resync_one)
 
 
 def register(socketio, manager):
@@ -183,8 +205,12 @@ def register(socketio, manager):
 
 
 # ---- director ticker (turn timer + bot) -------------------------------------
-# Per-room bot scheduling: room_code -> float (earliest time to act).
-# Only populated for solo rooms; never touches group rooms.
+# Bot scheduling: (room_code, bot_id) -> float (earliest time to act).
+#
+# Keyed per bot rather than per room. With one bot per room the two were
+# equivalent, but a host can now seat up to five, and a room-wide key would let
+# one bot inherit another's deadline — so the second bot in a rotation would act
+# on the leftover schedule of the first instead of taking its own thinking time.
 _bot_act_at: dict = {}
 
 
@@ -195,9 +221,11 @@ def _tick_room(socketio, room):
     if cur is None:
         return
 
-    # ---- single-player bot branch (only when it is the bot's turn) ----
+    # ---- bot branch (only when it is a bot's turn) ----
     cur_player = room.players.get(cur)
     if cur_player and cur_player.is_bot:
+        if not director.bots_should_act(room):
+            return  # nobody left to play for — see director.bots_should_act
         _tick_bot(socketio, room, cur)
         return  # bot handles everything; skip human timeout logic
 
@@ -259,33 +287,36 @@ def _tick_room(socketio, room):
     socketio.emit("table_state", room.public_round_state(), to=code)
 
 
-# ---- single-player bot logic ------------------------------------------------
-# SINGLE-PLAYER MODE ONLY — this function is never reached in group rooms.
+# ---- computer-player logic --------------------------------------------------
+# Reached whenever a bot holds the turn, in any room. A host can seat bots
+# alongside real players from the lobby, so this is no longer solo-only.
 
 def _tick_bot(socketio, room, bot_id: str):
-    """Drive Suryavanshi's turn with a human-feel random delay."""
+    """Drive one bot's turn with a human-feel random delay."""
     from game.super_seven.ai import decide_move, bot_delay
     from game.super_seven.rules import infer_action
 
     code = room.code
     now = time.time()
 
+    key = (code, bot_id)
+
     # Clear any stale schedule if the room is no longer in a playable state.
     if room.state != STATE_IN_TURN:
-        _bot_act_at.pop(code, None)
+        _bot_act_at.pop(key, None)
         return
 
     # Schedule the bot's action if not already scheduled.
-    if code not in _bot_act_at:
-        _bot_act_at[code] = now + bot_delay()
+    if key not in _bot_act_at:
+        _bot_act_at[key] = now + bot_delay()
         return
 
     # Not yet time to act.
-    if now < _bot_act_at[code]:
+    if now < _bot_act_at[key]:
         return
 
     # Time to act — clear the schedule entry so the next step re-schedules.
-    del _bot_act_at[code]
+    del _bot_act_at[key]
 
     move = decide_move(room, bot_id)
     if move is None:
@@ -342,7 +373,7 @@ def _tick_bot(socketio, room, bot_id: str):
 
     # If the throw owed a draw, schedule the draw separately.
     if owes_draw:
-        _bot_act_at[code] = time.time() + bot_delay()
+        _bot_act_at[(code, bot_id)] = time.time() + bot_delay()
 
 
 # Register this variant's ticker at import time so the director dispatches
