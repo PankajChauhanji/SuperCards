@@ -107,6 +107,12 @@ for key in sorted(games):
           "%s registers a presenter dealer (or the deal reaches nobody)" % tag)
     check(key in director._TICKERS,
           "%s registers a director ticker (or turns never time out)" % tag)
+    # Without this the shared reconnect path has nothing to call, and a player
+    # who drops mid-game comes back to a table that never repaints — the exact
+    # failure that went unnoticed in Super 4, because the lobby used to fall back
+    # to Super Seven's event names for every game.
+    check(key in presenter._RESYNCERS,
+          "%s registers a resync hook (or reconnecting shows a stale table)" % tag)
     check(key in audience._ORACLES,
           "%s registers a visibility oracle (or the leak guard is blind)" % tag)
 
