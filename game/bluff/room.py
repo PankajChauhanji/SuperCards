@@ -6,7 +6,7 @@ import time
 import random
 from typing import Dict, List, Optional
 
-from game.bluff.settings import MAX_PLAYERS
+from game.bluff.settings import MAX_PLAYERS, PODIUM_PLACES
 from game.core.player import Player
 from game.core.cards import shuffled_deck, rank_code
 
@@ -46,6 +46,10 @@ class Room:
         self.game_over = False
         self.winner: Optional[str] = None
         self.is_showing = False
+        # User ids in the order they shed their last card, i.e. finishing places:
+        # index 0 is 1st, index 1 is 2nd, and so on. Bluff has no score, so this
+        # IS the ranking — see standings() and settings.PODIUM_PLACES.
+        self.finish_order: List[str] = []
 
     # ---- registration / attachment ----
     def register_player(self, user_id: str, name: str) -> Player:
@@ -113,20 +117,18 @@ class Room:
             self.migrate_host()
 
         if in_play:
-            active = [u for u in self.turn_order if not self.players[u].eliminated]
-            if len(active) <= 1:
-                self.game_over = True
-                self.winner = active[0] if active else None
-                self.state = STATE_GAME_END
+            # A quit can settle the game by leaving nobody to race. Routed
+            # through the same check as a normal finish so there is one
+            # definition of "the game is over" and one of who won.
+            self._maybe_end_game()
 
     def _skip_to_playable(self) -> None:
-        """Advance turn_index to the next non-eliminated player (no side effects)."""
+        """Advance turn_index to the next player still in the race (no side effects)."""
         n = len(self.turn_order)
         if n == 0:
             return
         for _ in range(n):
-            p = self.players.get(self.turn_order[self.turn_index % n])
-            if p and not p.eliminated:
+            if not self._out_of_play(self.turn_order[self.turn_index % n]):
                 self.turn_index %= n
                 return
             self.turn_index = (self.turn_index + 1) % n
@@ -177,6 +179,7 @@ class Room:
         self.pass_count = 0
         self.dead_pile = []
 
+        self.finish_order = []
         self.turn_order = active
         self.turn_index = (self.start_offset % len(active)) if active else 0
         self.start_offset += 1
@@ -205,19 +208,61 @@ class Room:
             cards.append(card)
         return cards
 
-    def _check_potential_winner(self) -> bool:
-        """If someone has an empty hand and they are NOT the last_play (meaning the window to challenge them has passed), they win."""
+    # ---- finishing places ------------------------------------------------
+    def is_finished(self, user_id: str) -> bool:
+        """True once this player has shed their last card and survived the show."""
+        return user_id in self.finish_order
+
+    def _out_of_play(self, user_id: str) -> bool:
+        """Finished or removed — either way, no longer takes turns."""
+        player = self.players.get(user_id)
+        return player is None or player.eliminated or self.is_finished(user_id)
+
+    def still_holding(self) -> List[str]:
+        """Players still in the race: not finished, not removed."""
+        return [u for u in self.turn_order if not self._out_of_play(u)]
+
+    def _confirm_finishers(self) -> bool:
+        """Bank the place of anyone whose empty hand has survived the challenge.
+
+        An empty hand is not a finish on its own: under the same-rank rules the
+        next player may still call Show on that last play, and a caught bluffer
+        picks the pile back up. So a player is only out once an action has
+        happened after theirs — which is exactly "they are no longer last_play".
+
+        Returns True if the game ended as a result.
+        """
         if not self.last_play:
-            return False
-        
+            return self.game_over
+
         last_actor_id = self.last_play["user_id"]
         for uid in self.turn_order:
-            if not self.players[uid].hand and uid != last_actor_id:
-                self.winner = uid
-                self.game_over = True
-                self.state = STATE_GAME_END
-                return True
-        return False
+            player = self.players.get(uid)
+            if player is None or player.eliminated or self.is_finished(uid):
+                continue
+            if not player.hand and uid != last_actor_id:
+                self.finish_order.append(uid)
+
+        return self._maybe_end_game()
+
+    def _maybe_end_game(self) -> bool:
+        """End the game once the result is decided. Returns True if it ended.
+
+        Two ways it is decided, whichever comes first:
+          * the podium is full — the places worth playing for are settled;
+          * at most one player is still holding cards — there is no race left,
+            which is what ends a 2- or 3-player table before the podium binds.
+        """
+        if self.game_over:
+            return True
+        if len(self.finish_order) < PODIUM_PLACES and len(self.still_holding()) > 1:
+            return False
+
+        self.game_over = True
+        self.state = STATE_GAME_END
+        ranked = self.standings()
+        self.winner = ranked[0]["user_id"] if ranked else None
+        return True
 
     def apply_play(self, user_id: str, cards: List, declared_rank: str) -> None:
         """Player throws cards, claiming they match declared_rank."""
@@ -237,8 +282,9 @@ class Room:
         }
         self.pass_count = 0
 
-        # If a previous player had 0 cards and it wasn't challenged just now, they win!
-        if self._check_potential_winner():
+        # A player whose hand emptied on an earlier turn is now safe from the
+        # challenge, so their place is banked here — and the game may be over.
+        if self._confirm_finishers():
             return
 
         self.advance_turn()
@@ -247,20 +293,32 @@ class Room:
         """Player passes. If pass_count hits (active_count - 1), clear table."""
         self.pass_count += 1
         
-        # If someone else had 0 cards, they just won because the turn passed without a challenge
-        if self._check_potential_winner():
+        # A pass is also an action, so it too closes the challenge window on
+        # whoever played last.
+        if self._confirm_finishers():
             return
 
         # If everyone passed back to the last player who played, clear the table.
-        active_count = len([u for u in self.turn_order if not self.players[u].eliminated])
+        # Counted against players who can still act: a finished player never
+        # passes, so including them would mean the pile could never be swept.
+        active_count = len(self.still_holding())
         if self.pass_count >= active_count - 1 and self.last_play:
             last_actor = self.last_play["user_id"]
             if not self.players[last_actor].hand:
-                self.winner = last_actor
-                self.game_over = True
-                self.state = STATE_GAME_END
+                # Everyone declined to challenge their last play: their place is
+                # banked, and the pile they left goes out of the game with them.
+                if not self.is_finished(last_actor):
+                    self.finish_order.append(last_actor)
+                self.dead_pile.extend(self.center_pile)
+                self.center_pile = []
+                self.target_rank = None
+                self.last_play = None
+                self.pass_count = 0
+                if self._maybe_end_game():
+                    return
+                self.advance_turn()
                 return
-                
+
             self.dead_pile.extend(self.center_pile)
             self.center_pile = []
             self.target_rank = None
@@ -309,18 +367,42 @@ class Room:
         self.pass_count = 0
         self.last_play = None
 
+        # A challenge is the strongest confirmation there is: whoever is left
+        # holding nothing after it has survived the only thing that could have
+        # given them cards back, so their place is banked here rather than
+        # waiting for a later action. Doing it now also keeps the turn off a
+        # player with no cards, which would otherwise stall the round — the
+        # defender who truthfully played their last cards is exactly that case.
+        for uid in self.turn_order:
+            player = self.players.get(uid)
+            if player is None or player.eliminated or self.is_finished(uid):
+                continue
+            if not player.hand:
+                self.finish_order.append(uid)
+        if self._maybe_end_game():
+            return
+
         self.turn_index = self.turn_order.index(winner_id)
         self.turn_start_ts = time.time()
+        # The winner of the show leads the next round — unless they were the one
+        # who just went out, in which case it moves on.
+        if self._out_of_play(winner_id):
+            self.advance_turn()
 
     def advance_turn(self) -> None:
+        """Hand the turn to the next player still holding cards.
+
+        A player who has finished keeps their seat on the table but is skipped
+        here — they have nothing left to play, and asking them to pass would
+        stall the round for everyone behind them.
+        """
         n = len(self.turn_order)
         if n == 0:
             return
-        
+
         for _ in range(n):
             self.turn_index = (self.turn_index + 1) % n
-            player = self.players.get(self.turn_order[self.turn_index])
-            if player and not player.eliminated:
+            if not self._out_of_play(self.turn_order[self.turn_index]):
                 self.turn_start_ts = time.time()
                 return
 
@@ -358,6 +440,11 @@ class Room:
             "last_play": last_play_pub,
             "pass_count": self.pass_count,
             "turn_seconds_left": self.turn_seconds_left(),
+            # Carried in the public state rather than announced as a one-shot
+            # event: a client that missed the announcement would show a finished
+            # player as still playing until it reloaded, and state survives a
+            # resync where an event does not (see sockets/sync.py).
+            "finish_order": list(self.finish_order),
             "players": self.public_players(),
         }
 
@@ -372,15 +459,10 @@ class Room:
 
         if removed:
             player.eliminated = True
-            
-            # Check win condition if people are removed
-            active = [u for u in self.turn_order if not self.players[u].eliminated]
-            if len(active) <= 1:
-                self.game_over = True
-                self.winner = active[0] if active else None
-                self.state = STATE_GAME_END
-                
-            self.advance_turn()
+            # Removing a player can leave too few to race on — same check as a
+            # normal finish.
+            if not self._maybe_end_game():
+                self.advance_turn()
             self._migrate_host_if_eliminated()
         else:
             # Auto-pass
@@ -404,10 +486,60 @@ class Room:
         # Random candidate since there's no score to optimize
         self.host_id = candidates[0].user_id
 
+    def standings(self) -> List[dict]:
+        """Final table, best first.
+
+        Bluff scores nothing, so the ranking has two tiers and they are not
+        comparable to each other:
+
+          * players who went out, in the order they did it — that order is the
+            whole point of the game;
+          * everyone still holding cards, fewest first. Cards held, not their
+            face values: in Bluff a card is a card, and the player one turn from
+            going out is doing better than the one nursing a dozen, however
+            those dozen happen to add up.
+
+        Ties among the unfinished keep turn order, so the result is stable and
+        two players on the same count do not swap places between renders.
+        """
+        rows = []
+        for place, uid in enumerate(self.finish_order, start=1):
+            player = self.players.get(uid)
+            if player is None:
+                continue
+            rows.append({
+                "user_id": uid,
+                "name": player.name,
+                "cards_left": 0,
+                "finished": True,
+                "place": place,
+                "eliminated": player.eliminated,
+            })
+
+        remaining = [
+            self.players[u] for u in self.turn_order
+            if u not in self.finish_order and u in self.players
+        ]
+        # Removed players rank below everyone still in the race, however few
+        # cards they happened to be holding when they were taken out.
+        remaining.sort(key=lambda p: (p.eliminated, len(p.hand)))
+        for offset, player in enumerate(remaining):
+            rows.append({
+                "user_id": player.user_id,
+                "name": player.name,
+                "cards_left": len(player.hand),
+                "finished": False,
+                "place": len(self.finish_order) + offset + 1,
+                "eliminated": player.eliminated,
+            })
+        return rows
+
     def game_end_payload(self) -> dict:
         return {
             "winner": self.winner,
             "winner_name": self.players[self.winner].name if self.winner else None,
+            "standings": self.standings(),
+            "finish_order": list(self.finish_order),
             "players": self.public_players(),
             "host_id": self.host_id,
         }
@@ -422,6 +554,7 @@ class Room:
             p.timeout_count = 0
             p.is_spectator = False
             p.pending_join = False
+        self.finish_order = []
         self.state = STATE_LOBBY
         self.round_number = 0
         self.start_offset = 0
