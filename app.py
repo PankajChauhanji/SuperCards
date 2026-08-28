@@ -19,7 +19,7 @@ from flask import Flask, render_template, redirect, url_for, send_from_directory
 from flask_socketio import SocketIO
 
 import config
-from game.core import registry
+from game.core import bots, registry
 from game.core.manager import RoomManager
 from sockets import register_handlers
 
@@ -136,6 +136,12 @@ def room(code):
         code=code,
         game_type=game_room.game_type,
         display_name=spec.display_name if spec else game_room.game_type,
+        # The bot roster is static platform data, so it is injected with the page
+        # rather than repeated in every state broadcast. The server still
+        # validates whatever the client sends back — see sockets/lobby.py.
+        bot_roster=bots.public_roster(),
+        max_bots=bots.MAX_BOTS,
+        max_players=spec.max_players if spec else 0,
     )
 
 
