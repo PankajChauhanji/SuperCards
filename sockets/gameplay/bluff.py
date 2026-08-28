@@ -25,8 +25,25 @@ def _refresh_public(room):
     else:
         emit("table_state", room.public_round_state(), to=room.code)
 
+def _resync_one(room, user_id):
+    """Send one player the complete current state (see presenter.register_resync).
+
+    Bluff is a single race to an empty hand, so it has no ROUND_END branch —
+    it goes straight from in-round to STATE_GAME_END.
+    """
+    player = room.players.get(user_id)
+    if not player or not player.sid:
+        return
+    if room.in_round():
+        emit("round_start", room.public_round_state(), to=player.sid)
+        _deal_private(room, user_id)
+    elif room.state == STATE_GAME_END:
+        emit("game_end", room.game_end_payload(), to=player.sid)
+
+
 presenter.register(GAME, _deal_private)
 presenter.register_refresh(GAME, _refresh_public)
+presenter.register_resync(GAME, _resync_one)
 
 def register(socketio, manager):
 
@@ -129,6 +146,15 @@ def register(socketio, manager):
         if loser and loser.connected and loser.sid:
             socketio.emit("your_hand", {"cards": room.hand_for(loser_id)}, to=loser.sid)
 
+        # A challenge can settle the game outright: a defender who truthfully
+        # played their last cards is out the moment the show resolves, and that
+        # can be the finish that fills the podium. Every other action path
+        # already checked this; without it here the room would sit in
+        # STATE_GAME_END while the clients were only told the table changed.
+        if room.state == STATE_GAME_END:
+            socketio.emit("game_end", room.game_end_payload(), to=room.code)
+            return
+
         socketio.emit("table_state", room.public_round_state(), to=room.code)
 
     @socketio.on("bluff_next_round")
@@ -151,6 +177,9 @@ def register(socketio, manager):
         _deal_private(room)
 
 
+# Bot scheduling: (room_code, bot_id) -> float (earliest time to act). Keyed per
+# bot because a room may now hold several — see sockets/gameplay/super_seven.py
+# for the failure a room-wide key allows.
 _bot_act_at: dict = {}
 
 def _tick_room(socketio, room):
@@ -164,11 +193,15 @@ def _tick_room(socketio, room):
 
     cur_player = room.players.get(cur)
     if cur_player and cur_player.is_bot:
+        if not director.bots_should_act(room):
+            return  # nobody left to play for — see director.bots_should_act
         _tick_bot(socketio, room, cur)
         return
 
-    if code in _bot_act_at:
-        _bot_act_at.pop(code, None)
+    # Turn moved to a human: drop every bot schedule for this room so none of
+    # them carries a stale deadline into its next turn.
+    for stale in [k for k in _bot_act_at if k[0] == code]:
+        _bot_act_at.pop(stale, None)
 
     if not room.is_timed_out():
         return
@@ -205,18 +238,20 @@ def _tick_bot(socketio, room, bot_id: str):
     code = room.code
     now = time.time()
 
+    key = (code, bot_id)
+
     if room.state == STATE_GAME_END:
-        _bot_act_at.pop(code, None)
+        _bot_act_at.pop(key, None)
         return
 
-    if code not in _bot_act_at:
-        _bot_act_at[code] = now + bot_delay()
+    if key not in _bot_act_at:
+        _bot_act_at[key] = now + bot_delay()
         return
 
-    if now < _bot_act_at[code]:
+    if now < _bot_act_at[key]:
         return
 
-    del _bot_act_at[code]
+    del _bot_act_at[key]
 
     move = decide_move(room, bot_id)
     
