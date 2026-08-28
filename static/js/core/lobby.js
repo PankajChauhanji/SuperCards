@@ -5,7 +5,8 @@
 //     window.SS.Lobby.init({ youId, fields })   // once, with its settings schema
 //     window.SS.Lobby.render(view)              // on every roster/settings change
 // and this module owns the Players/Settings tabs, the roster (with host-only
-// kick), the settings panel (host-editable or read-only), and the Start control.
+// kick), the settings panel (host-editable or read-only), the Add-bot control,
+// and the Start control.
 //
 // `fields` is an array of { key, label, min?, max? }. `view` supplies
 // { players, hostId, settings } (the game's own live view object).
@@ -85,15 +86,18 @@
       if (p.user_id === view.hostId) tags.appendChild(badge("Host", "host"));
       if (p.user_id === youId) tags.appendChild(badge("You", "you"));
       if (p.is_bot) tags.appendChild(badge("Bot", "you"));
-      // Host may remove anyone but themselves and the bot.
-      if (isHost && p.user_id !== youId && !p.is_bot) {
+      // Host may remove anyone but themselves — including a bot they seated,
+      // which is the only way to undo an Add-bot before the game starts.
+      if (isHost && p.user_id !== youId) {
         const kick = document.createElement("button");
         kick.className = "kick-btn";
         kick.setAttribute("aria-label", "Remove " + p.name);
         kick.title = "Remove " + p.name;
         kick.innerHTML = "&#10005;";
         kick.addEventListener("click", () => {
-          if (confirm("Remove " + p.name + " from the room?")) {
+          // No confirm for a bot: seating one is a click, so removing one should
+          // be too. Removing a person is not undoable for them, so that keeps it.
+          if (p.is_bot || confirm("Remove " + p.name + " from the room?")) {
             socket.emit("kick_player", { code, user_id: youId, target: p.user_id });
           }
         });
@@ -169,11 +173,111 @@
     });
   }
 
+  // ---- add bot ----
+  // A computer player can be seated in any room, not just a solo one: three
+  // friends and two bots is a better game than three friends alone. The roster
+  // and the caps are injected with the page (see app.py) because they are static
+  // platform data; the server re-checks everything the picker sends.
+  const ROSTER = window.BOT_ROSTER || [];
+  const MAX_BOTS = window.MAX_BOTS || 0;
+  const MAX_PLAYERS = window.MAX_PLAYERS || 0;
+
+  function botCount(view) {
+    return view.players.filter((p) => p.is_bot).length;
+  }
+
+  /* Why the host cannot add one right now, or "" if they can. Returned as the
+     reason rather than a boolean so the button can say what is wrong instead of
+     being mysteriously dead. */
+  function addBotBlockedBecause(view) {
+    if (!ROSTER.length) return "Computer players are unavailable";
+    if (MAX_PLAYERS && view.players.length >= MAX_PLAYERS) return "The table is full";
+    if (botCount(view) >= MAX_BOTS) return "Max " + MAX_BOTS + " computer players";
+    return "";
+  }
+
+  function closeBotPicker() {
+    const menu = $("bot-picker");
+    if (menu) menu.remove();
+  }
+
+  function openBotPicker(anchor, view) {
+    closeBotPicker();
+    const seated = new Set(view.players.map((p) => p.name));
+    const menu = document.createElement("div");
+    menu.className = "bot-picker";
+    menu.id = "bot-picker";
+    menu.setAttribute("role", "menu");
+
+    ROSTER.forEach((bot) => {
+      const opt = document.createElement("button");
+      opt.type = "button";
+      opt.className = "bot-opt";
+      opt.setAttribute("role", "menuitem");
+      opt.innerHTML =
+        '<span class="bot-face" aria-hidden="true">' + (bot.gender === "f" ? "&#128105;" : "&#128104;") + "</span>" +
+        '<span class="bot-name"></span>';
+      opt.querySelector(".bot-name").textContent = bot.name;
+      /* Already at the table? Still selectable — the cap is five and the roster
+         is four, so a name has to be reusable. The server numbers the repeat. */
+      if (seated.has(bot.name)) {
+        const tag = document.createElement("span");
+        tag.className = "bot-seated";
+        tag.textContent = "seated";
+        opt.appendChild(tag);
+      }
+      opt.addEventListener("click", (e) => {
+        e.stopPropagation();
+        socket.emit("add_bot", { code, user_id: youId, bot: bot.key });
+        closeBotPicker();
+      });
+      menu.appendChild(opt);
+    });
+
+    anchor.parentNode.appendChild(menu);
+    /* One-shot dismissal, so the picker never outlives the click that opened it. */
+    setTimeout(() => document.addEventListener("click", closeBotPicker, { once: true }), 0);
+  }
+
+  function renderAddBot(view, startRow) {
+    if (view.hostId !== youId || !ROSTER.length) return;
+    const wrap = document.createElement("div");
+    wrap.className = "add-bot-wrap";
+
+    const btn = document.createElement("button");
+    btn.className = "btn-ghost add-bot-btn";
+    btn.id = "add-bot-btn";
+    const blocked = addBotBlockedBecause(view);
+    btn.textContent = "+ Add bot";
+    if (blocked) {
+      btn.disabled = true;
+      btn.title = blocked;
+    } else {
+      btn.title = "Seat a computer player";
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if ($("bot-picker")) { closeBotPicker(); return; }
+        openBotPicker(btn, view);
+      });
+    }
+    wrap.appendChild(btn);
+
+    const note = document.createElement("span");
+    note.className = "add-bot-note";
+    const n = botCount(view);
+    note.textContent = blocked || (n ? n + " of " + MAX_BOTS + " bots" : "");
+    wrap.appendChild(note);
+
+    startRow.appendChild(wrap);
+  }
+
   // ---- start / waiting ----
   function renderStart(view) {
     const startRow = $("start-row");
     if (!startRow) return;
+    closeBotPicker();
     startRow.innerHTML = "";
+    renderAddBot(view, startRow);
     if (view.hostId === youId) {
       const btn = document.createElement("button");
       btn.className = "btn-primary";
