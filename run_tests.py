@@ -30,12 +30,14 @@ would make the next run test stale code (and ``app.py`` refuses to start into an
 occupied port).
 """
 import argparse
+import collections
 import os
 import re
 import runpy
 import signal
 import socket
 import subprocess
+import threading
 import sys
 import time
 
@@ -200,6 +202,16 @@ class TestServer:
         self.port = port
         self.proc = None
         self.log = ""
+        # The server's stdout is a pipe, and a pipe nobody reads fills up: at
+        # ~64KB the OS blocks the writer, which here means the *game server*
+        # freezes mid-run holding every client. It cost a full afternoon to find,
+        # because the only symptom is that whichever socket test happens to run
+        # last stops receiving events — so it read as a flaky test rather than a
+        # wedged server. Drained continuously by a daemon thread into a bounded
+        # buffer: the server can never block, and the tail is still there to
+        # print if the boot fails.
+        self._lines = collections.deque(maxlen=500)
+        self._drain = None
 
     def start(self) -> bool:
         if port_open(self.port):
@@ -228,14 +240,16 @@ class TestServer:
             # Own process group, so stop() can signal any children eventlet spawns.
             start_new_session=True,
         )
+        self._drain = threading.Thread(target=self._pump, daemon=True)
+        self._drain.start()
 
         deadline = time.time() + BOOT_TIMEOUT
         while time.time() < deadline:
             if self.proc.poll() is not None:
-                out, _ = self.proc.communicate(timeout=5)
+                self._drain.join(timeout=5)
                 print("%s%sERROR%s test server exited during boot (code %s):"
                       % (BOLD, RED, RESET, self.proc.returncode))
-                print(_tail(out or ""))
+                print(_tail("\n".join(self._lines)))
                 return False
             if port_open(self.port):
                 # Accepting TCP is not the same as serving Flask; wait for a real
@@ -249,6 +263,21 @@ class TestServer:
               % (BOLD, RED, RESET, self.port, BOOT_TIMEOUT))
         self.stop()
         return False
+
+    def _pump(self) -> None:
+        """Read the server's output for as long as it runs, keeping only the tail."""
+        stream = self.proc.stdout
+        if stream is None:
+            return
+        try:
+            for line in stream:
+                self._lines.append(line.rstrip("\n"))
+        except (ValueError, OSError):
+            pass  # stream closed under us during shutdown — nothing to salvage
+
+    def tail(self, lines: int = 18) -> str:
+        """The end of the server's own log, for diagnosing a failed run."""
+        return _tail("\n".join(self._lines), lines)
 
     def stop(self) -> None:
         """SIGTERM, then SIGKILL, then verify the port is actually free."""
