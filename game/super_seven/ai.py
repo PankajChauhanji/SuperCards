@@ -1,8 +1,10 @@
-"""AI move logic — SINGLE-PLAYER MODE ONLY.
+"""AI move logic for a computer player.
 
-This module is only imported / called by the bot-turn branch in
-sockets/director.py.  Nothing in the normal multiplayer path touches it,
-so it cannot break group games even if it raises an exception.
+Called from the bot-turn branch of sockets/gameplay/super_seven.py whenever a bot
+holds the turn. That used to mean single-player rooms only; a host can now seat
+bots alongside real people (game/core/bots.py), so this runs in group games too.
+It is still stateless — every decision is derived from (room, bot_id) — which is
+what lets several bots share it at one table without interfering.
 
 Strategy (roughly human-skill):
   1. No-draw combos (Set / Sequence) — shed the most cards with no draw.
@@ -14,10 +16,12 @@ Strategy (roughly human-skill):
 Stop-calling:
   Call Stop only when ALL of:
     • first orbit is complete
+    • bot itself is not already safe
     • bot's hand total ≤ BOT_STOP_THRESHOLD
-    • no opponent is already safe (safe = 0 pts, can't be beaten)
-    • bot's total is strictly less than the opponent's *current* hand total
-      (defensive — never risk the penalty if it could be a tie)
+    • bot's total is strictly less than *every* contesting opponent's current
+      hand total (defensive — never risk the penalty if it could be a tie)
+  Safe and eliminated players are skipped in that comparison because they are out
+  of the Stop race for the round; this holds for a table of two or of twenty.
 
 Randomised delay (human-feel):
   The caller (director) waits BOT_THINK_MIN .. BOT_THINK_MAX seconds before
