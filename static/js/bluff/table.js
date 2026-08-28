@@ -44,11 +44,25 @@
     return b;
   }
 
+  const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
+
   function renderScoreboard(state) {
     const list = document.getElementById("score-list");
     list.innerHTML = "";
     const activePlayers = state.players.filter(p => !p.is_spectator);
-    const ordered = activePlayers.slice().sort((a, b) => (a.eliminated - b.eliminated));
+    // Bluff's standing is its finishing order, then fewest cards left — the same
+    // ranking the podium uses, so the panel and the final screen agree.
+    const finished = state.finishOrder || [];
+    const placeOf = (p) => finished.indexOf(p.user_id);
+    const ordered = activePlayers.slice().sort((a, b) => {
+      const pa = placeOf(a), pb = placeOf(b);
+      if (pa !== -1 || pb !== -1) {
+        if (pa === -1) return 1;
+        if (pb === -1) return -1;
+        return pa - pb;
+      }
+      return (a.eliminated - b.eliminated) || ((a.card_count || 0) - (b.card_count || 0));
+    });
 
     ordered.forEach((p) => {
       const li = document.createElement("li");
@@ -76,6 +90,19 @@
       if (p.user_id === state.you) { const y = document.createElement("span"); y.className = "sb-you"; y.textContent = "you"; left.appendChild(y); }
 
       li.appendChild(left);
+      // Right-hand column: the place if they are out, otherwise how close they
+      // are to being out. Without this the panel showed names and nothing else,
+      // which said nothing about who was winning.
+      const place = placeOf(p);
+      const right = document.createElement("span");
+      right.className = "sb-score" + (place !== -1 ? " sb-place" : " sb-cards");
+      // Written out rather than drawn with a card glyph: the deck rewrite (§15)
+      // found that Unicode playing-card characters resolve to whatever font the
+      // viewer happens to have, or to a colour emoji, or to a tofu box.
+      right.textContent = place !== -1
+        ? (ORDINALS[place] || (place + 1) + "th")
+        : (p.card_count || 0) + (p.card_count === 1 ? " card" : " cards");
+      li.appendChild(right);
       list.appendChild(li);
     });
   }
