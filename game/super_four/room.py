@@ -689,6 +689,26 @@ class Room:
         lows = [uid for uid, s in contenders.items() if s == low]
         return lows[0] if len(lows) == 1 else None
 
+    def standings(self) -> List[dict]:
+        """Final table, best first: survivors before the eliminated, lowest total wins.
+
+        Same shape and same rule as Super Seven's, because both games rank on a
+        cumulative score where lower is better — so the shared winner screen can
+        render either without knowing which game it is looking at.
+        """
+        rows = [
+            {
+                "user_id": p.user_id,
+                "name": p.name,
+                "total_score": p.total_score,
+                "eliminated": p.eliminated,
+            }
+            for p in self.players.values()
+            if not p.is_spectator
+        ]
+        rows.sort(key=lambda r: (r["eliminated"], r["total_score"]))
+        return rows
+
     def round_end_payload(self, result=None) -> dict:
         result = result or self.last_result or {}
         reveal = {
@@ -707,6 +727,7 @@ class Room:
             "rounds": int(self.settings.get("rounds", 5)),
             "game_over": self.game_over,
             "winner": self.winner,
+            "standings": self.standings(),
             "state": self.state,
             "players": self.public_players(),
         }
