@@ -21,14 +21,15 @@ def register(socketio, manager):
 
     @socketio.on("client_ping")
     def on_client_ping(_data=None):
-        """Acknowledge a liveness probe. Deliberately touches no room state.
+        """Acknowledge a bare liveness probe, for clients running older JS.
 
-        A phone returning from the background holds a socket the CLIENT still
-        believes is open — `socket.connected` is true while the transport is
-        already dead. The client cannot detect that locally at all, so it asks
-        instead: an ack that never arrives means the socket is a zombie and has to
-        be torn down and rebuilt. Without this the player looks online to their own
-        screen and offline to everyone else until a full page reload.
+        Superseded by ``client_sync`` (sockets/sync.py), which answers the same
+        question and also reports whether the client's state is current. This
+        stays because the service worker serves JavaScript stale-while-revalidate:
+        for one page load after a deploy, a returning player is still running the
+        previous bundle. If that bundle's probe went unanswered it would conclude
+        its socket was dead and rebuild it on a loop — the failure it was written
+        to prevent. Removable once no deployed client emits it.
         """
         return {"ok": True}
 
