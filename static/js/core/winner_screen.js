@@ -55,7 +55,7 @@
     );
   }
 
-  function buildPlace(row, rank, isWinner) {
+  function buildPlace(row, rank, isWinner, scoreText) {
     const tier = TIERS[Math.min(rank, MAX_PODIUM)];
     const el = document.createElement("div");
     el.className = "winner-place " + tier.cls;
@@ -66,7 +66,7 @@
       '<div class="winner-p-score"></div>' +
       '<div class="winner-riser"><span class="winner-rank-num">' + rank + "</span></div>";
     el.querySelector(".winner-p-name").textContent = row.name;
-    el.querySelector(".winner-p-score").textContent = row.total_score + " pts";
+    el.querySelector(".winner-p-score").textContent = scoreText(row);
     return el;
   }
 
@@ -91,8 +91,21 @@
     });
   }
 
-  // rows: [{user_id, name, total_score, eliminated}], already ranked (index 0 = winner).
-  function showWinnerScreen({ winnerId, rows, youId, isHost, onRematch }) {
+  // What a row says under the name. Super Seven and Super 4 both rank on a
+  // cumulative score, so points are the default; Bluff has no score at all and
+  // supplies its own (see static/js/bluff/game.js).
+  function defaultScoreText(row) {
+    return row.total_score + (Math.abs(row.total_score) === 1 ? " pt" : " pts");
+  }
+
+  // rows:      [{user_id, name, total_score, eliminated}], already ranked
+  //            (index 0 = the winner). A game may carry extra fields of its own
+  //            and read them back in its scoreText.
+  // subtitle:  one line under the title. Defaults to Super Seven's elimination
+  //            framing, which is wrong for a game that ends any other way, so
+  //            every variant should pass its own.
+  // scoreText: row -> string, for the podium and the overflow list.
+  function showWinnerScreen({ winnerId, rows, youId, isHost, onRematch, subtitle, scoreText }) {
     const modal = document.getElementById("winner-modal");
     const title = document.getElementById("winner-title");
     const sub = document.getElementById("winner-sub");
@@ -102,18 +115,26 @@
     const footer = document.getElementById("winner-footer");
     if (!modal) return;
 
-    const winnerName = (rows.find((r) => r.user_id === winnerId) || {}).name || "Nobody";
-    title.textContent = winnerName + " wins!";
-    sub.textContent = winnerId === youId
-      ? "You're the last one standing."
-      : "Last player standing takes the game.";
+    /* A game that ends with no ranked rows has nothing to show, and rendering an
+       empty podium reads as a broken screen. Guarding here rather than in each
+       bundle: this was exactly Bluff's bug — its payload carried no standings,
+       `rows.find` threw, and the modal never opened, so the game just sat there
+       with no way forward. */
+    const ranked = Array.isArray(rows) ? rows : [];
+    const say = typeof scoreText === "function" ? scoreText : defaultScoreText;
 
-    const podiumRows = rows.slice(0, MAX_PODIUM);
+    const winnerName = (ranked.find((r) => r.user_id === winnerId) || {}).name || "Nobody";
+    title.textContent = winnerName + " wins!";
+    sub.textContent = subtitle || (winnerId === youId
+      ? "You're the last one standing."
+      : "Last player standing takes the game.");
+
+    const podiumRows = ranked.slice(0, MAX_PODIUM);
     const order = podiumOrder(podiumRows.length);
     podiumRow.innerHTML = "";
     order.forEach((rank) => {
       const row = podiumRows[rank - 1];
-      const place = buildPlace(row, rank, row.user_id === winnerId);
+      const place = buildPlace(row, rank, row.user_id === winnerId, say);
       if (row.user_id === youId) {
         const badge = place.querySelector(".winner-you-badge");
         if (badge) badge.hidden = false;
@@ -122,12 +143,12 @@
     });
 
     overflow.innerHTML = "";
-    const rest = rows.slice(MAX_PODIUM);
+    const rest = ranked.slice(MAX_PODIUM);
     if (rest.length) {
       rest.forEach((row, i) => {
         const line = document.createElement("div");
         line.className = "winner-overflow-row";
-        line.textContent = (MAX_PODIUM + i + 1) + ". " + row.name + " — " + row.total_score + " pts";
+        line.textContent = (MAX_PODIUM + i + 1) + ". " + row.name + " — " + say(row);
         overflow.appendChild(line);
       });
     }
