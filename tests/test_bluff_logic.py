@@ -54,23 +54,59 @@ class TestBluffLogic(unittest.TestCase):
         self.assertEqual(len(self.room.dead_pile), 1)
         self.assertEqual(self.room.current_turn_id(), "u1")
 
-    def test_win_condition(self):
+    # Shedding your last card no longer ends the game — it banks a place, and the
+    # rest play on for the remaining ones. See game/bluff/settings.PODIUM_PLACES.
+    def test_going_out_banks_first_place_and_play_continues(self):
         self.room.players["u1"].hand = [Card(1, "S")]
         self.room.apply_play("u1", self.get_cards("u1", 1), "A")
-        self.assertFalse(self.room.game_over)
+        # Not out yet: u2 may still call Show on that last play.
+        self.assertEqual(self.room.finish_order, [])
         self.room.apply_play("u2", self.get_cards("u2", 1), "A")
-        self.assertTrue(self.room.game_over)
-        self.assertEqual(self.room.winner, "u1")
-        
-    def test_win_condition_by_pass(self):
+        # u2 acted without challenging, so u1's finish is confirmed…
+        self.assertEqual(self.room.finish_order, ["u1"])
+        # …but u2 and u3 are both still holding cards, so there is a race left.
+        self.assertFalse(self.room.game_over)
+        self.assertNotEqual(self.room.current_turn_id(), "u1")
+
+    def test_going_out_is_confirmed_by_a_full_pass_round(self):
         self.room.players["u1"].hand = [Card(1, "S")]
         self.room.apply_play("u1", self.get_cards("u1", 1), "A")
-        self.assertFalse(self.room.game_over)
         self.room.apply_pass("u2")
-        self.assertFalse(self.room.game_over)
+        self.assertEqual(self.room.finish_order, [])
         self.room.apply_pass("u3")
+        # Nobody challenged all the way round: u1 is out, and the pile they left
+        # is swept out of the game.
+        self.assertEqual(self.room.finish_order, ["u1"])
+        self.assertEqual(len(self.room.center_pile), 0)
+        self.assertFalse(self.room.game_over)
+
+    def test_game_ends_once_only_one_player_still_holds_cards(self):
+        self.room.players["u1"].hand = [Card(1, "S")]
+        self.room.players["u2"].hand = [Card(2, "S")]
+        self.room.apply_play("u1", self.get_cards("u1", 1), "A")
+        self.room.apply_play("u2", self.get_cards("u2", 1), "A")
+        self.room.apply_pass("u3")
+        self.assertEqual(self.room.finish_order, ["u1", "u2"])
         self.assertTrue(self.room.game_over)
+        self.assertEqual(self.room.state, STATE_GAME_END)
         self.assertEqual(self.room.winner, "u1")
+
+    def test_standings_rank_the_unfinished_by_cards_held(self):
+        self.room.players["u1"].hand = [Card(1, "S")]
+        self.room.players["u2"].hand = [Card(13, "S"), Card(13, "H")]   # 2 high cards
+        self.room.players["u3"].hand = [Card(2, "S")]                   # 1 low card
+        self.room.apply_play("u1", self.get_cards("u1", 1), "A")
+        self.room.apply_pass("u2")
+        self.room.apply_pass("u3")
+
+        rows = self.room.standings()
+        self.assertEqual([r["user_id"] for r in rows], ["u1", "u3", "u2"])
+        self.assertEqual([r["place"] for r in rows], [1, 2, 3])
+        self.assertTrue(rows[0]["finished"])
+        # Ranked on how many cards are left, not what they are worth: u3's single
+        # 2 beats u2's pair of Kings.
+        self.assertEqual(rows[1]["cards_left"], 1)
+        self.assertEqual(rows[2]["cards_left"], 2)
 
 if __name__ == '__main__':
     unittest.main()
