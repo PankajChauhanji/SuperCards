@@ -24,6 +24,23 @@ def register_ticker(game_type: str, fn) -> None:
     _TICKERS[game_type] = fn
 
 
+def bots_should_act(room) -> bool:
+    """False when nobody is connected to watch — every ticker's bot branch asks.
+
+    A host can seat up to five computer players (game/core/bots.py), so a room
+    whose humans have all gone can still be a full table of bots playing to an
+    empty seat. That room is already reapable (game/core/manager.py), so every
+    move until then is work no one will ever see — and this process has one
+    worker, so it is taken from rooms that do have people in them.
+
+    Deliberately gates the *bot* branch only. Pausing the human turn timer as
+    well would look tempting and be wrong: ``turn_start_ts`` would go stale while
+    the room idled, and the first player to reconnect would be timed out on
+    arrival for a turn they never got to take.
+    """
+    return room.any_human_connected()
+
+
 def register(socketio, manager):
     def loop():
         while True:
