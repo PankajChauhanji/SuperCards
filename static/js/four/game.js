@@ -45,6 +45,12 @@
   socket.on("connect", enter);
   // See core/connection.js: foreground resync, not just on `connect`.
   if (window.SS.onResync) window.SS.onResync(enter);
+  // Super 4 renders its own table and defines neither window.Table nor SS.view,
+  // so the shared repaint had no way to reach it — a deck change or a return to
+  // the foreground did nothing here until the page was reloaded.
+  if (window.SS.onRepaint) {
+    window.SS.onRepaint(() => { if (view.state === "IN_TURN") renderTable(); });
+  }
   if (socket.connected) enter();
 
   // ---- lobby / roster events (shared shape) ----
@@ -74,7 +80,9 @@
     if (d.settings) view.settings = d.settings;
     if (d.table_theme) { view.tableTheme = d.table_theme; syncTableTheme(); }
     view.known = {}; view.interaction = null; view.kingLook = null;
-    closeModal("roundend-modal"); sync(); showToast("New game — back to the lobby");
+    closeModal("roundend-modal");
+    if (window.SS.hideWinnerScreen) window.SS.hideWinnerScreen();
+    sync(); showToast("New game — back to the lobby");
   });
   socket.on("settings_updated", (d) => {
     if (d.settings) view.settings = d.settings;
@@ -115,9 +123,21 @@
     renderTable();
   });
   socket.on("s4_round_end", (d) => {
-    view.state = "ROUND_END"; view.secondsLeft = null;
+    view.state = d.state || "ROUND_END"; view.secondsLeft = null;
     if (d.players) view.players = d.players;
-    syncTimer(); showRoundEnd(d);
+    if (d.host_id) view.hostId = d.host_id;
+    syncTimer();
+    if (d.game_over) {
+      // The game is over: the medal stand, not another round-end table. The
+      // per-round reveal exists to explain one round's scoring; at the end the
+      // question is who won, which is what the podium answers — and it is the
+      // screen that carries Play again, which this game previously only offered
+      // buried in the round-end footer.
+      closeModal("roundend-modal");
+      showGameOver(d.winner, d.standings);
+    } else {
+      showRoundEnd(d);
+    }
   });
   socket.on("s4_timeout", (d) => {
     // Room-wide announcements come from the server; this is your personal note.
@@ -601,9 +621,7 @@
     const winners = d.winners || [];
     const winNames = winners.map(nameOf).join(", ");
 
-    if (d.game_over) {
-      title.textContent = d.winner ? "🏆 " + nameOf(d.winner) + " wins the game!" : "Game over — it's a tie!";
-    } else if (d.caller && d.caller_won) {
+    if (d.caller && d.caller_won) {
       title.textContent = nameOf(d.caller) + " called Stop and won!";
     } else if (d.caller) {
       title.textContent = nameOf(d.caller) + " called Stop and got caught!";
@@ -650,29 +668,33 @@
     html += "</table>";
     body.innerHTML = html;
 
+    // Game over is handled by the winner screen, so this footer only ever has
+    // to move the game to the next round.
     footer.innerHTML = "";
     if (youId === view.hostId) {
       const b = document.createElement("button"); b.className = "btn-primary";
-      if (d.game_over) {
-        b.textContent = "New game";
-        b.addEventListener("click", () => { socket.emit("rematch", { code, user_id: youId }); closeModal("roundend-modal"); });
-      } else {
-        b.textContent = "Next round";
-        b.addEventListener("click", () => { socket.emit("s4_next_round", { code, user_id: youId }); closeModal("roundend-modal"); });
-      }
+      b.textContent = "Next round";
+      b.addEventListener("click", () => { socket.emit("s4_next_round", { code, user_id: youId }); closeModal("roundend-modal"); });
       footer.appendChild(b);
     } else {
       const p = document.createElement("p"); p.className = "meta";
-      p.textContent = d.game_over ? "Waiting for the host to start a new game…" : "Waiting for the host…";
+      p.textContent = "Waiting for the host…";
       footer.appendChild(p);
     }
-    if (d.game_over) {
-      const home = document.createElement("button"); home.className = "btn-ghost";
-      home.textContent = "Home";
-      home.addEventListener("click", () => { window.location.href = "/"; });
-      footer.appendChild(home);
-    }
     openModal("roundend-modal");
+  }
+
+  function showGameOver(winnerId, rows) {
+    window.SS.showWinnerScreen({
+      winnerId,
+      rows,
+      youId,
+      isHost: youId === view.hostId,
+      onRematch: () => socket.emit("rematch", { code, user_id: youId }),
+      subtitle: winnerId === youId
+        ? "You finished on the lowest total."
+        : "Lowest total after every round takes the game.",
+    });
   }
 
   function penaltyPts() {
