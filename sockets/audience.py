@@ -120,15 +120,71 @@ def _check(event, payload, to):
         print("LEAK-GUARD: " + line, file=sys.stderr, flush=True)
 
 
+# ---- state version ------------------------------------------------------
+# Every room-wide broadcast is numbered, so a client can tell whether the
+# snapshot it is holding is the current one. The bookkeeping lives here for the
+# same reason the leak guard does: this is the single point every emit passes
+# through, so a broadcast physically cannot be added without being numbered.
+# sockets/sync.py reads the number back and repairs clients that have fallen
+# behind — see that module for the failure this exists for.
+
+# Reserved key on room-wide payloads. Terse and underscore-prefixed because it
+# rides along on every broadcast, and no game's own state uses this name.
+VERSION_KEY = "_v"
+
+
+def version(room) -> int:
+    """The room's current state version.
+
+    ``getattr`` with a default rather than a field on every Room class:
+    versioning is a platform concern, and a room restored from a snapshot taken
+    before it existed must still work.
+    """
+    return getattr(room, "state_version", 0)
+
+
+def _stamped(args, kwargs, to):
+    """Return the emit arguments with the payload carrying the next version.
+
+    Only room-wide payloads are numbered — a message addressed to one socket is
+    an answer to that socket, not a snapshot anyone can fall behind on.
+
+    This is the one place the module rewrites a payload, and deliberately so:
+    unlike the leak guard above, which must never alter what a game sends in
+    case the guard itself is wrong, the version is platform bookkeeping under a
+    reserved key, and it is written onto a copy.
+    """
+    if _manager is None or not isinstance(to, str):
+        return args
+    room = _manager.get_room(to)
+    if room is None:
+        return args
+
+    next_version = version(room) + 1
+    payload = args[0] if args else kwargs.get("data")
+    if not isinstance(payload, dict):
+        # Nothing to number, so nothing happened: leave the version alone rather
+        # than burning one and making every client think it missed a broadcast.
+        return args
+
+    room.state_version = next_version
+    stamped = {**payload, VERSION_KEY: next_version}
+    if args:
+        return (stamped,) + tuple(args[1:])
+    kwargs["data"] = stamped
+    return args
+
+
 def emit(event, *args, **kwargs):
-    """Drop-in for flask_socketio.emit, guarded.
+    """Drop-in for flask_socketio.emit, guarded and version-stamped.
 
     Handlers import this instead of flask_socketio's emit. A call with no ``to``
     goes to the requesting client only, which is private by construction.
     """
     payload = args[0] if args else kwargs.get("data")
-    _check(event, payload, kwargs.get("to") or kwargs.get("room"))
-    return flask_socketio.emit(event, *args, **kwargs)
+    to = kwargs.get("to") or kwargs.get("room")
+    _check(event, payload, to)
+    return flask_socketio.emit(event, *_stamped(args, kwargs, to), **kwargs)
 
 
 def install(socketio, manager) -> None:
@@ -142,8 +198,9 @@ def install(socketio, manager) -> None:
 
     def guarded_emit(event, *args, **kwargs):
         payload = args[0] if args else kwargs.get("data")
-        _check(event, payload, kwargs.get("to") or kwargs.get("room"))
-        return original(event, *args, **kwargs)
+        to = kwargs.get("to") or kwargs.get("room")
+        _check(event, payload, to)
+        return original(event, *_stamped(args, kwargs, to), **kwargs)
 
     socketio.emit = guarded_emit
     socketio._audience_guarded = True
