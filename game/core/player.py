@@ -29,7 +29,8 @@ class Player:
     sid: str = ""                # Socket.IO session id; changes on reconnect
     connected: bool = False
     color_index: int = 0         # stable per-player colour (assigned at join)
-    is_bot: bool = False         # single-player mode only; never True in group games
+    is_bot: bool = False         # a computer player: no socket, always "connected"
+                                 # (game/core/bots.py). Any room may hold several.
 
     # ---- scoring / lifecycle (all games) ----
     round_score: int = 0         # points this round
