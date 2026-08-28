@@ -35,3 +35,33 @@ def refresh(room) -> None:
     fn = _REFRESHERS.get(room.game_type)
     if fn is not None:
         fn(room)
+
+
+_RESYNCERS = {}
+
+
+def register_resync(game_type: str, fn) -> None:
+    """Register a per-game *complete state* send, addressed to one player.
+
+    This is the reconnect/resync contract, and it exists because the shared
+    layer must not know a variant's event vocabulary. ``sockets/lobby.py`` used
+    to hardcode Super Seven's names (``round_start`` / ``round_end`` /
+    ``game_end``) for every game — so a Super 4 client, whose bundle listens for
+    ``s4_state`` / ``s4_round_end``, received either an event it ignores or, at
+    STATE_ROUND_END, nothing at all. The result was a stale table that a full
+    page reload could not repair, because the reload took the same dead branch.
+
+    fn(room, user_id): emit everything that one player needs to repaint from
+    scratch — public state, their private view, and any round/game-end overlay.
+    It must be safe to call at any state and any number of times.
+    """
+    _RESYNCERS[game_type] = fn
+
+
+def resync(room, user_id: str) -> bool:
+    """Send one player the complete current state. False if the game has no hook."""
+    fn = _RESYNCERS.get(room.game_type)
+    if fn is None:
+        return False
+    fn(room, user_id)
+    return True
