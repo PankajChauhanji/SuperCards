@@ -71,6 +71,7 @@ The platform has grown beyond a single game and now serves as a home for multipl
     <p>A bluff-heavy game built around one locked rank per round and a constant tension between truth and deception.</p>
     <ul>
       <li><strong>Objective:</strong> be the first player to get rid of all your cards.</li>
+      <li><strong>Places:</strong> going out does not end the game — play continues for 2nd and 3rd, and anyone still holding cards is ranked by how few they have left.</li>
       <li><strong>Core mechanic:</strong> players declare a rank while placing cards face down and hope no one challenges them.</li>
       <li><strong>Drama:</strong> Show calls can flip the round instantly, turning an ordinary play into a bold gamble.</li>
     </ul>
@@ -89,6 +90,7 @@ The platform has grown beyond a single game and now serves as a home for multipl
 - Multiple game modes under one umbrella project
 - Custom-generated card art with in-house SVG assets
 - Reconnection and host-hand-off support for more reliable live sessions
+- Computer players the host can seat from the lobby (up to five) to fill out a short table
 
 ---
 
