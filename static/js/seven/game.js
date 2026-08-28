@@ -65,6 +65,9 @@
   // Returning to the foreground must re-attach too: a zombie socket fires no
   // `connect`, so this is what clears the "player is absent" state.
   if (window.SS.onResync) window.SS.onResync(enter);
+  // Repaint from state we already hold (deck swap, hand-view change, a viewport
+  // that resized while the page was frozen in the background).
+  if (window.SS.onRepaint) window.SS.onRepaint(() => Table.render(view));
   if (socket.connected) enter();
 
   // ---- server events ----
