@@ -222,6 +222,12 @@
 .sb-name { display: flex; align-items: center; gap: 0.4rem; min-width: 0; flex: 1 1 auto; overflow: hidden; }
 .sb-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .sb-score { flex: 0 0 auto; margin-left: 0.4rem; font-family: var(--display); font-weight: 600; color: var(--gold); }
+/* Bluff ranks on finishing place and cards held rather than a score. A banked
+   place is the achievement, so it keeps the gold; a live card count is ordinary
+   running state and steps back to muted, so the panel reads as "who is out"
+   at a glance instead of a wall of identical gold numbers. */
+.sb-cards { color: var(--muted); font-weight: 500; font-size: 0.82em; }
+.sb-place { letter-spacing: 0.02em; }
 .sb-you {
   flex: 0 0 auto; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em;
   color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
