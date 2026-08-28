@@ -784,6 +784,11 @@ from the majority to the minority.
 > Suite note: one socket test failed once during this work and passed on the next three runs,
 > with nothing in its output but the harmless "websocket-client package not installed" notice.
 > Treating it as a flake for now; worth watching rather than assuming it is gone.
+>
+> **Diagnosed in §20b (2026-08-28) — it was not a flake.** `run_tests.py` piped the test
+> server's stdout and never read it, so once the log passed the ~64KB pipe buffer the OS
+> blocked the server mid-run. Whichever socket test ran last then stopped receiving events.
+> "Watch it rather than assume" was the right call; "treat it as timing" was not.
 
 ## 17. Mobile: state not updating without a full reload — ✅ FIXED (2026-08-21)
 
@@ -838,6 +843,272 @@ fault):
 covers an active page, and polling on a timer would spend battery on a table that is idle
 anyway. If zombie sockets still appear on a phone left open and untouched, that is the next
 thing to try.
+
+> **Superseded by §18 (2026-08-28).** They did, and it was. The premise above was wrong on
+> its first clause: Socket.IO's heartbeat covers an active page only while the page's own
+> timers run, and the case that matters is precisely the one where they did not. The
+> "next thing to try" is now built — a 10s `client_sync` while visible, which is also how a
+> client learns it has missed a broadcast.
+
+
+## 18. State desync on real devices — five causes, one heartbeat — ✅ FIXED (2026-08-28)
+
+Reported from actual phones and the installed app, occasionally desktop: mid-game a
+player "just goes offline", their own screen stops updating, and **only a full page
+refresh brings it back**. Never reproducible in a desktop mobile-emulation view — which
+is the clue, because every cause below needs something only a real device does: freeze a
+page's timers, drop a transport with no close frame, or take every player offline at once.
+
+§17 fixed the same *symptom* and did not hold, so this started by reproducing rather than
+re-reading. Five separate defects, all confirmed against a live server before any change:
+
+**A. Super 4's reconnect path sent the wrong events — or none.** `sockets/lobby.py`
+wrote its reconnect branch in Super Seven's vocabulary (`round_start` / `round_end` /
+`game_end`) for *every* game, and gated round-end on `_last_result`, which only Super
+Seven sets. Measured: `super_four state=ROUND_END reconnect-> NOTHING SENT`; at
+`GAME_END` it sent `game_end`, which `four/game.js` does not listen for (it listens for
+`s4_round_end`). **This is why refreshing did not help — the reload took the same dead
+branch.** Fixed with `presenter.register_resync`: each game now answers the shared
+reconnect in its own vocabulary, and the shared layer knows no game's event names.
+
+**B. The empty-room reaper deleted live games.** `_reap_stale` compared `EMPTY_ROOM_TTL`
+against `room.created_at` — the room's *age*, not how long it had been empty. So any room
+older than 60s was eligible the instant its players were all momentarily disconnected,
+with **zero grace**. On phones that is routine, not an edge case. Reproduced: a
+ten-minute game, both players briefly offline, one unrelated `create_room` → gone. The
+grace period now runs from when a room was first *seen* empty and resets the moment
+anyone returns; a room nobody ever joined still counts as empty from creation, so the
+abandoned-create case the reaper was written for is unchanged.
+
+**C. `SS.repaintUI()` was a no-op in Super 4.** It called `window.Table.render(SS.view)`
+— a shape only Super Seven and Bluff define. Super 4 renders its own table, so §17's
+foreground repaint and the deck / hand-view repaint silently did nothing there. Replaced
+with an `SS.onRepaint` registry each bundle fills in, so no shared code guesses at a
+game's render entry point. Verified: repaint produces 15 DOM mutations in Super 4 where
+it produced 0, and deck switching now applies instantly (0 broken images).
+
+**D. Recovery depended entirely on `visibilitychange`.** That covers exactly one entry
+point — the phone coming out of a pocket. A socket that died while the player was
+*looking at the screen* (Wi-Fi/cellular handoff, a lift, a dropped poll) was never
+re-checked at all, and there was no periodic poll: §17 recorded deliberately not adding
+one. This report is that deferral coming due.
+
+**E. The probe tore down healthy sockets.** Its 2.5s timeout was never cancelled, so
+after the socket recovered on its own the stale timer still saw "no ack" and rebuilt the
+connection — which the server reads as a real disconnect, so **the player flashed offline
+to the whole table**. A self-inflicted copy of the reported symptom. The timer is now
+cancelled on ack, on `connect`, and on `disconnect`.
+
+**The mechanism** — `sockets/sync.py` + a rewritten `core/connection.js`:
+- [x] While the page is visible the client sends `client_sync` every 10s carrying the last
+      state version it has seen. The ack *arriving* proves the socket is alive end to end
+      — silence means a zombie, so rebuild. `stale` means the server does not have this
+      socket on file. `v` disagreeing means a broadcast was missed.
+- [x] **The cure is always `enter_room`**, which already re-attaches and replays full
+      state. The handler only diagnoses: repairing from there too would mean a second
+      restoration path to keep in step with the first.
+- [x] **Every room-wide broadcast is numbered**, in `sockets/audience.py` — the one point
+      every emit already passes through, so a broadcast cannot be added without being
+      numbered. Private payloads are not numbered (an answer to one socket is not a
+      snapshot anyone can fall behind on) and do not burn a version. Numbering *every*
+      room-wide emit, toasts included, is deliberate: an allow-list of "real" state events
+      is exactly the kind of thing that drifts.
+- [x] `tests/test_platform_contract.py` now requires a resync hook per game, so game #4
+      cannot repeat defect A. `tests/test_state_sync.py` pins all of it — 23 checks.
+
+**Verified in-browser on all three games**, not just reasoned about: healthy client stays
+`stale:false` and never re-enters needlessly; a deliberately orphaned socket is reported
+`stale:true` and **self-heals in one beat with no reload** (Super 4 and Bluff both
+confirmed); one player's action advances both players' versions together (6 → 10);
+repaint reaches every bundle (13/15/17 mutations for Seven/Four/Bluff); no console errors,
+no new server exceptions. Suite: **32 files, 30 pass, 2 unscored**.
+
+**Deploy note.** `sw.js` cache bumped `super-cards-v4` → `v5`. Static assets are
+stale-while-revalidate, so without a bump a returning player runs the *previous* build's
+JavaScript for a whole page load — and an old client against a new server is
+indistinguishable, from the player's seat, from the bug this fixes. `client_ping` is kept
+as a compatibility ack for exactly that one load, and can be deleted once no deployed
+client emits it.
+
+**Two things this cost me, worth remembering**
+1. **Instrumenting the client broke the server.** Wrapping `socket.emit` as
+   `(ev, data, cb) => orig(ev, data, cb)` appends an `undefined` third argument, which
+   socket.io sends as a *second data argument* — `on_start() takes 1 positional argument
+   but 2 were given`. Forward with rest args, or you debug your own probe.
+2. **The §11 lesson, re-learned.** "Repaint did nothing" was measured by blanking the felt
+   and watching for a rebuild — but that deleted the very containers `renderTable()`
+   writes into, so it could not have rebuilt. A MutationObserver on an untouched DOM gave
+   the real answer. Checking for presence still is not checking behaviour.
+
+
+## 19. Results screen everywhere, and Bluff plays for places — ✅ DONE (2026-08-28)
+
+Super Seven had a medal stand with a podium, tiered trophies and fireworks; the other two
+games did not. Worse, Bluff **hung** at game over with no way forward, and it ended the
+moment the first player shed their hand — so there was never anything to put on a podium
+in the first place.
+
+**Why Bluff hung, exactly.** `bluff/game.js` already called
+`showGameOver(data.winner, data.standings)` — but `Room.game_end_payload()` never had a
+`standings` key. `rows.find(...)` threw on `undefined`, the modal never opened, and the
+game simply sat there with no Play again and no way home. One missing key, and the only
+symptom was a dead screen. `showWinnerScreen` now treats a non-array `rows` as empty
+rather than throwing, so a payload bug can never again present as a hung game.
+
+**Bluff now plays for places, not a single winner.**
+- [x] Shedding your last card banks a **place** instead of ending the game; everyone still
+      holding cards plays on. `finish_order` on the room is the ranking.
+- [x] A finish is only confirmed once the challenge window has closed — i.e. once an action
+      has happened after yours, so you are no longer `last_play`. Get caught bluffing on
+      your last cards and you pick the pile back up, exactly as the rules always said.
+      A resolved Show confirms it immediately: nothing else can give those cards back.
+- [x] The game ends at whichever comes first: **`PODIUM_PLACES` (3) players finished**, or
+      **at most one player still holding cards**. That second rule is what ends a 2- or
+      3-player table naturally, so the podium rule never has to special-case small games —
+      heads-up is 1st and 2nd, three players fill all three places.
+- [x] **Unfinished players rank by how many cards they hold, fewest first — the count, not
+      the values.** In Bluff a card is a card; a player one turn from out is doing better
+      than one nursing a dozen, however those dozen add up. Ties keep turn order so the
+      list is stable between renders.
+- [x] Finished players are skipped by the turn rotation, and the "everyone passed" sweep
+      counts only players who can still act — including finished players there would mean
+      the pile could never be swept.
+- [x] Every exit path now routes through one `_maybe_end_game()`: a normal finish, a quit,
+      and a timeout removal. Previously each had its own copy of the end condition and its
+      own idea of who won.
+- [x] Bug found while wiring it: the human `bluff_show` handler never checked for game end
+      after `resolve_show`. Once a challenge could settle the game — which it now can — the
+      room would have sat in STATE_GAME_END while clients were only told the table changed.
+      Every other action path already checked; that one had never needed to.
+
+**The winner screen is now genuinely shared.** Its own docstring claimed "used by every
+variant" while only Super Seven called it.
+- [x] Two optional parameters, so Super Seven's call is unchanged: `subtitle`, and
+      `scoreText(row)` for what sits under each name. The hardcoded "last one standing" copy
+      and "N pts" were Super Seven's elimination framing, wrong for a game that ends any
+      other way.
+- [x] **Bluff** shows `1st` / `2nd` / `3rd` for finished players and `N cards left` for the
+      rest — the podium says what the game actually counted, instead of points it never had.
+- [x] **Super 4** gets the podium at game over instead of a fifth round-end table, and with
+      it a real Play again. Its round-end reveal stays for ordinary rounds, where explaining
+      the scoring is the point. New `Room.standings()` mirrors Super Seven's, because both
+      rank on a cumulative score where lower wins.
+- [x] The Bluff scoreboard shows place-or-cards-left per player, so the live panel and the
+      final podium rank on the same thing. Written as words, not a Unicode card glyph — §15
+      established those resolve to whatever font the viewer happens to have.
+
+**Verified in-browser and over sockets, not just reasoned about:** real 2-player and
+4-player Bluff games driven to the finish (heads-up gave 1st/2nd; four players ran on past
+two finishers and ended at three, with the last ranked below); the modal genuinely open
+(`display: flex`, every place measuring non-zero height) with the risers stepping
+140/110/90/74/60 by rank; confetti and bursts present; Play again returning all the way to
+a clean lobby with places cleared. Super 4's podium confirmed on a real solo game, ordered
+by lowest total. Super Seven re-checked on the shared defaults. Suite: **32 files, 30 pass,
+2 unscored.**
+
+**A test that had encoded the old rule.** `test_bluff_logic.py` asserted "first empty hand
+ends the game" in two places. Those are now four tests describing the new rule — including
+one pinning that ranking is on card *count* by giving one player a single 2 and another a
+pair of Kings.
+
+**Notes for next time**
+- `PODIUM_PLACES` is a rule constant, not a host-selectable setting, so
+  `tests/test_settings_docs.py` could not reach it — its claim table only reads
+  `default_settings`. It now has a second table for module-level constants, and the 3 is
+  pinned in `en.html`, `hi.html` and `docs/bluff_rules.md`.
+- **The suite flake from §16b showed itself again, and now has an explanation:** the failing
+  file is timing-sensitive over sockets, and it failed on the one run where a dev server was
+  competing for the machine. Four consecutive runs before and after were green, and the file
+  passed 6/6 four times in isolation. It was not touched by this work. If it recurs, the fix
+  is in the test's waits, not the product.
+- `bluff/game.js` still carries a `round_end` handler that can never fire — Bluff has
+  `has_rounds=False` and no `round_end_payload`, so the event is unreachable. Harmless, but
+  it now also implies a scoring model Bluff does not have. Worth deleting on the next pass
+  through that file.
+
+
+## 20. Computer players at a real table — ✅ DONE (2026-08-28)
+
+A bot used to exist only in single-player mode: `create_solo` seated exactly one,
+hardcoded as `bot_suryavanshi`. A host can now seat up to **five** from the lobby in any
+room, which is what makes a three-friend table worth playing.
+
+**The feature**
+- [x] New shared `game/core/bots.py` — the roster (Suryavanshi, Rajveer, Meera, Anika:
+      two male, two female), the cap, and identity allocation. It imports no game, and no
+      game imports it; adding a variant does not touch it.
+- [x] `add_bot` in `sockets/lobby.py`: host only, lobby only, bounded by both
+      `bots.MAX_BOTS` **and** the game's own `MAX_PLAYERS` (so Bluff stops at 1 human + 5
+      bots on its 6-seat table). Every refusal says which limit it hit.
+- [x] **`create_solo` was rebuilt on the same helper**, so there is exactly one way a
+      computer player enters a room rather than two that can drift.
+- [x] **The cap is five and the roster is four**, so a profile has to be reusable. The
+      repeat is numbered — `Meera` then `Meera 2` (`bot_meera_2`) — and the suffix search
+      walks past *every* existing player, so a bot can never take the name or id of a
+      human who happens to be called Meera. `bot_suryavanshi` keeps its original id, so an
+      existing room snapshot still resolves.
+- [x] Shared `core/lobby.js` gets the button and picker, so all three games have it from
+      one implementation. It reuses the theme dropdown's shape rather than inventing a
+      second popover for the same "pick one of a few" job, and opens *upward* because the
+      row sits at the bottom of the lobby card.
+- [x] **A bot can be removed again** — `kick_player` no longer refuses them, and the
+      roster shows the control. No confirm dialog for a bot: seating one is a click, so
+      un-seating one should be too.
+
+**Two things that were only accidentally correct before, and are not any more**
+- [x] **Bot scheduling was keyed by room** (`_bot_act_at[code]`). With one bot per room
+      that was equivalent to keying by bot; with five it lets one bot inherit another's
+      deadline, so the second bot in a rotation acts on the leftover schedule of the first
+      instead of taking its own thinking time. Now keyed `(code, bot_id)` in all three
+      games.
+- [x] **Bots played on to an empty room.** With humans gone the room is already reapable,
+      so every move until then is work nobody will ever see — taken from rooms that do
+      have players, on a one-worker host. New shared `director.bots_should_act(room)`,
+      called from each ticker's bot branch. It gates the *bot* branch only: pausing the
+      human turn timer as well would leave `turn_start_ts` stale and time somebody out the
+      moment they reconnected.
+- [x] Stale claims corrected where the code no longer matched: `is_bot` was documented as
+      "single-player mode only; never True in group games", `super_seven/ai.py` was headed
+      "SINGLE-PLAYER MODE ONLY", and its Stop-calling notes described "the opponent"
+      singular and a safe-player rule the code does not implement. The *code* was already
+      right for a table of twenty — it loops every opponent and skips safe ones because
+      they are out of the Stop race — so the docstring was the thing that was wrong.
+
+**Verified:** 37 engine checks (`tests/test_bots.py`) and 17 socket checks
+(`tests/test_bots_socket.py`) covering who may seat a bot and when, both caps, distinct
+names, removal, and two humans + two bots actually playing in Super Seven and Bluff. In a
+browser: the picker, the disabled-with-a-reason state at the cap, removal, and a real
+1-human/4-bot Super Seven game where all four bots took a full orbit and play came back
+round — plus Bluff with two bots.
+
+### 20b. The suite's long-standing "flake" was a wedged server — ✅ FIXED (2026-08-28)
+
+Adding a socket test made `test_s7_phase4_socket.py` fail *every* run. It had been
+intermittent for weeks (§16b) and was written off as timing. It was not.
+
+**`run_tests.py` gave the test server `stdout=PIPE` and never read it.** A pipe nobody
+drains fills at ~64KB, and then the OS blocks the writer — so the *game server* froze
+mid-run, holding every client. The only symptom is that whichever socket test happens to
+run last stops receiving events, which reads exactly like a flaky test.
+
+Measured: a full socket sequence writes **72.7KB** of request log. Before this feature it
+was just under the buffer; 20s of extra traffic pushed it over, which is why a new test
+elsewhere "broke" an unrelated one.
+
+- [x] The runner now drains the server's output on a daemon thread into a bounded deque,
+      so the server can never block and the tail is still available if boot fails.
+- [x] Two remaining races in `test_s7_phase4_socket.py` fixed by waiting for the condition
+      instead of sleeping a guessed interval — including one where `start_game` was emitted
+      without waiting for all three players to attach, so the deal could miss whoever was
+      still in flight. The assertions were always right; the waits were not.
+- [x] **Five consecutive green suite runs**, where before the fix it failed roughly one run
+      in three. Suite: **34 files, 32 pass, 2 unscored.**
+
+**The lesson worth keeping:** a test that fails "sometimes, and more often when unrelated
+work is added" is not automatically a flaky test. Here the added work was only a *dose* —
+the failure was a fixed byte budget in the harness, and it would have gone on being blamed
+on timing indefinitely.
+
 
 ---
 
