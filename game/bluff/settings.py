@@ -8,6 +8,17 @@ tests/test_settings_docs.py so drift fails a test instead of relying on memory.
 # ---- Room / table limits ----
 MIN_PLAYERS = 2
 MAX_PLAYERS = 6
+
+# How many places are played out before the game is called. Bluff has no score
+# to rank people by, so the only ranking it can produce is the order in which
+# players shed their last card — which means the game has to keep running after
+# the first player is out, or there is nothing to put on a podium.
+#
+# Three is the podium. Playing on past it would only be sorting out last place,
+# which nobody stays for. A table too small to fill three places ends as soon as
+# one player is left holding cards, so a 2- or 3-player game finishes naturally
+# without this ever binding.
+PODIUM_PLACES = 3
 # Cards are dealt evenly among all players; HAND_SIZE isn't strictly fixed per player,
 # but we can set a dummy or ignore it in dealing logic.
 
