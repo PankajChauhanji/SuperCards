@@ -128,10 +128,10 @@ check(guest.error().startswith("Only the host"), "a non-host cannot seat a bot")
 host.emit("add_bot", {"code": code, "user_id": "h0", "bot": "not_a_bot"})
 check(host.error() == "No such computer player.", "an unknown profile key is refused")
 
-host.emit("add_bot", {"code": code, "user_id": "h0", "bot": "meera"})
+host.emit("add_bot", {"code": code, "user_id": "h0", "bot": "smriti"})
 wait_for(lambda: any(p["is_bot"] for p in host.roster()))
 seated = [p for p in host.roster() if p["is_bot"]]
-check([p["name"] for p in seated] == ["Meera"], "the host seats the profile they picked",
+check([p["name"] for p in seated] == ["Smriti Mandhana"], "the host seats the profile they picked",
       [p["name"] for p in seated])
 check("bot_added" in guest.events, "and every player in the room is told")
 
@@ -178,7 +178,7 @@ close_room(clients, code)
 for game_type in ("super_seven", "bluff"):
     clients, code = open_room(game_type, humans=2)
     host = clients[0]
-    for n, key in enumerate(("rajveer", "anika"), start=1):
+    for n, key in enumerate(("rajnikant", "rashmika"), start=1):
         host.emit("add_bot", {"code": code, "user_id": "h0", "bot": key})
         wait_for(lambda w=n: len([p for p in host.roster() if p["is_bot"]]) >= w)
     host.emit("start_game", {"code": code, "user_id": "h0"})
