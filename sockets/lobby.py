@@ -64,7 +64,7 @@ def register(socketio, manager):
     # ---- single-player mode ----
     @socketio.on("create_solo")
     def on_create_solo(data):
-        """Create a room and pre-register the Suryavanshi bot as player 2.
+        """Create a room and pre-register the default computer player as player 2.
 
         The bot has a fixed user_id so the director can identify it cheaply.
         The human is the host and can still edit settings before starting.
