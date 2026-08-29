@@ -7,9 +7,8 @@ with a hardcoded id. A host can now seat up to ``bots.MAX_BOTS`` of them in any
 room, which turns three assumptions that used to be free into things worth
 pinning:
 
-  * ids and display names must be unique — the cap is five and the roster is
-    four, so a profile has to be reusable without colliding with anything (a
-    human included) already in the room;
+  * ids and display names must be unique — a profile has to be reusable
+    without colliding with anything (a human included) already in the room;
   * a bot must stay invisible to every "is anyone actually here?" question, or a
     room full of bots would never be reaped and a bot could inherit the host;
   * a bot must never be sent a private payload, because it has no socket.
@@ -35,13 +34,13 @@ def room_for(game_type, humans=("u0",)):
 
 
 # ---- the roster ---------------------------------------------------------
-check(len(bots.ROSTER) == 4, "the roster offers four computer players")
-check(sum(1 for b in bots.ROSTER if b.gender == "m") == 2 and
+check(len(bots.ROSTER) == 5, "the roster offers five computer players")
+check(sum(1 for b in bots.ROSTER if b.gender == "m") == 3 and
       sum(1 for b in bots.ROSTER if b.gender == "f") == 2,
-      "two male and two female, so the picker is balanced")
-check(len({b.key for b in bots.ROSTER}) == 4 and len({b.name for b in bots.ROSTER}) == 4,
+      "three male and two female profiles")
+check(len({b.key for b in bots.ROSTER}) == 5 and len({b.name for b in bots.ROSTER}) == 5,
       "every profile has a distinct key and name")
-check(bots.profile("suryavanshi") is not None and bots.profile("nope") is None,
+check(bots.profile("sooryavanshi") is not None and bots.profile("nope") is None,
       "profiles look up by key, and an unknown key resolves to nothing")
 check(all(b["key"] and b["name"] and b["gender"] for b in bots.public_roster()),
       "the public roster carries key, name and gender for the picker")
@@ -50,8 +49,8 @@ check(all(b["key"] and b["name"] and b["gender"] for b in bots.public_roster()),
 # ---- identity allocation -----------------------------------------------
 room = room_for("super_seven")
 first = bots.add_to(room)
-check(first.user_id == "bot_suryavanshi",
-      "the first Suryavanshi keeps the id single-player mode has always used")
+check(first.user_id == "bot_sooryavanshi",
+      "the first computer player keeps the roster's first id")
 check(first.is_bot and first.connected and not first.sid,
       "a bot is connected (it counts toward the minimum) but has no socket")
 
@@ -65,22 +64,28 @@ check(bots.is_full(room), "the room reports its bot cap reached at MAX_BOTS")
 check(len(bots.bots_in(room)) == bots.MAX_BOTS,
       "which is %d bots" % bots.MAX_BOTS)
 
-# The fifth has to reuse a profile, since there are only four.
-repeats = [b for b in seated if b.name not in {p.name for p in bots.ROSTER}]
-check(len(repeats) == 1 and repeats[0].name.endswith(" 2"),
-      "the fifth reuses a profile under a numbered name (got %r)"
+# The roster now matches the cap exactly, so five adds seat five distinct
+# profiles with no repeat needed.
+check({b.name for b in seated} == {p.name for p in bots.ROSTER},
+      "all five roster profiles got seated, none repeated (got %r)"
       % [b.name for b in seated])
+
+# Picking an already-seated profile again still has to work (e.g. MAX_BOTS
+# growing past the roster size someday) — it repeats under a numbered name.
+repeat = bots.add_to(room, "modi")
+check(repeat.name == "Modi 2" and repeat.user_id == "bot_modi_2",
+      "reusing a taken profile falls back to a numbered name (got %r)" % repeat.name)
 
 # A bot must not take a name a human already has.
 human_room = room_for("bluff", humans=("h0",))
-human_room.players["h0"].name = "Meera"
-clash = bots.add_to(human_room, "meera")
-check(clash.name != "Meera" and clash.user_id != "bot_meera_",
+human_room.players["h0"].name = "Modi"
+clash = bots.add_to(human_room, "modi")
+check(clash.name != "Modi" and clash.user_id != "bot_modi",
       "a bot will not take a display name a human already uses (got %r)" % clash.name)
 
 # Explicitly picking a profile is honoured; an unknown key falls back safely.
-picked = bots.add_to(room_for("bluff"), "anika")
-check(picked.name == "Anika", "an explicitly chosen profile is the one seated")
+picked = bots.add_to(room_for("bluff"), "smriti")
+check(picked.name == "Smriti Mandhana", "an explicitly chosen profile is the one seated")
 
 
 # ---- bots stay invisible to presence questions --------------------------
