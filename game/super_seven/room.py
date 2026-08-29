@@ -63,6 +63,7 @@ class Room:
         self.newly_eliminated: List[str] = []
         self.game_over = False
         self.winner: Optional[str] = None
+        self.elim_round: Dict[str, int] = {}   # user_id -> round they were evicted in
 
     # ---- registration / attachment ----
     def register_player(self, user_id: str, name: str) -> Player:
@@ -419,6 +420,8 @@ class Room:
                 self.players[uid].eliminated = True
                 newly.append(uid)
 
+        for uid in newly:
+            self.elim_round[uid] = self.round_number
         self.newly_eliminated = newly
         remaining = self.non_eliminated()
         self.game_over = len(remaining) <= 1
@@ -468,11 +471,16 @@ class Room:
             "eliminated": list(self.newly_eliminated),
             "game_over": self.game_over,
             "winner": self.winner,
+            "standings": self.standings() if self.game_over else None,
             "host_id": self.host_id,
         }
 
     def standings(self) -> List[dict]:
-        """Final-table ordering: survivors first, then by lowest total."""
+        """Final-table ordering: the winner first, then by how recently each
+        player was evicted — last one out ranks right behind the winner, first
+        one out ranks last. Several evictions landing in the same round are
+        broken by how far over the score cap each total went: the smaller
+        overshoot ranks higher."""
         rows = [
             {
                 "user_id": p.user_id,
@@ -482,7 +490,11 @@ class Room:
             }
             for p in self.players.values()
         ]
-        rows.sort(key=lambda r: (r["eliminated"], r["total_score"]))
+        rows.sort(key=lambda r: (
+            r["eliminated"],
+            -self.elim_round.get(r["user_id"], 0),
+            r["total_score"],
+        ))
         return rows
 
     def game_end_payload(self) -> dict:
@@ -505,6 +517,7 @@ class Room:
 
         if removed:
             player.eliminated = True
+            self.elim_round[user_id] = self.round_number
             self.awaiting_draw = False
             self.advance_turn()
             self._migrate_host_if_eliminated()
@@ -576,6 +589,7 @@ class Room:
         self.newly_eliminated = []
         self.game_over = False
         self.winner = None
+        self.elim_round = {}
         self._last_result = None
 
     # ---- host migration ----
