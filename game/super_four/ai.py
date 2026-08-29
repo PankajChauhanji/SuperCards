@@ -1,4 +1,4 @@
-"""Super 4 single-player bot (Suryavanshi).
+"""Super 4 single-player bot (the default computer player).
 
 A memory-style heuristic player. It reasons only from what it legitimately knows
 (room.known[bot]) plus the public drawn card — never from hidden state — so it
