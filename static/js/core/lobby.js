@@ -85,7 +85,8 @@
       tags.className = "roster-tags";
       if (p.user_id === view.hostId) tags.appendChild(badge("Host", "host"));
       if (p.user_id === youId) tags.appendChild(badge("You", "you"));
-      if (p.is_bot) tags.appendChild(badge("Bot", "you"));
+      // Computer players render exactly like regular players in the roster —
+      // no "Bot" tag — so the table reads as a table, not a lineup of extras.
       // Host may remove anyone but themselves — including a bot they seated,
       // which is the only way to undo an Add-bot before the game starts.
       if (isHost && p.user_id !== youId) {
