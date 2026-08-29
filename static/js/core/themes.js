@@ -31,6 +31,9 @@
     egyptian: { icon: "🏺", name: "Egyptian Pharaoh" },
     wildwest: { icon: "🤠", name: "Wild West Saloon" },
     forest: { icon: "🌲", name: "Enchanted Forest" },
+    imperial: { icon: "🐉", name: "Imperial Dragon" },
+    maharaja: { icon: "🦚", name: "Maharaja Durbar" },
+    deco: { icon: "🥂", name: "Gatsby Deco" },
   };
 
   function apply(theme) {
