@@ -31,14 +31,14 @@ class BotProfile:
     gender: str   # "m" / "f" — the picker shows a balanced roster, nothing else
 
 
-# Two male, two female, so the picker is balanced. Suryavanshi is first and keeps
-# its original key because that is the bot single-player mode has always used;
-# an existing room snapshot naming ``bot_suryavanshi`` still resolves.
+# Five profiles for a cap of five, so seating a full table of computer
+# players never has to fall back to a numbered repeat.
 ROSTER: Tuple[BotProfile, ...] = (
-    BotProfile("suryavanshi", "Suryavanshi", "m"),
-    BotProfile("rajveer", "Rajveer", "m"),
-    BotProfile("meera", "Meera", "f"),
-    BotProfile("anika", "Anika", "f"),
+    BotProfile("sooryavanshi", "Sooryavanshi", "m"),
+    BotProfile("rajnikant", "Rajnikant", "m"),
+    BotProfile("modi", "Modi", "m"),
+    BotProfile("rashmika", "Rashmika Mandanna", "f"),
+    BotProfile("smriti", "Smriti Mandhana", "f"),
 )
 
 DEFAULT_KEY = ROSTER[0].key
@@ -83,14 +83,16 @@ def next_profile(room) -> BotProfile:
 def allocate(room, key: Optional[str] = None) -> Tuple[str, str]:
     """Reserve an identity for a new bot: returns ``(user_id, display_name)``.
 
-    The cap is five but the roster is four, so a profile has to be usable twice.
-    The second Meera is "Meera 2" with user_id ``bot_meera_2`` — numbered rather
-    than refused, because a host who wants five opponents should get five, and a
-    numbered name is clearer at a table than an invented one nobody chose.
+    The roster matches the cap (five profiles, five seats), but a name still
+    has to be usable more than once if ``MAX_BOTS`` ever grows past the roster
+    size, or if a human already sits at the table under a bot's name. In that
+    case the profile repeats under a numbered name (e.g. "Modi 2",
+    ``bot_modi_2``) rather than being refused — a numbered name is clearer at
+    a table than an invented one nobody chose.
 
     The suffix search walks past *any* existing player, not just bots, so a bot
-    can never take an id or a display name that is already in the room — including
-    from a human who happens to be called Meera.
+    can never take an id or a display name that is already in the room —
+    including from a human who happens to share a bot's name.
     """
     entry = profile(key) if key else None
     if entry is None:
