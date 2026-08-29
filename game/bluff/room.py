@@ -51,6 +51,23 @@ class Room:
         # IS the ranking — see standings() and settings.PODIUM_PLACES.
         self.finish_order: List[str] = []
 
+        # ---- table memory of what Shows have revealed ----
+        # Both of these are PUBLIC: a Show flips cards face up for the whole
+        # room (`bluff_show_result`), so every human at the table saw them and
+        # can remember them. They live on the room rather than inside a bot so
+        # that every player's view of the history is the same one, and so they
+        # survive a reconnect or a snapshot restore.
+        #
+        # reveal_log: one entry per resolved Show, used to judge how often a
+        # given player's claims have turned out to be true.
+        self.reveal_log: List[dict] = []
+        # known_cards: user_id -> rank codes currently known to be in that hand.
+        # A Show sends the revealed cards to whoever picks the pile up, so their
+        # location is known until they next play and we lose track of which
+        # cards left. Deliberately erased faster than reality, never slower —
+        # over-remembering would make a bot accuse people on stale evidence.
+        self.known_cards: Dict[str, List[str]] = {}
+
     # ---- registration / attachment ----
     def register_player(self, user_id: str, name: str) -> Player:
         player = self.players.get(user_id)
@@ -112,6 +129,10 @@ class Room:
                 self._skip_to_playable()
 
         self.players.pop(user_id, None)
+        # Their remembered cards leave with them; a stale entry would otherwise
+        # keep counting toward "copies accounted for" and make bots suspicious
+        # of claims that are perfectly possible.
+        self.known_cards.pop(user_id, None)
 
         if was_host:
             self.migrate_host()
@@ -180,6 +201,8 @@ class Room:
         self.dead_pile = []
 
         self.finish_order = []
+        self.reveal_log = []
+        self.known_cards = {}
         self.turn_order = active
         self.turn_index = (self.start_offset % len(active)) if active else 0
         self.start_offset += 1
@@ -270,6 +293,7 @@ class Room:
         thrown_ids = {c.id for c in cards}
         player.hand = [c for c in player.hand if c.id not in thrown_ids]
 
+        self._forget_played(user_id, len(cards), declared_rank)
         self.center_pile.extend(cards)
         
         if self.target_rank is None:
@@ -288,6 +312,27 @@ class Room:
             return
 
         self.advance_turn()
+
+    def _forget_played(self, user_id: str, count: int, declared_rank: str) -> None:
+        """Drop remembered cards for a player who has just thrown some.
+
+        Their cards went down face down, so there is no telling which ones left
+        the hand. Up to `count` remembered cards are forgotten, the declared
+        rank first because a player holding what they claim usually plays it.
+
+        Erring toward forgetting is the safe direction: remembering too much
+        would have a bot challenge on evidence that is no longer true, while
+        remembering too little only costs it an opportunity.
+        """
+        known = self.known_cards.get(user_id)
+        if not known:
+            return
+        for _ in range(count):
+            if not known:
+                break
+            known.remove(declared_rank) if declared_rank in known else known.pop()
+        if not known:
+            self.known_cards.pop(user_id, None)
 
     def apply_pass(self, user_id: str) -> None:
         """Player passes. If pass_count hits (active_count - 1), clear table."""
@@ -348,6 +393,7 @@ class Room:
         return {
             "challenger": user_id,
             "defender": defender_id,
+            "declared_rank": declared_rank,
             "is_bluff": is_bluff,
             "revealed_cards": [c.to_dict() for c in cards],
             "loser": loser_id,
@@ -359,9 +405,23 @@ class Room:
         loser_id = result["loser"]
         winner_id = result["winner"]
 
+        # Record what the table just saw. The cards were flipped face up for
+        # everyone, so this is public history, not a private advantage.
+        revealed = [c["code"] for c in result.get("revealed_cards", [])]
+        self.reveal_log.append({
+            "defender": result["defender"],
+            "challenger": result["challenger"],
+            "declared_rank": result.get("declared_rank"),
+            "revealed": revealed,
+            "was_bluff": bool(result["is_bluff"]),
+            "loser": loser_id,
+        })
+        # Whoever picks the pile up demonstrably now holds the revealed cards.
+        self.known_cards.setdefault(loser_id, []).extend(revealed)
+
         # Loser picks up the entire center pile
         self.players[loser_id].hand.extend(self.center_pile)
-        
+
         self.center_pile = []
         self.target_rank = None
         self.pass_count = 0
@@ -555,6 +615,8 @@ class Room:
             p.is_spectator = False
             p.pending_join = False
         self.finish_order = []
+        self.reveal_log = []
+        self.known_cards = {}
         self.state = STATE_LOBBY
         self.round_number = 0
         self.start_offset = 0
