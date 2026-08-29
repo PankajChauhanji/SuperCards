@@ -241,7 +241,7 @@
     if (tableView.style.display !== "none") Table.render(view);
     if (window.Selection) window.Selection.refresh();
     if (data.game_over) {
-      showGameOver(data.winner, gameOverRows(data.results));
+      showGameOver(data.winner, data.standings);
     } else {
       showRoundEnd(data);
     }
@@ -411,16 +411,6 @@
     }
 
     modal.classList.add("open");
-  }
-
-  // Build standings rows from a round_end results array (for a game-over reveal).
-  function gameOverRows(resultRows) {
-    return resultRows
-      .map((r) => ({
-        user_id: r.user_id, name: r.name,
-        total_score: r.total_score, eliminated: r.eliminated,
-      }))
-      .sort((a, b) => (a.eliminated - b.eliminated) || (a.total_score - b.total_score));
   }
 
   function showGameOver(winnerId, rows) {
