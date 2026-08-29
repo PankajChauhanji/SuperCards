@@ -69,13 +69,28 @@ def current():
     return stores["A"]["table"]["current_turn"]
 
 # Play one full orbit (3 players): single + draw each.
+#
+# Waits on the server's own state rather than a fixed sleep. With sleeps, a
+# loaded machine could leave `current()` or the cached hand stale, so the test
+# would play a card that was no longer held (or play out of turn); the emit is
+# rejected, the orbit silently falls short, and the failure surfaces several
+# assertions later as something unrelated. This is the same correction §20b
+# applied to the rest of this file — these two sleeps were left behind.
 for _ in range(3):
     cur = current()
     hand = stores[cur]["hand"]
     clients[cur].emit("play_cards", {"code": code, "user_id": cur, "card_ids": [hand[0]["id"]]})
-    time.sleep(0.25)
-    clients[cur].emit("draw_card", {"code": code, "user_id": cur})
-    time.sleep(0.25)
+    # Two legal outcomes: usually the throw owes a draw and the turn stays put,
+    # but a single card that happens to match the centre is a free Match, which
+    # owes nothing and advances the turn at once. Waiting only for the draw
+    # would hang on that second case.
+    assert wait_for(lambda c=cur: stores["A"]["table"].get("awaiting_draw")
+                    or current() != c), \
+        "the throw never registered for %s: %r" % (cur, stores[cur].get("error"))
+    if current() == cur and stores["A"]["table"].get("awaiting_draw"):
+        clients[cur].emit("draw_card", {"code": code, "user_id": cur})
+        assert wait_for(lambda c=cur: current() != c), \
+            "the turn never left %s: %r" % (cur, stores[cur].get("error"))
 
 check(stores["A"]["table"]["first_orbit_complete"], "first orbit completed with 3 players")
 
@@ -89,22 +104,45 @@ check("game_over" in re and "eliminated" in re and "winner" in re,
       "round_end carries game_over / eliminated / winner")
 
 if not re["game_over"]:
+    # Who the host is has to be read, not assumed. A caught Stop can put a
+    # player over max_score in a single round, and eliminating the host hands
+    # the role to someone else (_migrate_host_if_eliminated). This file used to
+    # hardcode A, so on the runs where A was eliminated BOTH next_round calls
+    # went to the wrong player — which read as an intermittent timeout rather
+    # than the assumption it actually was.
+    host = re.get("host_id") or "A"
+    non_host = next(u for u in ("A", "B", "C") if u != host)
+    # Eliminated players are dealt an empty hand next round, on purpose, so
+    # only the survivors are checked for a fresh deal below.
+    active = [p["user_id"] for p in re.get("players", []) if not p.get("eliminated")]
+
     # Non-host cannot advance.
-    stores["B"]["error"] = None
-    clients["B"].emit("next_round", {"code": code, "user_id": "B"})
-    wait_for(lambda: stores["B"]["error"] is not None)
-    check(stores["B"]["error"] == "Only the host can start the next round.",
+    stores[non_host]["error"] = None
+    clients[non_host].emit("next_round", {"code": code, "user_id": non_host})
+    wait_for(lambda: stores[non_host]["error"] is not None)
+    check(stores[non_host]["error"] == "Only the host can start the next round.",
           "non-host cannot start the next round")
 
     # Host advances to round 2.
+    #
+    # Both the round number and the hands are cleared first. Clearing the hands
+    # matters: every player throws one card and draws one back during the orbit
+    # above, so "everyone holds 7" is true all the way through round 1 — the
+    # old check could not tell a fresh deal from no deal at all, and passed even
+    # on runs where round 2 never started.
     for s in stores.values():
         s["round_no"] = None
-    clients["A"].emit("next_round", {"code": code, "user_id": "A"})
-    wait_for(lambda: stores["A"].get("round_no") == 2
-             and all(len(stores[u].get("hand") or []) == 7 for u in ("A", "B", "C")))
-    check(stores["A"].get("round_no") == 2, "host starts round 2")
-    check(all(len(stores[u]["hand"]) == 7 for u in ("A", "B", "C")),
-          "every active player gets a fresh 7-card hand in round 2")
+        s["hand"] = None
+    stores[host]["error"] = None
+    clients[host].emit("next_round", {"code": code, "user_id": host})
+    wait_for(lambda: stores[host].get("round_no") == 2
+             and all(len(stores[u].get("hand") or []) == 7 for u in active))
+    check(stores[host].get("round_no") == 2,
+          "host starts round 2 (round_no=%r, error=%r, host=%r)"
+          % (stores[host].get("round_no"), stores[host].get("error"), host))
+    check(all(len(stores[u].get("hand") or []) == 7 for u in active),
+          "every active player is dealt a fresh 7-card hand in round 2 (active=%r)"
+          % (active,))
 else:
     check(True, "game ended in round 1 (cap reached) — next-round path skipped")
     check(stores["A"].get("game_end") is not None or re["game_over"], "game_over surfaced")
