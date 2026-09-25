@@ -7,7 +7,7 @@ tests/test_settings_docs.py so drift fails a test instead of relying on memory.
 
 # ---- Room / table limits ----
 MIN_PLAYERS = 2
-MAX_PLAYERS = 6
+MAX_PLAYERS = 20
 
 # How many places are played out before the game is called. Bluff has no score
 # to rank people by, so the only ranking it can produce is the order in which
