@@ -394,12 +394,18 @@
     const footer = document.getElementById("roundend-footer");
     footer.innerHTML = "";
     if (youId === view.hostId) {
+      // Optional reshuffle of the seats for the next round (shared control —
+      // core/lobby.js — so the host's choice carries from round to round).
+      if (window.SS.Lobby && window.SS.Lobby.shuffleOption) {
+        footer.appendChild(window.SS.Lobby.shuffleOption());
+      }
       const btn = document.createElement("button");
       btn.className = "btn-primary";
       btn.textContent = "Next round";
       btn.addEventListener("click", () => {
         btn.disabled = true;
-        socket.emit("next_round", { code, user_id: youId });
+        const shuffle = !!(window.SS.Lobby && window.SS.Lobby.shuffleChosen && window.SS.Lobby.shuffleChosen());
+        socket.emit("next_round", { code, user_id: youId, shuffle });
       });
       footer.appendChild(btn);
     } else {
