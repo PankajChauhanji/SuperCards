@@ -1,0 +1,94 @@
+{# Poker table region — board, pot, seats, your two cards and the betting bar.
+   Included by game.html based on game_type. The scoreboard / action-log markup
+   and ids match the other games exactly, so the shared phone sheet
+   (core/table_sheet.js) relocates them without knowing which game it is. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/poker.css') }}" />
+  {# Two hole cards never need the "Box view" hand layout. Hidden from here
+     rather than in core/view_mode.js so no shared file learns about poker. #}
+  <style>#view-mode-wrap { display: none !important; }</style>
+
+  <div class="table-view" id="table-view" style="display:none">
+    <aside class="scoreboard">
+      <div class="sb-players" id="sb-players">
+        <h3 id="scores-toggle" role="button" tabindex="0" aria-expanded="true">🏆 Coins <span class="collapse-chevron">▾</span></h3>
+        <ul id="score-list"></ul>
+        <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
+        <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
+      </div>
+      <div class="action-log" id="action-log">
+        <h3 id="action-log-toggle" role="button" tabindex="0" aria-expanded="true">📜 Action History <span class="collapse-chevron">▾</span></h3>
+        <ul id="action-log-list"></ul>
+      </div>
+    </aside>
+    <section class="felt poker-felt">
+      <span class="table-corner tc-tl" aria-hidden="true"></span>
+      <span class="table-corner tc-tr" aria-hidden="true"></span>
+      <span class="table-corner tc-bl" aria-hidden="true"></span>
+      <span class="table-corner tc-br" aria-hidden="true"></span>
+      <div class="opponents" id="opponents"></div>
+
+      {# Hand-rankings card (static/js/poker/rankings.js). Client-only reference,
+         opened from this button and closed only by the player. On desktop it
+         docks to the right edge of the felt, clear of your cards and the betting
+         bar; on a phone it rises as its own bottom sheet. It used to live inside
+         the Coins card, where a scroll box inside a scroll box made it hard to
+         scroll and the shared phone sheet squeezed it to ~120px. #}
+      <button type="button" class="pk-hands-btn" id="pk-hands-btn"
+              aria-expanded="false" aria-controls="pk-hands" title="Hand rankings">
+        <span class="pk-hands-ico" aria-hidden="true">&#127183;</span>
+        <span class="pk-hands-btn-label">Hands</span>
+        <span class="pk-hands-dot" id="pk-hands-dot" hidden></span>
+      </button>
+      <div class="pk-hands-backdrop" id="pk-hands-backdrop" hidden></div>
+      <aside class="pk-hands" id="pk-hands" role="dialog" aria-label="Hand rankings" hidden>
+        <div class="pk-hands-grip" aria-hidden="true"></div>
+        <div class="pk-hands-head">
+          <h3>Hand rankings</h3>
+          <span class="pk-ranks-mine" id="pk-ranks-mine" hidden></span>
+          <button type="button" class="pk-hands-close" id="pk-hands-close" aria-label="Close hand rankings">&#10005;</button>
+        </div>
+        <p class="pk-ranks-note" id="pk-ranks-note"></p>
+        <ol class="pk-ranks-list" id="pk-ranks-list"></ol>
+        <p class="pk-rank-foot">Aces are high &mdash; and low only in A-2-3-4-5. Suits never break a tie; equal hands split the pot.</p>
+      </aside>
+
+      <div class="center-row pk-center">
+        <div class="pk-board" id="pk-board" aria-label="Board"></div>
+        <div class="pk-pot" id="pk-pot"></div>
+        <div class="pk-info" id="pk-info"></div>
+      </div>
+
+      <div class="myhand-wrap">
+        <div class="hand pk-hand" id="hand"></div>
+        <div class="pk-hand-name" id="pk-hand-name" hidden></div>
+        <div id="myseat"></div>
+        <div class="action-bar pk-bar" id="action-bar">
+          <span class="play-label" id="play-label"></span>
+          {# Decide before your turn; played the moment the turn reaches you. #}
+          <div class="pk-pre" id="pk-pre" hidden>
+            <button type="button" class="pk-pre-btn" data-pre="checkfold" aria-pressed="false">Check / Fold</button>
+            <button type="button" class="pk-pre-btn" data-pre="check" aria-pressed="false">Check</button>
+          </div>
+          <div class="pk-raise" id="pk-raise" hidden>
+            <div class="pk-presets" id="pk-presets">
+              <button type="button" class="pk-preset" data-preset="min">Min</button>
+              <button type="button" class="pk-preset" data-preset="half">½ Pot</button>
+              <button type="button" class="pk-preset" data-preset="pot">Pot</button>
+              <button type="button" class="pk-preset" data-preset="max">All-in</button>
+            </div>
+            <div class="pk-slider-row">
+              <input type="range" id="pk-slider" class="pk-slider" aria-label="Raise amount" />
+              <input type="number" id="pk-amount" class="pk-amount" inputmode="numeric" aria-label="Raise to" />
+            </div>
+          </div>
+          <div class="action-btns pk-btns" id="pk-btns">
+            <button class="btn-stop" id="pk-fold"><span class="btn-ico" aria-hidden="true">&#10005;</span> Fold</button>
+            <button class="btn-throw pk-call" id="pk-call"><span class="btn-ico" aria-hidden="true">&#10003;</span> <span id="pk-call-label">Check</span></button>
+            <button class="btn-throw pk-raise-btn" id="pk-raise-btn"><span class="btn-ico" aria-hidden="true">&#8593;</span> <span id="pk-raise-label">Raise</span></button>
+            <button class="btn-stop solid" id="pk-allin"><span class="btn-ico" aria-hidden="true">&#9889;</span> <span id="pk-allin-label">All-in</span></button>
+          </div>
+          <button class="btn-primary pk-back" id="pk-back" hidden>I'm back</button>
+        </div>
+      </div>
+    </section>
+  </div>
