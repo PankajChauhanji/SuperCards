@@ -17,11 +17,20 @@ logger = logging.getLogger(__name__)
 
 # game_type -> tick(socketio, room) callable, provided by each variant.
 _TICKERS: dict = {}
+# game_type -> lifecycle states in which that game's ticker runs.
+_TICK_STATES: dict = {}
 
 
-def register_ticker(game_type: str, fn) -> None:
-    """Register a per-game per-room tick handler. Called by variant modules."""
+def register_ticker(game_type: str, fn, states=(STATE_IN_TURN,)) -> None:
+    """Register a per-game per-room tick handler. Called by variant modules.
+
+    ``states`` defaults to mid-round only, which is what every game needed until
+    Poker: its round summary times out on its own (the next round deals after
+    ROUND_END_SECONDS), so it opts in to STATE_ROUND_END as well. A game that
+    passes nothing keeps exactly the old behaviour.
+    """
     _TICKERS[game_type] = fn
+    _TICK_STATES[game_type] = tuple(states)
 
 
 def bots_should_act(room) -> bool:
@@ -56,10 +65,10 @@ def register(socketio, manager):
 
 def _tick(socketio, manager):
     for code, room in list(manager.rooms.items()):
-        if room.state != STATE_IN_TURN:
-            continue
         ticker = _TICKERS.get(room.game_type)
         if ticker is None:
+            continue
+        if room.state not in _TICK_STATES.get(room.game_type, (STATE_IN_TURN,)):
             continue
         try:
             ticker(socketio, room)
