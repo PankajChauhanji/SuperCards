@@ -1,0 +1,445 @@
+/* Poker table — loaded only on a poker room page (templates/games/poker/table.html).
+   Every selector is poker-scoped (.pk-* or .poker-felt), so nothing here can
+   reach another game's table. Colours come from the shared tokens in base.css,
+   which is what lets all fourteen table themes and the graphite chrome apply
+   unchanged. The few literal colours below are the gold of coins, which is
+   part of the object being drawn rather than of the chrome. */
+
+/* ================= seats ================= */
+.poker-felt .opponents { height: 188px; }
+
+/* The stack, written inside the seat's coin gauge (core/seats.js draws the
+   gauge; table.js sets its level from stack / starting coins). */
+.poker-felt .av-ini.pk-amt {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75), 0 0 6px rgba(0, 0, 0, 0.45);
+}
+.poker-felt .my-seat .av-ini.pk-amt { font-size: 0.86rem; }
+
+/* Up on the game: a warm gold halo round the gauge. */
+.poker-felt .pk-up .opp-avatar.gauge { box-shadow: 0 0 0 2px rgba(230, 178, 60, 0.75), 0 0 12px rgba(230, 178, 60, 0.35); }
+
+/* Winner of the pot that is being paid out. */
+.poker-felt .pk-winner .opp-ring-outer { animation: pk-winner-glow 1.1s ease-in-out infinite; }
+@keyframes pk-winner-glow {
+  0%, 100% { box-shadow: 0 0 0 3px var(--gold), 0 0 14px 2px rgba(230, 178, 60, 0.45); }
+  50%      { box-shadow: 0 0 0 3px var(--gold), 0 0 26px 8px rgba(230, 178, 60, 0.75); }
+}
+
+/* The money pouch, sitting where the card count used to. */
+.poker-felt .opp-count.pk-pouch {
+  background: none; border: none; padding: 0; transform: none;
+  width: 24px; height: 24px; min-width: 0;
+  right: -10px; bottom: -6px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
+}
+.pk-pouch svg { width: 100%; height: 100%; display: block; }
+.pk-pouch .pk-pouch-body { fill: #c8932b; stroke: #6d4709; stroke-width: 0.8; }
+.pk-pouch .pk-pouch-tie  { fill: #a8741a; stroke: #6d4709; stroke-width: 0.8; }
+.pk-pouch .pk-pouch-cord { stroke: #5a3a07; stroke-width: 1.4; stroke-linecap: round; fill: none; }
+.pk-pouch .pk-pouch-coin { fill: #ffe08a; stroke: #b07b16; stroke-width: 0.8; }
+.pk-pouch.up .pk-pouch-body { fill: #f0b53a; }
+.pk-pouch.up { filter: drop-shadow(0 0 5px rgba(255, 200, 80, 0.75)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5)); }
+.pk-pouch.down .pk-pouch-body { fill: #9a8460; }
+.pk-pouch.down .pk-pouch-coin { fill: #d6c49a; }
+.my-seat .opp-count.pk-pouch { width: 28px; height: 28px; right: -12px; }
+
+/* Two small face-down cards beside anyone still holding a hand. */
+.pk-holding {
+  position: absolute; left: -14px; bottom: -4px;
+  display: flex; pointer-events: none;
+}
+.pk-mini {
+  width: 15px; height: 21px; border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  transform: rotate(-12deg);
+}
+.pk-mini + .pk-mini { margin-left: -9px; transform: rotate(4deg); }
+
+.pk-seat-info {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 0.2rem; margin-top: 0.1rem; max-width: 120px;
+  font-size: 0.66rem; line-height: 1.2;
+}
+.pk-bet {
+  display: inline-flex; align-items: center; gap: 0.22rem;
+  font-family: var(--display); font-weight: 700; color: var(--ink);
+  background: var(--gold); border-radius: 999px; padding: 0.05rem 0.42rem 0.05rem 0.18rem;
+  box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.6);
+}
+.pk-bet-coin {
+  width: 0.72rem; height: 0.72rem; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3c4 0 18%, #f2bf45 40%, #b07b16 100%);
+  box-shadow: inset 0 0 0 1px rgba(110, 70, 8, 0.7);
+}
+.pk-marker {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.25rem; height: 1.25rem; border-radius: 999px; padding: 0 0.2rem;
+  font-family: var(--display); font-weight: 700; font-size: 0.58rem;
+  background: var(--cream); color: var(--ink);
+}
+.pk-marker.pk-m-sb, .pk-marker.pk-m-bb { background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); }
+.pk-tag {
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  border-radius: 4px; padding: 0.05rem 0.3rem;
+}
+.pk-tag.allin  { background: var(--accent); color: #fff; }
+.pk-tag.folded { background: rgba(0, 0, 0, 0.35); color: var(--muted); }
+.pk-tag.away   { background: rgba(0, 0, 0, 0.35); color: var(--gold); }
+.pk-tag.out    { background: rgba(0, 0, 0, 0.35); color: var(--muted); }
+
+.opp-seat.pk-folded .opp-ring-outer,
+.my-seat.pk-folded .opp-ring-outer { opacity: 0.45; }
+
+.pk-reveal { display: flex; gap: 2px; margin-top: 0.15rem; }
+.pk-reveal-card { width: 30px; height: 42px; border-radius: 3px; box-shadow: 0 3px 8px -4px rgba(0, 0, 0, 0.8); }
+
+/* ================= centre: board, pot, info ================= */
+.pk-center { flex-direction: column; gap: 0.5rem; min-height: 170px; }
+.pk-board { display: flex; gap: 0.45rem; justify-content: center; align-items: center; perspective: 600px; }
+.pk-board-card {
+  width: 62px; height: 86px; border-radius: 6px;
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.8);
+  transition: transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease;
+}
+.pk-slot {
+  width: 62px; height: 86px; border-radius: 6px;
+  border: 1px dashed rgba(255, 255, 255, 0.18); background: rgba(0, 0, 0, 0.12);
+}
+.pk-dealt { animation: pk-turn-up 0.45s ease-out both; }
+@keyframes pk-turn-up {
+  0%   { transform: translateY(-16px) rotateY(90deg) scale(0.92); opacity: 0; }
+  60%  { transform: translateY(0) rotateY(-8deg) scale(1.02); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+/* The winning five at showdown: lifted and outlined; the rest step back. */
+.pk-board-card.pk-win, .pk-hole.pk-win, .pk-reveal-card.pk-win {
+  outline: 2px solid var(--gold); outline-offset: 1px;
+  box-shadow: 0 0 14px rgba(230, 178, 60, 0.55);
+}
+.pk-board-card.pk-win { transform: translateY(-5px); }
+.pk-board-card.pk-dim { opacity: 0.45; }
+
+/* The pot: a pile of gold coins that grows with the money in it. */
+.pk-pot { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+.pk-coins {
+  display: flex; align-items: flex-end; justify-content: center; gap: 3px;
+  min-height: 38px; min-width: 70px;
+}
+.pk-stack-col {
+  display: flex; flex-direction: column-reverse; align-items: center;
+  transform: rotate(var(--tilt, 0deg));
+}
+.pk-coin {
+  display: block; width: 24px; height: 9px; border-radius: 50%;
+  margin-top: -5px;
+  background: linear-gradient(180deg, #ffe28a 0%, #f2bf45 45%, #c78b1c 70%, #8a5a0c 100%);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.pk-stack-col .pk-coin:first-child { margin-top: 0; }
+.pk-coin-new { animation: pk-coin-drop 0.35s ease-out both; }
+@keyframes pk-coin-drop {
+  from { transform: translateY(-18px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.pk-pot-labels { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; min-height: 1.6rem; }
+.pk-pot-main {
+  font-family: var(--display); font-weight: 700; font-size: 1rem; color: var(--ink);
+  background: var(--gold); border-radius: 999px; padding: 0.15rem 0.8rem;
+  box-shadow: 0 6px 16px -10px var(--gold);
+}
+.pk-pot-side {
+  font-family: var(--display); font-weight: 600; font-size: 0.75rem; color: var(--gold);
+  border: 1px solid var(--gold); border-radius: 999px; padding: 0.12rem 0.55rem;
+  background: rgba(0, 0, 0, 0.25);
+}
+.pk-info { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.02em; text-align: center; }
+
+/* A coin in flight between a seat and the pot (positioned by table.js). */
+.pk-fly-coin {
+  position: fixed; z-index: 70; pointer-events: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3c4 0 16%, #f2bf45 42%, #b07b16 100%);
+  box-shadow: inset 0 0 0 1.5px rgba(110, 70, 8, 0.75), 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* ================= your hole cards ================= */
+.pk-hand { gap: 0.5rem; min-height: 104px; perspective: 700px; }
+.pk-hand .pk-hole { width: 74px; height: 104px; }
+.pk-hand.pk-hand-folded .pk-hole { opacity: 0.4; filter: grayscale(0.7); }
+/* Dealt face down the moment the round starts... */
+.pk-deal { animation: pk-deal-in 0.4s ease-out both; }
+@keyframes pk-deal-in {
+  from { transform: translate(0, -90px) rotate(-14deg) scale(0.6); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+/* ...and turned over once your private deal arrives. */
+.pk-flip { animation: pk-flip-up 0.45s ease-out both; }
+@keyframes pk-flip-up {
+  from { transform: rotateY(90deg); }
+  to   { transform: none; }
+}
+.pk-hand-name {
+  font-size: 0.78rem; font-weight: 600; color: var(--gold);
+  background: rgba(0, 0, 0, 0.38); border-radius: 999px; padding: 0.15rem 0.7rem;
+  margin-top: -0.2rem;
+}
+.pk-hand-name[hidden] { display: none; }
+
+/* ================= betting bar ================= */
+.pk-bar { flex-direction: column; gap: 0.5rem; }
+.pk-bar .play-label { min-width: 0; text-align: center; }
+.pk-raise { display: flex; flex-direction: column; gap: 0.4rem; width: 100%; max-width: 460px; }
+.pk-raise[hidden] { display: none; }
+.pk-presets { display: flex; gap: 0.35rem; justify-content: center; }
+.pk-preset {
+  flex: 1 1 0; padding: 0.3rem 0.4rem; border-radius: 8px; font-size: 0.75rem;
+  background: rgba(0, 0, 0, 0.3); color: var(--text); border: 1px solid var(--line); cursor: pointer;
+}
+.pk-preset:hover { border-color: var(--gold); color: var(--gold); }
+.pk-slider-row { display: flex; gap: 0.5rem; align-items: center; }
+.pk-slider { flex: 1 1 auto; accent-color: var(--gold); }
+.pk-amount {
+  width: 9.5rem; padding: 0.35rem 0.5rem; border-radius: 8px; font-family: var(--display);
+  background: rgba(0, 0, 0, 0.35); color: var(--text); border: 1px solid var(--line);
+}
+.pk-btns { flex-wrap: wrap; justify-content: center; }
+.pk-btns .btn-throw, .pk-btns .btn-stop { min-width: 104px; }
+.pk-back { width: auto; margin: 0; }
+.pk-back[hidden] { display: none; }
+
+/* Pre-actions: chosen while others think. */
+.pk-pre { display: flex; gap: 0.4rem; justify-content: center; }
+.pk-pre[hidden] { display: none; }
+.pk-pre-btn {
+  padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.75rem; cursor: pointer;
+  background: rgba(0, 0, 0, 0.3); color: var(--muted); border: 1px dashed var(--line);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.pk-pre-btn:hover { color: var(--text); border-color: var(--muted); }
+.pk-pre-btn.on {
+  background: color-mix(in srgb, var(--gold) 20%, transparent);
+  color: var(--gold); border: 1px solid var(--gold);
+}
+.pk-pre-btn.on::before { content: "\2713  "; }
+
+/* Inline confirmation bubble, anchored to the button that asked (game.js). */
+.pk-confirm {
+  position: fixed; z-index: 80;
+  width: max-content; max-width: min(250px, calc(100vw - 16px));
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 0.65rem 0.75rem 0.6rem;
+  box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.75);
+  animation: pk-pop 0.14s ease-out both;
+}
+.pk-confirm.above { transform-origin: var(--arrow-x, 50%) 100%; }
+.pk-confirm.below { transform-origin: var(--arrow-x, 50%) 0; }
+@keyframes pk-pop { from { transform: scale(0.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.pk-confirm::after {
+  content: ""; position: absolute; left: var(--arrow-x, 50%);
+  width: 12px; height: 12px; margin-left: -6px;
+  background: var(--panel); border: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+.pk-confirm.above::after { bottom: -7px; border-top: none; border-left: none; }
+.pk-confirm.below::after { top: -7px; border-bottom: none; border-right: none; }
+.pk-confirm p { margin: 0 0 0.55rem; font-size: 0.85rem; line-height: 1.3; }
+.pk-confirm-row { display: flex; gap: 0.4rem; justify-content: flex-end; }
+.pk-confirm-row button {
+  border-radius: 999px; padding: 0.32rem 0.85rem; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.pk-confirm-cancel { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.pk-confirm-cancel:hover { color: var(--text); border-color: var(--muted); }
+.pk-confirm-ok { background: var(--gold); color: var(--ink); border: 1px solid var(--gold); }
+.pk-confirm.danger .pk-confirm-ok { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ================= scores panel ================= */
+.pk-sb { display: inline-flex; align-items: baseline; gap: 0.35rem; }
+.pk-net { font-size: 0.66rem; font-weight: 600; }
+.pk-net.up, .pk-delta.up { color: var(--turn); }
+.pk-net.down, .pk-delta.down { color: var(--accent); }
+.pk-spec {
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(0, 0, 0, 0.2); padding: 0.4rem 0.6rem; border-radius: 4px;
+}
+.pk-spec-tag { font-size: 0.7em; }
+
+/* ================= hand-rankings card (rankings.js) =================
+   One button on the felt's top-right corner opens one panel with exactly one
+   scroll area. Desktop: docked inside the right edge of the felt, sized so all
+   ten hands fit without scrolling. Phone: a bottom sheet (see the media block). */
+.pk-hands-btn {
+  position: absolute; top: 10px; right: 10px; z-index: 31;
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.5rem; border-radius: 999px; cursor: pointer;
+  font-family: var(--display); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em;
+  color: var(--text); background: rgba(0, 0, 0, 0.42); border: 1px solid var(--line);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.pk-hands-btn:hover, .pk-hands-btn.on { border-color: var(--gold); color: var(--gold); }
+.pk-hands-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pk-hands-ico { font-size: 1rem; line-height: 1; }
+.pk-hands-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--gold);
+  box-shadow: 0 0 8px rgba(230, 178, 60, 0.9);
+}
+.pk-hands-dot[hidden] { display: none; }
+
+.pk-hands {
+  position: absolute; top: 8px; right: 8px; z-index: 32;
+  /* Never taller than the table, nor than the window: the shared reaction dock
+     floats at the felt's bottom-right corner or the window's, whichever is
+     higher, and the panel must end above it. Scrolls inside beyond that. */
+  width: 300px; max-height: min(calc(100% - 84px), calc(100vh - 190px));
+  overflow-y: auto; overscroll-behavior: contain;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.8);
+  padding: 0.55rem 0.7rem 0.6rem;
+  animation: pk-hands-in 0.16s ease-out;
+}
+.pk-hands[hidden] { display: none; }
+@keyframes pk-hands-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+.pk-hands-grip { display: none; }
+.pk-hands-backdrop { display: none; }
+.pk-hands-head {
+  display: flex; align-items: center; gap: 0.4rem;
+  position: sticky; top: -0.55rem; z-index: 1;
+  margin: -0.55rem -0.7rem 0.3rem; padding: 0.55rem 0.7rem 0.35rem;
+  background: var(--panel);
+}
+.pk-hands-head h3 {
+  margin: 0; font-family: var(--display); font-size: 0.8rem; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+.pk-ranks-mine {
+  margin-left: auto; font-size: 0.7rem; font-weight: 600; color: var(--ink);
+  background: var(--gold); border-radius: 999px; padding: 0.05rem 0.5rem;
+  max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pk-ranks-mine[hidden] { display: none; }
+.pk-hands-close {
+  margin-left: auto; flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  background: transparent; color: var(--muted); border: 1px solid var(--line); font-size: 0.75rem;
+}
+.pk-ranks-mine:not([hidden]) + .pk-hands-close { margin-left: 0.2rem; }
+.pk-hands-close:hover { color: var(--text); border-color: var(--muted); }
+.pk-ranks-note { margin: 0 0 0.4rem; font-size: 0.7rem; color: var(--muted); line-height: 1.3; }
+
+.pk-ranks-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.pk-rank {
+  display: flex; flex-direction: column; gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.18); border-radius: 9px; padding: 0.4rem 0.45rem 0.45rem;
+}
+.pk-rank-top { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.pk-rank-n {
+  width: 1.2rem; height: 1.2rem; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-weight: 700; font-size: 0.62rem;
+  background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+}
+.pk-rank:nth-child(-n+3) .pk-rank-n { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.pk-rank-name { flex: 0 0 auto; font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+/* The hint takes whatever room is left on the line, right-aligned. */
+.pk-rank-hint {
+  flex: 1 1 auto; min-width: 0; text-align: right;
+  font-size: 0.64rem; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Five cards across the full row width: 5 x 46px + 4 gaps fits the 300px card. */
+.pk-rank-cards { display: flex; gap: 5px; }
+.pk-rank-card {
+  width: 46px; height: 64px; border-radius: 4px;
+  box-shadow: 0 3px 8px -3px rgba(0, 0, 0, 0.75);
+}
+.pk-rank-card.kicker { opacity: 0.35; filter: grayscale(0.5); }
+.pk-rank-foot { margin: 0.45rem 0 0; font-size: 0.64rem; color: var(--muted); line-height: 1.35; }
+/* Your row, when the host has hand hints on. */
+.pk-rank.mine {
+  background: color-mix(in srgb, var(--gold) 16%, rgba(0, 0, 0, 0.18));
+  box-shadow: inset 0 0 0 1px var(--gold), 0 0 14px -4px rgba(230, 178, 60, 0.6);
+}
+.pk-rank.mine .pk-rank-n { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.pk-rank-you {
+  margin-left: 0.35rem; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ink); background: var(--gold);
+  border-radius: 999px; padding: 0 0.32rem; vertical-align: 1px;
+}
+.pk-rank-you[hidden] { display: none; }
+
+/* ================= round summary ================= */
+.re-score .pk-delta { margin-right: 0.6rem; }
+.re-score .pk-left { color: var(--text); font-weight: 500; }
+.re-card.pk-best { outline: 2px solid var(--gold); outline-offset: 1px; }
+.pk-re-board { margin-bottom: 0.7rem; justify-content: center; }
+.pk-re-board .re-total { margin: 0 0.4rem 0 0; }
+
+/* ================= phones ================= */
+@media (max-width: 720px) {
+  .poker-felt .opponents { height: 156px; }
+  .pk-board { gap: 0.3rem; }
+  .pk-board-card, .pk-slot { width: 46px; height: 64px; }
+  .pk-seat-info { max-width: 72px; font-size: 0.58rem; }
+  .pk-reveal-card { width: 24px; height: 34px; }
+  .pk-hand .pk-hole { width: 64px; height: 90px; }
+  .pk-hand { min-height: 90px; }
+  .poker-felt .av-ini.pk-amt { font-size: 0.6rem; }
+  .poker-felt .my-seat .av-ini.pk-amt { font-size: 0.72rem; }
+  .poker-felt .opp-count.pk-pouch { width: 20px; height: 20px; right: -8px; }
+  .pk-mini { width: 12px; height: 17px; }
+  .pk-holding { left: -11px; }
+  .pk-coin { width: 20px; height: 8px; margin-top: -4px; }
+}
+@media (max-width: 600px) {
+  /* The shared reaction dock is position:fixed in the bottom-right corner and
+     poker's betting bar is taller than any other game's action row, so on a
+     phone its right-hand controls could scroll under the dock. Symmetric side
+     padding keeps the bar centred and clear of the dock column without moving
+     the shared dock. */
+  .pk-bar { padding: 0 1.6rem; box-sizing: border-box; }   /* measured: dock starts ~22px inside the bar */
+  .pk-btns { width: 100%; gap: 0.45rem; }
+  .pk-btns .btn-throw, .pk-btns .btn-stop {
+    flex: 1 1 calc(50% - 0.45rem); min-width: 0;
+    padding-left: 0.4rem; padding-right: 0.4rem; gap: 0.3rem;
+    font-size: 0.85rem; white-space: nowrap;
+  }
+  .pk-slider-row { gap: 0.4rem; }
+  .pk-slider { min-width: 0; }
+  .pk-amount { width: auto; flex: 0 1 6.5rem; min-width: 5rem; font-size: 0.85rem; }
+  .pk-preset { font-size: 0.7rem; padding: 0.3rem 0.2rem; }
+}
+@media (max-width: 720px) {
+  .pk-hands-btn { top: 6px; right: 6px; padding: 0.28rem 0.5rem; }
+  .pk-hands-btn-label { display: none; }          /* icon (and dot) only on a phone */
+  .pk-hands-backdrop:not([hidden]) {
+    display: block; position: fixed; inset: 0; z-index: 70;
+    background: rgba(0, 0, 0, 0.45);
+  }
+  .pk-hands {
+    position: fixed; left: 0; right: 0; top: auto; bottom: 0; z-index: 71;
+    width: auto; max-height: 78vh;
+    border-radius: 16px 16px 0 0; border-width: 1px 0 0;
+    padding: 0.4rem 0.9rem calc(0.8rem + env(safe-area-inset-bottom, 0px));
+    animation: pk-hands-rise 0.18s ease-out;
+  }
+  .pk-hands-grip {
+    display: block; width: 38px; height: 4px; border-radius: 999px;
+    background: var(--line); margin: 0 auto 0.35rem;
+  }
+  .pk-hands-head { top: -0.4rem; margin: -0.4rem -0.9rem 0.3rem; padding: 0.5rem 0.9rem 0.35rem; }
+  .pk-rank { padding: 0.45rem 0.55rem 0.5rem; }
+  /* The phone sheet is full width, so the cards can be bigger still. */
+  .pk-rank-cards { gap: 6px; }
+  .pk-rank-card { width: 52px; height: 73px; }
+}
+@keyframes pk-hands-rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-hands { animation: none; }
+  .pk-dealt, .pk-deal, .pk-flip, .pk-coin-new, .pk-confirm { animation: none; }
+  .poker-felt .pk-winner .opp-ring-outer { animation: none; box-shadow: 0 0 0 3px var(--gold); }
+}
