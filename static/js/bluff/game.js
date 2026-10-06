@@ -117,6 +117,9 @@
 
   socket.on("round_start", (data) => {
     view.state = "IN_TURN";
+    // A fresh deal (or a resync) sets the baseline for noticing shuffles; it is
+    // not itself a shuffle to announce.
+    view.seatShuffles = null;
     applyTable(data);
     document.getElementById("roundend-modal").classList.remove("open");
     if (window.SS.hideWinnerScreen) window.SS.hideWinnerScreen();
@@ -150,6 +153,7 @@
     view.roundNumber = data.round_number;
     if (typeof data.turn_seconds_left === "number") view.secondsLeft = data.turn_seconds_left;
     applyFinishOrder(data.finish_order);
+    applySeatShuffle(data);
 
 
     // Sound cue when the turn becomes mine.
@@ -323,6 +327,7 @@
 
   // ---- view switching ----
   function sync() {
+    renderShuffle();
     const inRound = view.state === "IN_TURN";
     lobbyView.style.display = inRound ? "none" : "block";
     tableView.style.display = inRound ? "flex" : "none";
@@ -456,6 +461,57 @@
         total_score: r.total_score, eliminated: r.eliminated,
       }))
       .sort((a, b) => (a.eliminated - b.eliminated) || (a.total_score - b.total_score));
+  }
+
+  // ---- host's "Shuffle seats" ------------------------------------------------
+  // Driven by state, not a one-shot event: shuffle_pending says one is queued,
+  // and seat_shuffles rising says one was applied — so a client that missed a
+  // broadcast still catches up on its next sync (see sockets/sync.py).
+  const shuffleBtn = document.getElementById("bluff-shuffle-btn");
+  const shuffleNote = document.getElementById("bluff-shuffle-note");
+
+  function applySeatShuffle(data) {
+    view.shufflePending = !!data.shuffle_pending;
+    if (typeof data.seat_shuffles === "number") {
+      if (typeof view.seatShuffles === "number" && data.seat_shuffles > view.seatShuffles) {
+        announceShuffle();
+      }
+      view.seatShuffles = data.seat_shuffles;
+    }
+    renderShuffle();
+  }
+
+  function announceShuffle() {
+    const order = (view.turnOrder || []).filter((uid) => {
+      const p = view.players.find((x) => x.user_id === uid);
+      return p && !p.eliminated && (view.finishOrder || []).indexOf(uid) === -1;
+    });
+    const names = order.map((uid) => (uid === youId ? "You" : nameOf(uid)));
+    const leader = view.currentTurn === youId ? "You lead" : nameOf(view.currentTurn) + " leads";
+    showToast("\uD83D\uDD00 Seats shuffled \u2014 " + leader, 2600);
+    if (window.ActionLog && names.length) {
+      window.ActionLog.push("\uD83D\uDD00 Seats shuffled: " + names.join(" \u2192 "), "system");
+    }
+  }
+
+  function renderShuffle() {
+    if (!shuffleBtn || !shuffleNote) return;
+    const live = view.state === "IN_TURN";
+    const host = view.hostId === youId;
+    shuffleBtn.hidden = !(live && host);
+    shuffleBtn.classList.toggle("pending", !!view.shufflePending);
+    // Queued: the note beside it already says what will happen, so the
+    // button only has to offer the undo.
+    shuffleBtn.textContent = view.shufflePending ? "Cancel" : "\uD83D\uDD00 Shuffle seats";
+    shuffleNote.hidden = !(live && view.shufflePending);
+    const row = document.getElementById("bluff-shuffle-row");
+    if (row) row.hidden = shuffleBtn.hidden && shuffleNote.hidden;
+  }
+
+  if (shuffleBtn) {
+    shuffleBtn.addEventListener("click", () => {
+      socket.emit("bluff_shuffle_seats", { code, user_id: youId });
+    });
   }
 
   // ---- finishing places -------------------------------------------------
