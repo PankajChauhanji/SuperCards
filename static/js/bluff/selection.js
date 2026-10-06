@@ -34,6 +34,14 @@
     const inTurn = v.state === "IN_TURN";
     const mine = inTurn && myTurn();
 
+    const selectAll = document.getElementById("select-all-btn");
+    if (selectAll) {
+      const hand = v.hand || [];
+      selectAll.hidden = !(mine && hand.length > 1);
+      const all = hand.length > 0 && hand.every((c) => selected.has(c.id));
+      selectAll.textContent = all ? "Clear" : "Select all";
+    }
+
     document.querySelectorAll("#hand .card-slot").forEach((slot) => {
       slot.classList.toggle("selected", selected.has(slot.dataset.id));
       slot.classList.toggle("locked", !mine);
@@ -80,12 +88,6 @@
     if (n === 0) {
       label.textContent = v.targetRank ? `Target is ${v.targetRank}. Select cards.` : "Select cards and a rank to start.";
       label.className = "play-label muted";
-      throwBtn.disabled = true;
-      return;
-    }
-    if (n > 4) {
-      label.textContent = "Max 4 cards.";
-      label.className = "play-label bad";
       throwBtn.disabled = true;
       return;
     }
@@ -149,6 +151,15 @@
         if (slot) toggle(slot.dataset.id);
       });
       document.getElementById("throw-btn").addEventListener("click", doThrow);
+      const selectAll = document.getElementById("select-all-btn");
+      if (selectAll) selectAll.addEventListener("click", () => {
+        if (view().state !== "IN_TURN" || !myTurn()) return;
+        const hand = view().hand || [];
+        const all = hand.length > 0 && hand.every((c) => selected.has(c.id));
+        selected.clear();
+        if (!all) hand.forEach((c) => selected.add(c.id));
+        refresh();
+      });
       document.getElementById("pass-btn").addEventListener("click", doPass);
       document.getElementById("show-btn").addEventListener("click", doShow);
       
