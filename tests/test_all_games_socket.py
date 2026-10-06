@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-"""Socket smoke test for ALL THREE games — the suite's biggest blind spot.
+"""Socket smoke test for EVERY game — the suite's biggest blind spot.
 
 Every existing socket test drives Super Seven. Bluff and Super 4 had no
 end-to-end socket coverage at all, so any change to their handler modules could
@@ -47,7 +47,7 @@ def play(game_type, private_event, action):
     state = {}
 
     for event in ("room_created", "room_joined", "round_start", "error",
-                  private_event, "table_state", "s4_state"):
+                  private_event, "table_state", "s4_state", "poker_state", "seats_shuffled"):
         cli.on(event, handler=lambda data, e=event: state.__setitem__(e, data or {}))
 
     try:
@@ -68,6 +68,7 @@ def play(game_type, private_event, action):
 
         cli.emit("start_game", {"code": code, "user_id": uid})
         log(wait_for(state, "round_start"), "%s round started" % tag)
+        log(state.get("seats_shuffled") is None, "%s no shuffle unless the host asks" % tag)
 
         # The private deal is the whole point of the presenter hook: if the
         # audience migration broke targeting, this is what stops arriving.
@@ -85,6 +86,7 @@ def play(game_type, private_event, action):
         time.sleep(1.2)
         moved = (state.get("table_state") != before.get("table_state")
                  or state.get("s4_state") != before.get("s4_state")
+                 or state.get("poker_state") != before.get("poker_state")
                  or state.get(private_event) != before.get(private_event))
         log(moved, "%s the table advanced after an action" % tag)
         log(state.get("error") is None,
@@ -110,12 +112,12 @@ def seven_action(cli, code, uid, state):
                                 "card_ids": [hand[0]["id"]]})
 
 
-# ---- Bluff: lead off by declaring a rank ----
+# ---- Bluff: lead off with six cards — any number may be thrown, not just 1-4 ----
 def bluff_action(cli, code, uid, state):
     hand = (state.get("your_hand") or {}).get("cards") or []
     if hand:
         cli.emit("bluff_play", {"code": code, "user_id": uid,
-                                "card_ids": [hand[0]["id"]],
+                                "card_ids": [c["id"] for c in hand[:6]],
                                 "declared_rank": hand[0]["code"]})
 
 
@@ -126,12 +128,96 @@ def four_action(cli, code, uid, state):
     cli.emit("s4_draw", {"code": code, "user_id": uid})
 
 
-print("Socket smoke across all three games\n")
+# ---- Poker: wait for our turn (the bot may act first heads-up), then call/check ----
+def poker_action(cli, code, uid, state):
+    deadline = time.time() + 8
+    while time.time() < deadline:
+        latest = state.get("poker_state") or state.get("round_start") or {}
+        if latest.get("current_turn") == uid:
+            acts = latest.get("actions") or {}
+            cli.emit("poker_action", {"code": code, "user_id": uid,
+                                      "action": "check" if acts.get("check") else "call"})
+            return
+        time.sleep(0.2)
+
+
+print("Socket smoke across every game\n")
 play("super_seven", "your_hand", seven_action)
 print()
 play("bluff", "your_hand", bluff_action)
 print()
 play("super_four", "your_view", four_action)
+print()
+play("poker", "your_hand", poker_action)
+
+# ---- Shuffle seats: the host's checkbox, through the shared start path ----
+# Its own walk, because a shuffle may hand the first turn to the bot, which the
+# action walkthroughs above (rightly) assume is the human's.
+def shuffle_start(game_type):
+    tag = "[%s]" % game_type
+    uid = "shuffle-%s" % game_type
+    cli = socketio.Client()
+    state = {}
+    for event in ("room_created", "round_start", "seats_shuffled", "error"):
+        cli.on(event, handler=lambda data, e=event: state.__setitem__(e, data or {}))
+    try:
+        cli.connect(BASE, wait_timeout=10)
+        cli.emit("create_solo", {"name": "Shuffler", "user_id": uid, "game_type": game_type})
+        wait_for(state, "room_created")
+        code = (state.get("room_created") or {}).get("code")
+        cli.emit("enter_room", {"code": code, "name": "Shuffler", "user_id": uid})
+        cli.emit("start_game", {"code": code, "user_id": uid, "shuffle": True})
+        log(wait_for(state, "round_start"), "%s shuffled start deals a round" % tag)
+        got = state.get("seats_shuffled") if wait_for(state, "seats_shuffled") else None
+        order = [p["user_id"] for p in (got or {}).get("order", [])]
+        log(len(order) == 2 and uid in order, "%s everyone is told the new seat order" % tag)
+        log(state.get("error") is None, "%s no error from a shuffled start" % tag)
+    finally:
+        try:
+            cli.disconnect()
+        except Exception:
+            pass
+
+
+print()
+for g in ("super_seven", "bluff", "super_four", "poker"):
+    shuffle_start(g)
+
+
+# ---- Bluff: the host's in-game Shuffle seats button ----
+def bluff_ingame_shuffle():
+    tag = "[bluff]"
+    uid = "ingame-shuffle"
+    cli = socketio.Client()
+    state = {"tables": []}
+    for event in ("room_created", "round_start", "error"):
+        cli.on(event, handler=lambda data, e=event: state.__setitem__(e, data or {}))
+    cli.on("table_state", handler=lambda data: state["tables"].append(data or {}))
+    try:
+        cli.connect(BASE, wait_timeout=10)
+        cli.emit("create_solo", {"name": "Host", "user_id": uid, "game_type": "bluff"})
+        wait_for(state, "room_created")
+        code = (state.get("room_created") or {}).get("code")
+        cli.emit("enter_room", {"code": code, "name": "Host", "user_id": uid})
+        cli.emit("start_game", {"code": code, "user_id": uid})
+        wait_for(state, "round_start")
+        cli.emit("bluff_shuffle_seats", {"code": code, "user_id": uid})
+        deadline = time.time() + 6
+        hit = None
+        while time.time() < deadline and hit is None:
+            hit = next((t for t in state["tables"] if t.get("seat_shuffles") or t.get("shuffle_pending")), None)
+            time.sleep(0.1)
+        log(hit is not None, "%s host's Shuffle seats is applied or queued, and the table is told" % tag)
+        log(state.get("error") is None, "%s no error from the shuffle button" % tag)
+    finally:
+        try:
+            cli.disconnect()
+        except Exception:
+            pass
+
+
+print()
+bluff_ingame_shuffle()
 
 print("\n%d/%d all-games socket checks passed" % (sum(results), len(results)))
 sys.exit(0 if all(results) else 1)
