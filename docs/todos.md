@@ -1110,6 +1110,258 @@ the failure was a fixed byte budget in the harness, and it would have gone on be
 on timing indefinitely.
 
 
+
+## 21. Poker — the fourth game — ✅ DONE (2026-10-05)
+
+No-Limit Texas Hold'em for play coins, built on the same seams as the other three. Rules:
+`docs/poker_rules.md`. UI spec: `docs/poker_ui.md`. Working checklist: `docs/poker_todos.md`.
+
+**What it is.** The host picks the starting coins (default 1,000,000) and the number of
+rounds (default 10). Blinds are derived from the starting coins (1% / 0.5%), so every stack
+starts 100 big blinds deep. After each round a summary popup shows everyone's coins left; the
+host deals the next round, or it deals itself after 30s. The game ends after the last round
+or when one player holds every coin. The podium ranks players by coins, with net +/-.
+
+**Registered, not forked** — the "adding a game is a registration" claim held a fourth time:
+- [x] `game/poker/`: `room.py` (the state machine), `evaluator.py` (best 5 of 7, kickers,
+      wheel, ties), `pots.py` (side pots, uncalled bets, odd coin), `ai.py`, `visibility.py`,
+      `settings.py`.
+- [x] `sockets/gameplay/poker.py`: one `poker_action` event for every decision, plus
+      `poker_back` (I'm back) and `poker_next_round`. Presenter dealer / refresh / resync
+      hooks, a visibility oracle, and a director ticker.
+- [x] Client: `templates/games/poker/*`, `static/js/poker/{table,game}.js`, `css/poker.css`,
+      rules `static/rules/poker/{en,hi}.html`, `img/poker_symbol.svg`. Seats, lobby, scores
+      sheet, themes, deck choice, reactions and the winner podium are the shared components —
+      poker adds a chip line under each shared seat rather than a seat of its own.
+- [x] Super Seven / Super Four / Bluff files are untouched.
+
+**The shared-code changes, all additive and behaviour-preserving for the other games**
+- `sockets/director.py`: `register_ticker(..., states=(STATE_IN_TURN,))`. Poker opts in to
+  STATE_ROUND_END for the 30s auto-deal; the default is exactly the old behaviour, and
+  `tests/test_poker_ticker.py` asserts the other three still tick mid-round only.
+- `templates/index.html` (one `game_meta` entry) and `lobby.css` (picker: 4 across, 2x2 under
+  520px — a fourth tile alone on a second row looked broken).
+- `core/waking.js`: three poker tips in its per-game map.
+- `sw.js` cache `v6` → `v7` (shared JS/CSS changed — see the §18 deploy note).
+- The view-mode control is hidden from poker's own `table.html`, so `core/view_mode.js` did
+  not have to learn about a fourth game.
+
+**Hidden information — poker is the first game whose round end is NOT a blanket reveal.**
+A folded hand stays hidden forever, and so do an uncontested winner's cards, so
+`game/poker/visibility.py` never returns `EVERYTHING`. `tests/test_leak_fuzz.py` gained a
+Poker adapter that also scans the round-summary and game-end payloads (the other adapters
+stop at round end because there everything is public by design). Verified by injecting a
+leak: caught on the first action, naming the payload path.
+
+**Bugs found while building it, worth remembering**
+- Uncalled-bet refunds must skip folded players. A player who quit holding the top bet was
+  being refunded the unmatched part; a folder forfeits everything they put in.
+- The bot reads only what a human in its seat sees: `tests/test_poker_bot.py` wraps the room
+  in a proxy that raises on `deck`, `burns` or another player's `hole`.
+- Coin formatting must pick the unit from the *rounded* value: 999,999 had rendered "1000K".
+
+**Verified:** 6 new test files (evaluator 39, pots 16, room 78 incl. 150 random games
+conserving every coin, bot 8, ticker 24, two-client sockets 20) plus poker in the contract
+(81), leak fuzz, settings-doc (42) and all-games socket tests. Suite: **44 files, 42 pass, 2
+unscored**. In the browser: home, lobby settings, a full game against bots (showdown summary,
+30s auto-deal, all-in runout, podium, Play again) at desktop and 375px, with no console
+errors or server errors. Mobile action bar measured clear of the reaction dock for every
+control.
+
+**Not verified yet:** real phones, and a real multi-human table. The play-test is item 7.4 in
+`docs/poker_todos.md`.
+
+
+### 21b. Poker table feel after the first play-test — ✅ DONE (2026-10-05)
+
+Owner feedback after the first games, all poker-only (`static/js/poker/*`, `css/poker.css`,
+one private-payload change on the server):
+- **Confirmations are anchored bubbles, not `window.confirm()`.** All-in always asks; Fold
+  asks only when checking is free. A bubble closes on a tap elsewhere, Escape, scrolling,
+  or a turn change, so a stale question can never be answered after the moment has passed.
+- **"Cards opened but not displayed" had three causes, each fixed.**
+  1. `your_hand` was sent only at the deal. It now rides along with every broadcast, tagged
+     with `round_number`.
+  2. A new round could show the previous round's cards until the deal landed. The client
+     now deals face down and ignores a stale round's copy.
+  3. Card SVGs were fetched on first use. They are preloaded, and each flip waits for
+     `img.decode()`.
+- **The seat circle is the stack.** It reuses core/seats.js's liquid gauge (stack ÷
+  received) with the amount written inside. The card-count badge became a money pouch,
+  and mini face-down cards mark who is still in. Nothing in core/seats.js changed: poker
+  dresses the shared seat after it renders, as before.
+- **Money you can see.** The pot is a pile of gold coins on a log scale, coins arc from a
+  seat to the pot on every bet, and the pot flies to the winner before the summary opens.
+  There is a synthesized chip clink that respects mute. All of it is skipped under reduced
+  motion.
+- **Extras:**
+  * "Your hand: …" under your cards, computed by the server from your own cards and the
+    board, and sent only to you (the leak fuzzer checks `private_view` too);
+  * the winning five highlighted on the board;
+  * Check / Fold and Check pre-actions.
+
+> **Trap worth remembering:** the state broadcast that precedes `game_end` already says
+> GAME_END, so "is this the first time?" cannot be read off `view.state`. The podium
+> payout was silently skipped until that became an explicit flag.
+
+
+### 21c. Poker cheat sheet, and Bluff throws any number of cards — ✅ DONE (2026-10-06)
+
+**Poker: hand-rankings cheat sheet.**
+- Client-only (`static/js/poker/rankings.js`): the ten hands with real card art, kickers
+  dimmed.
+- It sits inside `#sb-players`, which is the node `core/table_sheet.js` moves into the
+  phone sheet. So on desktop it is between Coins and Action History, and on a phone it is
+  in the Scores tab, with no shared code touched.
+- **Trap hit:** in the sheet `#sb-players` is a fixed-height flex column in which only
+  `#score-list` scrolls. A tall sibling squeezed the list to 0px, with no error and nothing
+  in the DOM count to notice. The two now share the height (poker.css). A measured height
+  caught it; a node count would not have (the §11 lesson, again).
+
+**Bluff: the 1–4 card limit is gone. A player may throw any number of cards, even the
+whole hand.**
+- **Where the limit lived:** `sockets/gameplay/bluff.py` and `static/js/bluff/selection.js`.
+  The engine never had one.
+- **Kept:** at least one card, and every card must be in the hand (`card_objects`).
+- **Bots:** they still put down at most four, as a style choice now rather than a rule.
+  Their counting already treats an impossible claim (more of a rank than exists) as a
+  certain Show, so a 9-sevens claim is challenged at once. Verified in the browser.
+- **Bluff UI:**
+  * a **Select all / Clear** helper on your turn, since hands run to 26+;
+  * a Show reveal that fits its overlap to the felt width instead of a fixed 34px, so a
+    20-card reveal no longer runs off a phone.
+- **Rules and tests:**
+  * the rules text is updated in `en.html`, `hi.html` and `docs/bluff_rules.md`;
+  * `test_all_games_socket.py` now throws 6 cards;
+  * the Bluff leak-fuzz adapter makes big throws one play in five.
+
+**Noticed, not changed:**
+- `bluff_next_round` refers to `STATE_LOBBY` without importing it. It is unreachable
+  today, because Bluff has no round end.
+- At 375px, Bluff's Throw / Pass / Show row is a little wider than the felt, so Show
+  partly sits under the reaction dock. This was already the case before this change.
+
+
+### 21d. Poker hand hints as a host setting — ✅ DONE (2026-10-06)
+
+- **Why a host setting.** One rule for the whole table keeps the game the same for
+  everyone; a per-player switch was judged to make the table more complex, not less.
+- **The setting.** New poker setting `hand_hints` (0/1, default 0).
+  * `Room.private_view()` sends `hand_name` and `hand_rank` (its rankings-card row) only
+    when hints are on, so off means not sent, not merely hidden.
+  * The row mapping is pinned for all ten categories in `test_poker_room.py`.
+- **Shared code, additive only.** `core/lobby.js` gained an optional `{type: "toggle"}`
+  settings field: a switch for the host, "On" / "Off" for guests, saved as 1 / 0 so
+  `_clean_settings` needed nothing.
+  * Its CSS lives in `lobby.css` as `.set-item .set-switch`. Two classes are needed,
+    because `.set-item input` (the number boxes' full-width rule) otherwise wins and
+    stretches the switch across the column.
+- **When on:** the Hand rankings card shows your hand as a header chip, even collapsed,
+  highlights your row, and opens onto it.
+- **Testing trap.** The phone sheet closes itself when your turn arrives (by design, §11),
+  and a hidden preview pane runs neither `requestAnimationFrame` nor smooth scrolling. Both
+  made a working scroll look broken. The scroll is now instant after a zero-delay timeout,
+  which is also the more robust choice for a real busy tab.
+
+
+### 21e. Poker hand-rankings card gets its own button — ✅ DONE (2026-10-06)
+
+- **What was wrong.** Play-testers found the in-column cheat sheet (§21c) hard to scroll,
+  sometimes not at all.
+  * **Desktop:** it was a scroll box inside the Coins card's own scroll box, capped at 60%
+    of the column.
+  * **Phone:** the shared sheet gave it about 120px.
+- **The new card.** A 🃏 **Hands** button on the felt opens one panel with exactly one scroll
+  area.
+  * **Desktop:** it docks inside the felt's right edge, compact enough that all ten rows fit
+    without scrolling.
+  * **Phone:** it is a bottom sheet layered like the shared one (backdrop 70, sheet 71).
+  * The side column and the phone sheet are back to Coins + History.
+- **It stays open across turns.** On a phone only, it yields to the round summary and the
+  podium, because a full-width sheet there would bury the host's Start-next-round button.
+  The desktop panel sits inside the felt, below any modal.
+- **Hand hints looked broken for two reasons, and neither was the gate itself.**
+  1. The lobby switch needed a separate Save press; `core/lobby.js` toggles now save on
+     change. Saving sends the whole form, because `_clean_settings` rebuilds from defaults,
+     so a single-key update would reset everything else.
+  2. Before the flop an unpaired hand produced no name, which read as "off". It is now
+     "High Card, X" on the High Card row.
+  * `test_poker_socket.py` checks both directions with two clients.
+- **Testing note.** The phone sheet's turn-aware dismiss (§11) closed the old card
+  mid-test, and the hidden preview pane runs neither `requestAnimationFrame` nor smooth
+  scrolling. Both looked like scrolling bugs and were not.
+
+
+## 22. Shuffle seats — host option, every game — ✅ DONE (2026-10-06)
+
+Turn order used to be join order, decided once. The host can now reshuffle it.
+
+- **Where the option appears:**
+  * **Lobby, every game:** a **🔀 Shuffle seats** checkbox beside Start game. For Bluff,
+    which has no rounds, this is its point of use: each new game, including after Play
+    again.
+  * **Super Seven round summary:** the same checkbox beside Next round.
+  * Poker and Super Four get the lobby option only. Poker's seats are fixed for a game, and
+    the button rotation depends on them.
+- **Why it needed no per-game rule changes.** Every variant builds its turn order from
+  `room.players` in insertion order: Super Seven, Super Four and Bluff at each
+  `start_round`, Poker when it seats the table. So `game/core/seating.py` simply reorders
+  that dict, in place, just before the deal. `tests/test_seating.py` pins that fact for
+  all four games, so a future variant that derived its order differently would fail there
+  rather than silently ignoring the checkbox.
+- **Robust by construction.**
+  * The choice travels *with* the action that deals (`start_game` / `next_round` carry
+    `shuffle: true`), so there is no pending state to store, sync, snapshot or forget.
+  * Unticked, everything is exactly the old join-order seating.
+  * The host's choice is remembered on their device for the session (core/lobby.js), so
+    ticking it once keeps shuffling every round until unticked.
+- **Everyone is told.** A shared `seats_shuffled` event (names and ids only, nothing
+  hidden) shows a "🔀 Seats shuffled" toast and an Action History line with the new order.
+  It is sent after `round_start`, because clients clear the log on a new round.
+- **Verified:**
+  * 13 engine checks;
+  * a shuffled start in all four games over sockets (`test_all_games_socket.py`);
+  * a real Super Seven round-to-round shuffle in the browser (order changed, notice shown,
+    choice carried over).
+
+**Noticed, not changed:** the floating reaction / 🏆 buttons (z-index 61) sit above every
+modal (z-index 50). So at narrow widths they partly cover a round summary's right-hand
+button, as they already did before this change. Hiding the dock while a modal is open is
+a small shared fix if wanted.
+
+
+### 22b. Bluff: the host's in-game Shuffle seats button — ✅ DONE (2026-10-06)
+
+- **Why.** Owner feedback: in Bluff, a player who lands easy neighbours tends to win most of
+  the time. Bluff has no rounds in the platform sense, so the lobby checkbox (§22) only
+  helps at the start of a game.
+- **Button over automatic.** An automatic "every N rounds" option was considered and turned
+  down: the host talks it over with the table anyway, and a button keeps that conversation
+  in charge.
+- **What the host gets.** A **🔀 Shuffle seats** button during the game. It sits in its own
+  centred row under the seats; a corner placement covered the right-most seat on narrow
+  screens.
+- **How it behaves (`Room.request_shuffle` / `_apply_pending_shuffle`):**
+  * **Never mid-play.** At a fresh round (pile empty, no rank locked, no reveal running) it
+    applies at once. Otherwise it is queued and applied at the next fresh round. That
+    boundary has exactly two entry points: the end of `resolve_show`, and the pile sweep in
+    `apply_pass`, on both of its branches.
+  * **The leader keeps the lead.** Only `turn_order` is shuffled; `turn_index` is re-pointed
+    at the player who was about to lead. Hands, the pile, finishing places, and finished or
+    removed players, who are still skipped, are untouched.
+  * **Cancel.** Pressing again while queued cancels it.
+- **Visible to everyone, driven by state.** `shuffle_pending` and `seat_shuffles` ride in
+  `table_state`. A queued shuffle shows "🔀 Seats shuffle after this round" to all players;
+  an applied one shows a toast ("… leads") and an Action History line with the new order.
+  Because it is state rather than a one-shot event, a client that missed the broadcast
+  catches up on its next sync (§18).
+- **Verified:**
+  * `tests/test_bluff_shuffle.py`: 20 checks, including 120 random games with random presses;
+    seating, turns and all 52 cards stay valid, and every game finishes;
+  * the existing Bluff logic, bot and leak-fuzz tests unchanged;
+  * the button over sockets (`test_all_games_socket.py`);
+  * the full queue → round clears → re-seat flow in the browser.
+
 ---
 
 ## Super 4 — game-specific notes & ideas
