@@ -77,8 +77,12 @@ def register(socketio, manager):
         card_ids = data.get("card_ids") or []
         declared_rank = data.get("declared_rank")
 
-        if not card_ids or len(card_ids) > 4:
-            return error("You must throw between 1 and 4 cards.")
+        # Any number of cards, up to the whole hand — whether a big claim is
+        # believable is for the next player to judge with Show, not for the
+        # server to cap. card_objects() below still rejects cards not in hand
+        # and duplicates.
+        if not card_ids:
+            return error("Select at least one card to throw.")
         if not declared_rank:
             return error("You must declare a rank.")
         if room.target_rank is not None and declared_rank != room.target_rank:
@@ -156,6 +160,33 @@ def register(socketio, manager):
             return
 
         socketio.emit("table_state", room.public_round_state(), to=room.code)
+
+    @socketio.on("bluff_shuffle_seats")
+    def on_shuffle_seats(data):
+        """Host's in-game "Shuffle seats" (see Room.request_shuffle).
+
+        Not a turn action — the host may press it whenever — so it does not go
+        through _resolve(). It never moves anyone mid-play: at a fresh round it
+        re-seats at once, otherwise it is queued for the moment the pile clears.
+        Pressing again while queued cancels. Everyone learns the outcome from
+        the table state itself (shuffle_pending / seat_shuffles), so a client
+        that misses this broadcast still catches up on its next sync.
+        """
+        data = data or {}
+        code = (data.get("code") or "").strip().upper()
+        user_id = data.get("user_id")
+        room = manager.get_room(code)
+        if room is None:
+            return error("This room no longer exists.")
+        if room.game_type != GAME:
+            return
+        if not room.is_host(user_id):
+            return error("Only the host can shuffle the seats.")
+        if room.state != STATE_IN_TURN or room.game_over:
+            return error("Seats can be shuffled during a game.")
+
+        room.request_shuffle()
+        emit("table_state", room.public_round_state(), to=room.code)
 
     @socketio.on("bluff_next_round")
     def on_next_round(data):
