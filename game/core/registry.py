@@ -15,6 +15,8 @@ from game.super_four.room import Room as SuperFourRoom
 from game.super_four import settings as super_four_settings
 from game.bluff.room import Room as BluffRoom
 from game.bluff import settings as bluff_settings
+from game.poker.room import Room as PokerRoom
+from game.poker import settings as poker_settings
 
 # The game selected when a client does not (yet) specify one. Keeps every
 # existing Super Seven code path working unchanged.
@@ -104,3 +106,17 @@ register(
     )
 )
 
+register(
+    GameSpec(
+        key="poker",
+        display_name="Poker",
+        room_class=PokerRoom,
+        default_settings=poker_settings.DEFAULT_SETTINGS,
+        settings_bounds=poker_settings.SETTINGS_BOUNDS,
+        min_players=poker_settings.MIN_PLAYERS,
+        max_players=poker_settings.MAX_PLAYERS,
+        # Each deal is a round with its own summary (STATE_ROUND_END), and the
+        # game ends after the host's chosen number of rounds.
+        has_rounds=True,
+    )
+)
