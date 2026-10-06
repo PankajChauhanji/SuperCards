@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-"""Randomized hidden-information leak harness for all three games.
+"""Randomized hidden-information leak harness for every game.
 
 Hand-written tests cover the cases someone thought of. This one plays thousands
 of random-but-legal games and, after *every single action*, re-derives what each
@@ -118,7 +118,9 @@ class SevenFuzz:
         # Prefer a random legal multi-card play; fall back to a single, which is
         # always legal. Trying subsets keeps combos and matches in the mix.
         for _ in range(12):
-            size = rng.randint(1, min(4, len(hand)))
+            # Mostly small plays, sometimes a big one: any number may be thrown.
+            cap = len(hand) if rng.random() < 0.2 else min(4, len(hand))
+            size = rng.randint(1, cap)
             sel = rng.sample(hand, size)
             action = infer_action([c.rank for c in sel], center)
             if action:
@@ -359,6 +361,92 @@ class FourFuzz:
         ]
 
 
+class PokerFuzz:
+    """Poker: hole cards are private; the board and turned-up hands are public.
+
+    Poker is the one game whose round end is NOT a blanket reveal — a folded
+    hand stays hidden forever, and so do an uncontested winner's cards. So,
+    unlike the other adapters, this one also checks the round-summary and
+    game-end payloads. It does that inside step(): the moment an action ends a
+    round it scans those payloads (a leak raises AssertionError, which the loop
+    records), then deals the next round so the fuzz keeps going.
+    """
+
+    variant = "Poker"
+
+    def build(self, rng, n):
+        from game.poker.room import Room
+        from game.poker.settings import DEFAULT_SETTINGS
+        settings = dict(DEFAULT_SETTINGS)
+        settings["starting_chips"] = rng.choice([10_000, 100_000, 1_000_000])
+        settings["rounds"] = 6
+        room = Room("FUZZ", "u0", settings)
+        uids = ["u%d" % i for i in range(n)]
+        for i, uid in enumerate(uids):
+            room.register_player(uid, "P%d" % i).connected = True
+        room._pick_first_button = lambda eligible: rng.choice(eligible)
+        room.start_round()
+        return room, uids
+
+    def _check_round_end(self, room, ctx_where):
+        from game.core.states import STATE_ROUND_END, STATE_GAME_END
+        from game.poker.visibility import public_card_ids
+        allowed = public_card_ids(room)
+        payloads = [("public_round_state", room.public_round_state())]
+        if room.state == STATE_ROUND_END:
+            payloads.append(("round_end_payload", room.round_end_payload()))
+        if room.state == STATE_GAME_END:
+            payloads.append(("game_end_payload", room.game_end_payload()))
+        ctx = {"variant": self.variant, "where": ctx_where}
+        for label, payload in payloads:
+            found = scan(payload, allowed, label, "<table>", ctx)
+            if found:
+                raise AssertionError(found[0])
+        folded_public = [u for u in room.folded
+                         if any(c.id in allowed for c in room.hole.get(u, []))]
+        if folded_public:
+            raise AssertionError("Poker: folded hand of %s is public at %s" % (folded_public[0], ctx_where))
+
+    def step(self, room, rng):
+        from game.core.states import STATE_ROUND_END
+        from game.poker.room import PHASE_RUNOUT
+        if room.phase == PHASE_RUNOUT:
+            room.step_runout()
+            action = "runout"
+        else:
+            uid = room.current_turn_id()
+            if uid is None:
+                return None
+            legal = room.legal_actions(uid)
+            # Mostly calls/checks and modest raises so rounds reach the river;
+            # an all-in on every few actions would end most games pre-flop.
+            passive = "check" if legal["check"] else "call"
+            options = ["fold"] + [passive] * 4 + (["raise"] * 2 if legal["raise"] else [])
+            action = "allin" if rng.random() < 0.04 else rng.choice(options)
+            amount = rng.randint(legal["min_to"], legal["max_to"]) if action == "raise" else None
+            room.act(uid, action, amount)
+        if room.state != STATE_IN_TURN:
+            self._check_round_end(room, "round %d after %s" % (room.round_number, action))
+            if room.state == STATE_ROUND_END:
+                room.start_round()
+        return action
+
+    def public_ids(self, room):
+        from game.poker.visibility import public_card_ids
+        return public_card_ids(room)
+
+    def private_ids(self, room, viewer):
+        return self.public_ids(room) | {c.id for c in room.hole.get(viewer, [])}
+
+    def views(self, room, viewer):
+        return [
+            ("public_round_state", room.public_round_state(), False),
+            ("public_players", room.public_players(), False),
+            ("hand_for", room.hand_for(viewer), True),
+            ("private_view", room.private_view(viewer), True),
+        ]
+
+
 # ── the fuzz loop ────────────────────────────────────────────────────────
 
 def fuzz(adapter):
@@ -424,8 +512,8 @@ print("Hidden-information fuzz — %d games x %d steps per variant\n"
       % (GAMES_PER_VARIANT, STEPS_PER_GAME))
 
 # Super Seven first: it is the most-played game, so it is the one a leak would
-# hurt most. Bluff next, then Super 4.
-for adapter in (SevenFuzz(), BluffFuzz(), FourFuzz()):
+# hurt most. Bluff next, then Super 4, then Poker.
+for adapter in (SevenFuzz(), BluffFuzz(), FourFuzz(), PokerFuzz()):
     leaks, crashes, steps, states = fuzz(adapter)
     label = "%s: no hidden-card leak across %d random actions" % (adapter.variant, steps)
     check(not leaks and not crashes, label)
