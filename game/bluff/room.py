@@ -68,6 +68,14 @@ class Room:
         # over-remembering would make a bot accuse people on stale evidence.
         self.known_cards: Dict[str, List[str]] = {}
 
+        # ---- host's "Shuffle seats" (see request_shuffle) ----
+        # Armed by the host, applied at the next fresh round — the moment the
+        # pile is empty and no rank is locked, so no play or challenge is ever
+        # in flight when neighbours change. ``seat_shuffles`` counts the ones
+        # applied, so a client can notice a shuffle from state alone.
+        self.shuffle_pending = False
+        self.seat_shuffles = 0
+
     # ---- registration / attachment ----
     def register_player(self, user_id: str, name: str) -> Player:
         player = self.players.get(user_id)
@@ -203,6 +211,8 @@ class Room:
         self.finish_order = []
         self.reveal_log = []
         self.known_cards = {}
+        self.shuffle_pending = False
+        self.seat_shuffles = 0
         self.turn_order = active
         self.turn_index = (self.start_offset % len(active)) if active else 0
         self.start_offset += 1
@@ -336,6 +346,7 @@ class Room:
 
     def apply_pass(self, user_id: str) -> None:
         """Player passes. If pass_count hits (active_count - 1), clear table."""
+        swept = False
         self.pass_count += 1
         
         # A pass is also an action, so it too closes the challenge window on
@@ -362,6 +373,7 @@ class Room:
                 if self._maybe_end_game():
                     return
                 self.advance_turn()
+                self._apply_pending_shuffle()     # pile swept: a fresh round
                 return
 
             self.dead_pile.extend(self.center_pile)
@@ -369,12 +381,55 @@ class Room:
             self.target_rank = None
             self.last_play = None
             self.pass_count = 0
+            swept = True
             # Turn remains with the player who won the table (the last person who played)
             self.turn_index = self.turn_order.index(self.current_turn_id()) # actually it naturally advances back to them
             # Wait, if pass_count == active_count - 1, the NEXT turn is the person who played last.
             # So advancing turn will naturally put it on them. Let's just advance turn normally.
             
         self.advance_turn()
+        if swept:
+            self._apply_pending_shuffle()         # pile swept: a fresh round
+
+    # ---- shuffle seats ----------------------------------------------------
+    def _round_is_fresh(self) -> bool:
+        """No live play: nothing on the pile, no rank locked, no reveal running."""
+        return (self.last_play is None and not self.center_pile
+                and self.target_rank is None and not self.is_showing)
+
+    def request_shuffle(self) -> str:
+        """The host pressed Shuffle seats. Returns "applied", "pending" or "cancelled".
+
+        Pressing again while one is pending cancels it. At a fresh round it
+        applies at once; mid-round it waits for the pile to clear.
+        """
+        if self.state != STATE_IN_TURN or self.game_over:
+            return "cancelled"
+        if getattr(self, "shuffle_pending", False):
+            self.shuffle_pending = False
+            return "cancelled"
+        self.shuffle_pending = True
+        if self._round_is_fresh():
+            self._apply_pending_shuffle()
+            return "applied"
+        return "pending"
+
+    def _apply_pending_shuffle(self) -> bool:
+        """Re-seat everyone at random. The player about to lead keeps the lead.
+
+        Only the rotation changes: the same players, the same hands, the same
+        finishing places. Finished and removed players stay in the list and go
+        on being skipped by advance_turn, as before.
+        """
+        if not getattr(self, "shuffle_pending", False) or self.game_over or not self.turn_order:
+            return False
+        leader = self.current_turn_id()
+        random.shuffle(self.turn_order)
+        if leader in self.turn_order:
+            self.turn_index = self.turn_order.index(leader)
+        self.shuffle_pending = False
+        self.seat_shuffles = getattr(self, "seat_shuffles", 0) + 1
+        return True
 
     def apply_show(self, user_id: str) -> dict:
         """Player calls Show. Determines the result, but doesn't alter piles yet."""
@@ -448,6 +503,9 @@ class Room:
         # who just went out, in which case it moves on.
         if self._out_of_play(winner_id):
             self.advance_turn()
+        # The pile is empty and a fresh round is about to be led: the moment a
+        # pending host shuffle may re-seat the table, leader unchanged.
+        self._apply_pending_shuffle()
 
     def advance_turn(self) -> None:
         """Hand the turn to the next player still holding cards.
@@ -505,6 +563,10 @@ class Room:
             # player as still playing until it reloaded, and state survives a
             # resync where an event does not (see sockets/sync.py).
             "finish_order": list(self.finish_order),
+            # Host's Shuffle seats: queued for the next fresh round, and how many
+            # have been applied (a client notices a shuffle by this count rising).
+            "shuffle_pending": bool(getattr(self, "shuffle_pending", False)),
+            "seat_shuffles": int(getattr(self, "seat_shuffles", 0)),
             "players": self.public_players(),
         }
 
@@ -631,6 +693,8 @@ class Room:
         
         self.game_over = False
         self.winner = None
+        self.shuffle_pending = False
+        self.seat_shuffles = 0
 
     def migrate_host(self) -> Optional[str]:
         if (
