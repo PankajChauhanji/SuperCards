@@ -18,6 +18,35 @@
       <span class="table-corner tc-br" aria-hidden="true"></span>
       <div class="opponents" id="opponents"></div>
 
+      {# Host's "Shuffle seats" (static/js/bluff/game.js). Never moves anyone
+         mid-play: it re-seats at the next fresh round (pile empty, no rank
+         locked), and the leader keeps the lead. Everyone sees the note while
+         one is queued. #}
+      <style>
+        /* One centred row in the free strip between the seats and the centre:
+           in the flow, so it can never sit on top of a seat (a corner button
+           covered the right-most seat on narrow screens). */
+        #bluff-shuffle-row { display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        #bluff-shuffle-row[hidden], #bluff-shuffle-btn[hidden], #bluff-shuffle-note[hidden] { display: none; }
+        #bluff-shuffle-btn {
+          padding: 0.28rem 0.75rem; border-radius: 999px; cursor: pointer;
+          font-family: var(--display); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em;
+          color: var(--text); background: rgba(0, 0, 0, 0.42); border: 1px solid var(--line);
+        }
+        #bluff-shuffle-btn:hover { border-color: var(--gold); color: var(--gold); }
+        #bluff-shuffle-btn.pending { color: var(--muted); }
+        #bluff-shuffle-note {
+          font-size: 0.75rem; font-weight: 600; color: var(--gold);
+          background: rgba(0, 0, 0, 0.4); border: 1px dashed var(--gold);
+          border-radius: 999px; padding: 0.22rem 0.75rem;
+        }
+      </style>
+      <div id="bluff-shuffle-row" hidden>
+        <div id="bluff-shuffle-note" hidden>&#128256; Seats shuffle after this round</div>
+        <button type="button" id="bluff-shuffle-btn" hidden
+                title="Shuffle the seats when this round ends (the leader keeps the lead)">&#128256; Shuffle seats</button>
+      </div>
+
       <div class="center-row">
         <!-- Target rank prominently displayed -->
         <div class="target-rank-display" id="target-rank-display" style="display:none; font-size: 1.5rem; font-weight: bold; background: rgba(0,0,0,0.5); padding: 0.5rem 1rem; border-radius: 8px; color: white; text-align: center;">
@@ -55,6 +84,10 @@
             <option value="K">K</option>
           </select>
           
+          {# Any number of cards may be thrown, and a hand can run to 26+, so
+             tapping every card is tedious. Shown on your turn only (selection.js). #}
+          <button type="button" class="btn-ghost" id="select-all-btn" hidden
+                  style="width:auto; margin:0; padding:0.35rem 0.9rem; font-size:0.8rem; border-radius:999px;">Select all</button>
           <div class="action-btns">
             <button class="btn-throw" id="throw-btn" disabled><span class="btn-ico" aria-hidden="true">&#8593;</span> Throw</button>
             <button class="btn-stop" id="pass-btn" disabled><span class="btn-ico" aria-hidden="true">&#8618;</span> Pass</button>
