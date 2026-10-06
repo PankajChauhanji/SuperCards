@@ -1,0 +1,5 @@
+{# Poker gameplay bundle — loaded after the shared core scripts.
+   Order matters: table (rendering + chip format) -> game (events + actions). #}
+  <script src="{{ url_for('static', filename='js/poker/table.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/poker/game.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/poker/rankings.js') }}"></script>
