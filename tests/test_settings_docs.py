@@ -74,6 +74,36 @@ CLAIMS = [
     # ---- Super Seven / Bluff table limits quoted in DESIGN-style prose ----
     ("super_four", "game/super_four/DESIGN.md", "turn_timer",
      r"turn_timer=(\d+)s"),
+
+    # ---- Poker, docs/poker_rules.md (the settings table) ----
+    ("poker", "docs/poker_rules.md", "starting_chips",
+     r"\| \*\*Starting coins\*\* \| \*\*([\d,]+)\*\*"),
+    ("poker", "docs/poker_rules.md", "rounds",
+     r"\| \*\*Rounds\*\* \| \*\*(\d+)\*\*"),
+    ("poker", "docs/poker_rules.md", "turn_timer",
+     r"\| \*\*Turn timer\*\* \| \*\*(\d+) s\*\*"),
+    ("poker", "docs/poker_rules.md", "timeout_limit",
+     r"\| \*\*Timeout limit\*\* \| \*\*(\d+)\*\*"),
+    ("poker", "docs/poker_rules.md", "blind_up_every",
+     r"\| \*\*Blinds double every\*\* \| \*\*(\d+)\*\*"),
+
+    # ---- Poker, English rules ----
+    ("poker", "static/rules/poker/en.html", "starting_chips",
+     r"starting coins</b> \(default <strong>([\d,]+)</strong>"),
+    ("poker", "static/rules/poker/en.html", "rounds",
+     r"default <strong>(\d+) rounds</strong>"),
+    ("poker", "static/rules/poker/en.html", "turn_timer",
+     r"You have <strong>(\d+) seconds</strong> per turn"),
+    ("poker", "static/rules/poker/en.html", "timeout_limit",
+     r"Miss <strong>(\d+) turns</strong>"),
+
+    # ---- Poker, Hindi rules ----
+    ("poker", "static/rules/poker/hi.html", "rounds",
+     r"<strong>(\d+) राउंड</strong>"),
+    ("poker", "static/rules/poker/hi.html", "turn_timer",
+     r"हर चाल के लिए <strong>(\d+) सेकंड</strong>"),
+    ("poker", "static/rules/poker/hi.html", "timeout_limit",
+     r"लगातार <strong>(\d+) बार</strong>"),
 ]
 
 # Some documented numbers are rule constants rather than host-selectable
@@ -88,6 +118,20 @@ CONSTANT_CLAIMS = [
      r"<b>(\d+) खिलाड़ी खत्म कर लें</b>"),
     ("game.bluff.settings", "PODIUM_PLACES", "docs/bluff_rules.md",
      r"\*\*(\d+) players have finished\*\*"),
+
+    # ---- Poker: table size and the round-summary auto-start ----
+    ("game.poker.settings", "MAX_PLAYERS", "docs/poker_rules.md",
+     r"\*\*Players:\*\* 2 to \*\*(\d+)\*\*"),
+    ("game.poker.settings", "MAX_PLAYERS", "static/rules/poker/en.html",
+     r"<b>2 to (\d+) players</b>"),
+    ("game.poker.settings", "MAX_PLAYERS", "static/rules/poker/hi.html",
+     r"<b>2 से (\d+) खिलाड़ी</b>"),
+    ("game.poker.settings", "ROUND_END_SECONDS", "docs/poker_rules.md",
+     r"automatically after \*\*(\d+) seconds\*\*"),
+    ("game.poker.settings", "ROUND_END_SECONDS", "static/rules/poker/en.html",
+     r"by itself after <strong>(\d+) seconds</strong>"),
+    ("game.poker.settings", "ROUND_END_SECONDS", "static/rules/poker/hi.html",
+     r"वह <strong>(\d+) सेकंड</strong> बाद"),
 ]
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -100,8 +144,8 @@ def check(ok, msg):
 
 
 def normalise(text):
-    """'−1' / '-1' / '+2' / '2' all reduce to a comparable int."""
-    text = text.strip().replace("−", "-").replace("+", "")
+    """'−1' / '-1' / '+2' / '2' / '1,000,000' all reduce to a comparable int."""
+    text = text.strip().replace("−", "-").replace("+", "").replace(",", "")
     return int(text)
 
 
