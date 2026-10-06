@@ -15,7 +15,7 @@ from flask_socketio import join_room as sio_join, leave_room as sio_leave
 # broadcasts round_start/round_end, so it carries card payloads too.
 from sockets.audience import emit
 
-from game.core import bots, registry
+from game.core import bots, registry, seating
 from game.core.states import STATE_LOBBY, STATE_ROUND_END, STATE_GAME_END
 from sockets import presenter
 from sockets.common import bind_sid, unbind_sid, error
@@ -240,11 +240,21 @@ def register(socketio, manager):
         if len(room.connected_players()) < min_players:
             return error(f"Need at least {min_players} players to start.")
 
+        # Host's optional "Shuffle seats": reorder the roster before the deal so
+        # the game's own turn order (built from room.players) comes out shuffled.
+        shuffle = bool(data.get("shuffle"))
+        if shuffle:
+            seating.shuffle_seats(room)
+
         # Deal the first round and tell everyone.
         room.start_round()
         emit("round_start", room.public_round_state(), to=code)
         # Each player privately receives only their own view (per-game presenter).
         presenter.deal(room)
+        # Announced after round_start: clients clear their action log on a new
+        # round, and this line should survive that.
+        if shuffle:
+            emit("seats_shuffled", {"order": seating.public_order(room)}, to=code)
 
     @socketio.on("rematch")
     def on_rematch(data):
