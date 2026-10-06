@@ -5,7 +5,7 @@ registers its socket event handlers and its director ticker. Handlers guard on
 room.game_type so an event for the wrong game is rejected rather than misapplied,
 even though the variants' event names generally differ.
 """
-from sockets.gameplay import super_seven, super_four, bluff
+from sockets.gameplay import super_seven, super_four, bluff, poker
 
 
 
@@ -13,3 +13,4 @@ def register(socketio, manager):
     super_seven.register(socketio, manager)
     super_four.register(socketio, manager)
     bluff.register(socketio, manager)
+    poker.register(socketio, manager)
