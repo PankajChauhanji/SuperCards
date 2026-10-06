@@ -58,7 +58,8 @@ from game.core.cards import rank_code
 BOT_THINK_MIN = 1.8
 BOT_THINK_MAX = 3.5
 
-# Most cards a single play may put down (1-4 by the rules).
+# Most cards this bot puts down in one play. The rules allow any number (even a
+# whole hand); the bot keeps to four because bigger claims are easy to count out.
 MAX_THROW = 4
 
 # How much more willing to Show we are when the claim would otherwise put that
