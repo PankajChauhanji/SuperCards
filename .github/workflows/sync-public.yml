@@ -91,12 +91,17 @@ jobs:
           remove_file game/core/registry.py
           remove_file game/core/room_base.py
           remove_file game/core/states.py
+          remove_file game/core/bots.py
+          remove_file game/core/cards.py
+          remove_file game/core/store.py
 
           # ── Core socket handlers and server-side communication ──
           remove_file sockets/common.py
           remove_file sockets/connection.py
           remove_file sockets/director.py
           remove_file sockets/lobby.py
+          remove_file sockets/sync.py
+          remove_file sockets/audience.py
 
           # ── Server-side presenters / social hooks not needed in public repo ──
           remove_file sockets/presenter.py
@@ -111,6 +116,9 @@ jobs:
           remove_file static/js/core/quit.js
           remove_file static/js/core/rules_modal.js
           remove_file static/js/core/socket.js
+          remove_file static/js/core/install.js
+          remove_file static/js/core/table_sheet.js
+          remove_file static/js/core/view_model.js
 
           # ── Pycache folders (compiled bytecode, never needed in any repo) ──
           remove_dir game/__pycache__
