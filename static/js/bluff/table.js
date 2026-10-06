@@ -292,9 +292,17 @@
       if (empty) empty.style.display = "none";
       if (badgeCount) badgeCount.style.display = "none";
       
-      (cards || []).forEach((card, i) => {
+      // A Show can now flip any number of cards (there is no 4-card limit),
+      // so overlap them just enough to fit the felt instead of a fixed 34px
+      // that would run a 20-card reveal off the edge of a phone.
+      const list = cards || [];
+      const room = (discard.parentElement && discard.parentElement.clientWidth) || 320;
+      const cardW = 62;
+      const fit = list.length > 1 ? cardW - (room * 0.9 - cardW) / (list.length - 1) : 0;
+      const overlap = Math.min(cardW - 8, Math.max(34, fit));
+      list.forEach((card, i) => {
         const img = cardImg(card, "center-card");
-        img.style.marginLeft = i === 0 ? "0" : "-34px";
+        img.style.marginLeft = i === 0 ? "0" : -overlap + "px";
         img.style.zIndex = i;
         discard.appendChild(img);
       });
