@@ -13,6 +13,7 @@ computer players (game/core/bots.py), whether the room is solo or has humans in 
 """
 import time
 
+from game.core import seating
 from game.core.states import STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
 from game.super_seven.rules import infer_action
 from game.super_seven.visibility import public_card_ids
@@ -193,8 +194,16 @@ def register(socketio, manager):
         if room.state != STATE_ROUND_END:
             return error("There's no round to advance.")
 
+        # Host's optional "Shuffle seats" from the round summary — see
+        # game/core/seating.py. Unticked, the seating is exactly as before.
+        shuffle = bool(data.get("shuffle"))
+        if shuffle:
+            seating.shuffle_seats(room)
+
         room.start_round()
         emit("round_start", room.public_round_state(), to=room.code)
+        if shuffle:
+            emit("seats_shuffled", {"order": seating.public_order(room)}, to=room.code)
         # Deal hands privately; eliminated players receive an empty hand so
         # their old cards clear and they continue as spectators.
         # Bot players have no socket — skip them.
