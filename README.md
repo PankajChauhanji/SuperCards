@@ -79,6 +79,21 @@ The platform has grown beyond a single game and now serves as a home for multipl
   <img src="static/img/game_images/super_bluff_window.png" alt="Bluff preview" width="100%" />
 </div>
 
+<div>
+  <details>
+    <summary><strong>Poker</strong> — No-Limit Texas Hold'em for play coins</summary>
+    <br>
+    <p>Everyone starts with the same coins; bet, bluff and read the table to finish the game holding the most.</p>
+    <ul>
+      <li><strong>Setup:</strong> the host picks the starting coins (default 1,000,000) and the number of rounds (default 10); blinds are set automatically at 1% of the starting coins.</li>
+      <li><strong>Every poker option:</strong> fold, check, call, bet, raise and all-in, with correct side pots, split pots and minimum-raise rules.</li>
+      <li><strong>Between rounds:</strong> a summary shows each player's coins left; the host deals the next round, or it starts by itself after 30 seconds.</li>
+      <li><strong>Medals:</strong> the game ends after the last round or when one player has every coin, and the podium ranks players by coins left.</li>
+    </ul>
+    <p>Play money only — coins have no cash value.</p>
+  </details>
+</div>
+
 ---
 
 ## 🧰 Features
@@ -103,11 +118,13 @@ super_cards/
 ├── game/                   # Core game logic and per-game engines
 │   ├── core/               # Shared cards, player, registry, and room utilities
 │   ├── bluff/              # Bluff game logic
+│   ├── poker/              # Poker (Texas Hold'em) logic: room, evaluator, pots, bot
 │   ├── super_four/         # Super Four game logic
 │   └── super_seven/        # Super Seven game logic
 ├── sockets/                # Shared WebSocket handlers and gameplay routing
 ├── static/                 # CSS, JavaScript, images, and generated card assets
 ├── templates/              # Page templates and per-game views
+├── docs/                   # Rules, design notes and the platform TODO log
 ├── tests/                  # Game logic, scoring, socket, and engine tests
 ├── tools/                  # Asset generation and development helpers
 ├── Procfile                # Gunicorn startup command
