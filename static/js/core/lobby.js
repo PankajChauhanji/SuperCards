@@ -8,7 +8,9 @@
 // kick), the settings panel (host-editable or read-only), the Add-bot control,
 // and the Start control.
 //
-// `fields` is an array of { key, label, min?, max? }. `view` supplies
+// `fields` is an array of { key, label, min?, max? } — a number box — or
+// { key, label, type: "toggle" } for an on/off switch stored as 1 / 0 (so the
+// server's integer settings sanitising needs nothing new). `view` supplies
 // { players, hostId, settings } (the game's own live view object).
 (function () {
   const SS = window.SS || (window.SS = {});
@@ -133,6 +135,14 @@
                 : "Round settings (set by the host)") + "</p>";
       html += '<div class="lobby-settings-grid">';
       fields.forEach((f) => {
+        if (f.type === "toggle") {
+          html += '<label class="set-item set-toggle"><span class="set-label">' + f.label + "</span>" +
+            (isHost
+              ? '<input type="checkbox" role="switch" class="set-switch" data-key="' + f.key + '" />'
+              : '<span class="set-val" data-key="' + f.key + '"></span>') +
+            "</label>";
+          return;
+        }
         const bounds = (f.min != null ? ' min="' + f.min + '"' : "") +
                        (f.max != null ? ' max="' + f.max + '"' : "");
         html += '<label class="set-item"><span class="set-label">' + f.label + "</span>" +
@@ -147,12 +157,20 @@
 
       if (isHost) {
         el.querySelectorAll("input[data-key]").forEach((inp) =>
-          inp.addEventListener("input", () => { inp.dataset.dirty = "1"; }));
+          ["input", "change"].forEach((ev) =>
+            inp.addEventListener(ev, () => { inp.dataset.dirty = "1"; })));
         const save = $("lobby-save-settings");
+        // A switch reads as instant, so it saves the moment it is flipped —
+        // a flipped-but-unsaved switch looked like a setting that did nothing.
+        // It saves the whole form (the server rebuilds settings from defaults,
+        // so a partial update would reset the other fields).
+        el.querySelectorAll('input[type="checkbox"][data-key]').forEach((inp) =>
+          inp.addEventListener("change", () => { if (save) save.click(); }));
         if (save) save.addEventListener("click", () => {
           const out = {};
           el.querySelectorAll("input[data-key]").forEach((inp) => {
-            if (inp.value !== "") out[inp.dataset.key] = parseInt(inp.value, 10);
+            if (inp.type === "checkbox") out[inp.dataset.key] = inp.checked ? 1 : 0;
+            else if (inp.value !== "") out[inp.dataset.key] = parseInt(inp.value, 10);
             delete inp.dataset.dirty;
           });
           socket.emit("update_settings", { code, user_id: youId, settings: out });
@@ -166,6 +184,15 @@
       const node = el.querySelector('[data-key="' + f.key + '"]');
       if (!node) return;
       const val = s[f.key] != null ? String(s[f.key]) : "";
+      if (f.type === "toggle") {
+        const on = Number(s[f.key]) === 1;
+        if (node.tagName === "INPUT") {
+          if (!node.dataset.dirty) node.checked = on;
+        } else {
+          node.textContent = s[f.key] == null ? "—" : (on ? "On" : "Off");
+        }
+        return;
+      }
       if (node.tagName === "INPUT") {
         if (node !== document.activeElement && !node.dataset.dirty) node.value = val;
       } else {
@@ -272,6 +299,36 @@
     startRow.appendChild(wrap);
   }
 
+  // ---- shuffle seats (host option) ----
+  // One checkbox, sent with the start: the server reorders the roster before the
+  // deal (game/core/seating.py), so every game's own turn order comes out
+  // shuffled. Kept in a module variable because the start row is rebuilt on
+  // every roster change and the host's choice must survive that.
+  let shuffleNext = false;
+
+  function shuffleOption(onChange) {
+    const label = document.createElement("label");
+    label.className = "shuffle-opt";
+    label.title = "Deal everyone into a random seat order";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = shuffleNext;
+    box.addEventListener("change", () => { shuffleNext = box.checked; if (onChange) onChange(); });
+    const text = document.createElement("span");
+    text.textContent = "\uD83D\uDD00 Shuffle seats";
+    label.append(box, text);
+    return label;
+  }
+
+  // Everyone hears about a shuffle, whichever game this is.
+  if (socket) socket.on("seats_shuffled", (d) => {
+    const names = ((d && d.order) || []).map((p) => (p.user_id === youId ? "You" : p.name));
+    showToast("\uD83D\uDD00 Seats shuffled", 2200);
+    if (window.ActionLog && names.length) {
+      window.ActionLog.push("\uD83D\uDD00 Seats shuffled: " + names.join(" \u2192 "), "system");
+    }
+  });
+
   // ---- start / waiting ----
   function renderStart(view) {
     const startRow = $("start-row");
@@ -280,10 +337,12 @@
     startRow.innerHTML = "";
     renderAddBot(view, startRow);
     if (view.hostId === youId) {
+      startRow.appendChild(shuffleOption());
       const btn = document.createElement("button");
       btn.className = "btn-primary";
       btn.textContent = "Start game";
-      btn.addEventListener("click", () => socket.emit("start_game", { code, user_id: youId }));
+      btn.addEventListener("click", () =>
+        socket.emit("start_game", { code, user_id: youId, shuffle: shuffleNext }));
       startRow.appendChild(btn);
     } else {
       const p = document.createElement("p");
@@ -299,5 +358,5 @@
     renderStart(view);
   }
 
-  SS.Lobby = { init, render, setTab };
+  SS.Lobby = { init, render, setTab, shuffleOption, shuffleChosen: () => shuffleNext };
 })();
