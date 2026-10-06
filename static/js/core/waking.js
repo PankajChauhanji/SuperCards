@@ -43,6 +43,11 @@
       "Bluff: if everyone passes, the pile is swept away for good.",
       "Bluff: telling the truth early buys you a bigger lie later.",
     ],
+    poker: [
+      "Poker: an all-in can only win from each player what it put in — the rest is a side pot.",
+      "Poker: checking is free; folding when you could check just gives the pot away.",
+      "Poker: the board is shared — your best five cards can use none, one or both of yours.",
+    ],
   };
 
   const tips = GENERAL_TIPS.concat(GAME_TIPS[window.GAME_TYPE] || []);
