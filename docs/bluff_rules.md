@@ -42,14 +42,14 @@ The game is played in **Rounds**.
 ## 🃏 The Actions: Play vs. Pass
 
 ### 1. Starting a Round (The Lead-Off)
-The active player initiates the round by choosing any rank from their hand. They place 1 to 4 cards **face down** in the center pile and declare the quantity and the rank.
+The active player initiates the round by choosing any rank from their hand. They place **any number of cards** (one or more, even their whole hand) **face down** in the center pile and declare the quantity and the rank.
 > **Example:** Player A throws 2 cards face down and announces: *"Two 7s."*
 
 ### 2. Succeeding Turns (The Same-Rank Lock)
 Play moves clockwise. The next player must play the exact same rank (in this case, 7s). On your turn, you have two options:
 
 #### **Option A: Play Cards**
-*   Place 1 to 4 cards face down on the center pile.
+*   Place one or more cards face down on the center pile — there is no upper limit. *(Changed 2026-10-06: this used to be 1 to 4.)*
 *   Declare that they match the current target rank (e.g., *"One 7"* or *"Two 7s"*). 
 *   **The Deception:** You do *not* have to tell the truth. You can throw random cards (like a Jack and a 3) while claiming they are 7s.
 
@@ -59,6 +59,25 @@ Play moves clockwise. The next player must play the exact same rank (in this cas
 *   *Note:* Passing does **not** knock you out of the round permanently. If the turn circle comes back to you and the pile hasn't been cleared or challenged, you can play or pass again.
 
 ---
+
+## 🔀 Shuffling seats (host)
+
+Sitting next to the same players for a whole game can hand someone easy neighbours. The
+**host** can press **Shuffle seats** at any time during a game *(added 2026-10-06)*.
+
+*   **Never mid-play.** If no rank is locked and the pile is empty, the seats are re-drawn at
+    once. Otherwise the shuffle is **queued** and happens when the current round ends: a
+    resolved Show, or a full pass that clears the pile. No play or challenge is ever in
+    flight when neighbours change.
+*   **The leader keeps the lead.** The player who was about to start the next round still
+    starts it. Only the order around them changes.
+*   **Same hands, same places.** Nobody's cards change, and players who have already finished
+    keep their place.
+*   **Everyone can see it coming.** While a shuffle is queued, every player sees
+    "🔀 Seats shuffle after this round". When it happens, everyone gets a notice and the new
+    order in the Action History.
+*   Pressing it again while it is queued cancels it.
+*   Separately, the lobby's **Shuffle seats** checkbox shuffles the seats when a game starts.
 
 ## 🔍 The "Show" (Challenging)
 
@@ -139,7 +158,7 @@ Because the underlying shared platform (Lobby, Socket connection, Player managem
     *   `pass_count`: Counter tracking consecutive passes.
     *   `dead_pile`: Cards permanently removed from the game after a full table pass.
 *   **Core Methods to Implement:**
-    *   `apply_play(user_id, card_ids, declared_rank)`: Process a player throwing 1-4 cards. Updates `last_play`, resets `pass_count`, advances turn.
+    *   `apply_play(user_id, card_ids, declared_rank)`: Process a player throwing one or more cards (no upper limit). Updates `last_play`, resets `pass_count`, advances turn.
     *   `apply_pass(user_id)`: Skip turn. Increment `pass_count`. If `pass_count == active_players - 1`, sweep the `center_pile` to `dead_pile` and grant the next turn a fresh start.
     *   `apply_show(user_id)`: The challenger triggers a reveal of `last_play`. Verify truthfulness. Assign the `center_pile` to the loser as a penalty. Set the winner as the next turn leader. Reset round state.
     *   `public_view(user_id)`: Return the sanitized state (center pile count, current target rank, whose turn it is, but hide other players' cards and the center pile's true faces).
