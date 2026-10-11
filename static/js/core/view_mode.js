@@ -9,9 +9,7 @@
 // defaults to Box. Super Four has only one hand layout and never shows
 // this control at all.
 //
-// Reuses the theme-selector's dropdown markup/CSS (.theme-select-wrap,
-// .theme-dropdown, .theme-opt) rather than inventing new chrome for what
-// is structurally the same "pick one of a few options" control.
+// The picker is a section of the Settings sheet.
 (function () {
   const SS = window.SS || (window.SS = {});
   const STORAGE_PREFIX = "super_cards_view_mode_";
@@ -36,52 +34,28 @@
   const gameType = window.GAME_TYPE;
   const wrap = document.getElementById("view-mode-wrap");
   if (!wrap || gameType === "super_four") return;
+  wrap.hidden = false;
 
-  wrap.style.display = "inline-flex";
-
-  const LABELS = {
-    standard: { icon: "🃏", name: "Standard view" },
-    box: { icon: "🗃️", name: "Box view" },
-  };
-  const iconEl = document.getElementById("current-view-icon");
-  const nameEl = document.getElementById("current-view-name");
-  function applyLabel(mode) {
-    const l = LABELS[mode] || LABELS.standard;
-    if (iconEl) iconEl.textContent = l.icon;
-    if (nameEl) nameEl.textContent = l.name;
-  }
-  applyLabel(get(gameType));
-
-  const btn = document.getElementById("view-mode-btn");
-  const dropdown = document.getElementById("view-mode-dropdown");
-  if (btn && dropdown) {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (dropdown.hasAttribute("hidden")) {
-        dropdown.removeAttribute("hidden");
-        dropdown.setAttribute("aria-hidden", "false");
-      } else {
-        dropdown.setAttribute("hidden", "");
-        dropdown.setAttribute("aria-hidden", "true");
-      }
-    });
-    dropdown.querySelectorAll(".theme-opt").forEach((opt) => {
-      opt.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const mode = opt.dataset.mode;
-        set(gameType, mode);
-        applyLabel(mode);
-        dropdown.setAttribute("hidden", "");
-        dropdown.setAttribute("aria-hidden", "true");
-        // Reflect immediately rather than waiting for the next server event.
-        // Deliberately NOT gated on state === "IN_TURN": a change made at round
-        // end or between rounds used to apply only after a full page reload.
-        if (window.SS.repaintUI) window.SS.repaintUI();
-      });
-    });
-    document.addEventListener("click", () => {
-      dropdown.setAttribute("hidden", "");
-      dropdown.setAttribute("aria-hidden", "true");
+  // A section of the Settings sheet (partials/view_mode_selector.html).
+  const opts = Array.from(wrap.querySelectorAll(".seg-opt[data-mode]"));
+  function mark(mode) {
+    opts.forEach((opt) => {
+      const on = opt.dataset.mode === mode;
+      opt.classList.toggle("selected", on);
+      opt.setAttribute("aria-checked", on ? "true" : "false");
     });
   }
+  mark(get(gameType));
+
+  opts.forEach((opt) => {
+    opt.addEventListener("click", () => {
+      const mode = opt.dataset.mode;
+      set(gameType, mode);
+      mark(mode);
+      // Reflect immediately rather than waiting for the next server event.
+      // Deliberately NOT gated on state === "IN_TURN": a change made at round
+      // end or between rounds used to apply only after a full page reload.
+      if (window.SS.repaintUI) window.SS.repaintUI();
+    });
+  });
 })();
