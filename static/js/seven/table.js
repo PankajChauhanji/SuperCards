@@ -12,6 +12,9 @@
     const s = document.createElement("span");
     s.className = "swatch";
     s.style.background = colorOf(p);
+    // A mini avatar in the player's colour (motif or initial) rather than a
+    // bare colour square, so the Scores row matches the seat.
+    if (window.SS.avatarFace && p) { s.classList.add("av-mini"); s.innerHTML = window.SS.avatarFace(p.name, p.avatar); }
     return s;
   }
 
@@ -88,7 +91,7 @@
       if (p.user_id === state.hostId) {
         const crown = document.createElement("span");
         crown.className = "host-crown";
-        crown.textContent = "\u265B";   // chess-queen glyph reads as a crown
+        crown.innerHTML = (window.SS.icon ? window.SS.icon("crown") : "\u265B");
         crown.title = "Host";
         left.appendChild(crown);
       }
@@ -103,9 +106,9 @@
       }
 
       if (p.user_id === state.currentTurn) {
-        left.appendChild(badge("TURN", "turn-now"));
+        left.appendChild(badge("Turn", "turn-now"));
       } else if (p.user_id === nextTurnId) {
-        left.appendChild(badge("NEXT", "next-turn"));
+        left.appendChild(badge("Next", "next-turn"));
       }
 
       const text = document.createElement("span");
@@ -234,6 +237,7 @@
         return {
           name: window.SS.shortName(p.name),
           color: colorOf(p),
+          avatar: p.avatar,
           cardCount: p.card_count,
           score: p.score,
           safe: p.is_safe,
@@ -291,6 +295,7 @@
     window.SS.renderMySeat(wrap, {
       name: window.SS.shortName(me.name),
       color: colorOf(me),
+      avatar: me.avatar,
       cardCount: me.card_count,
       score: me.score,
       safe: me.is_safe,
@@ -361,8 +366,11 @@
 
   window.Table = {
     render(state) {
-      document.getElementById("round-chip").style.display = "inline-block";
-      document.getElementById("round-chip").textContent = "Round " + (state.roundNumber || 1);
+      // Only during a round: Table.render is also reached from the shared
+      // repaint hook (deck / hand-view change, resume), including in the lobby.
+      const chip = document.getElementById("round-chip");
+      chip.style.display = state.state === "IN_TURN" ? "inline-block" : "none";
+      chip.textContent = "Round " + (state.roundNumber || 1);
       renderScoreboard(state);
       renderOpponents(state);
       renderCenter(state);
