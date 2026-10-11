@@ -23,78 +23,112 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/lobby.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/table.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/reactions.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}" />
   <!-- Must stay last: it re-states paddings from the sheets above to add device insets. -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/safe-area.css') }}" />
 </head>
 <body class="home-page">
-  {# Per-game presentation for the picker tiles. Falls back gracefully for any
-     game not listed here. #}
+  {% include 'partials/icons.html' %}
+  {# Per-game presentation for the picker. Falls back gracefully for any game
+     not listed here. #}
   {% set game_meta = {
-    "super_seven": {"short": "Super 7", "emblem": "7", "desc": "Shed your hand, call Stop", "accent": "#e8593f"},
-    "super_four":  {"short": "Super 4", "emblem": "4", "desc": "Memory, powers & Stop",    "accent": "#57d98a"},
-    "bluff":       {"short": "Bluff",   "emblem": "?", "desc": "Lie, pass & catch it",     "accent": "#a98cf0"},
-    "poker":       {"short": "Poker",   "emblem": "A", "desc": "Bet, bluff & take the pot", "accent": "#2fb7a3"}
+    "super_seven": {"symbol": "super_seven_symbol.svg", "desc": "Shed your hand, then call Stop at the right moment.", "accent": "#e8593f"},
+    "super_four":  {"symbol": "super_four_symbol.svg",  "desc": "Four hidden cards, card powers and a sharp memory.",  "accent": "#57d98a"},
+    "bluff":       {"symbol": "bluff_symbol.svg",       "desc": "Play face down, lie with a straight face, call Show.", "accent": "#a98cf0"},
+    "poker":       {"symbol": "poker_symbol.svg",       "desc": "No-Limit Hold'em for play coins. Bet, bluff, take it.", "accent": "#2fb7a3"}
   } %}
 
+  <header class="home-nav">
+    <a class="home-logo" href="/" aria-label="Super Cards home">
+      <img src="{{ url_for('static', filename='img/super_cards_symbol.svg') }}" alt="" />
+      <span>Super <b>Cards</b></span>
+    </a>
+    {# Who you are, remembered on this device. Opens the player dialog. #}
+    <button type="button" class="player-chip" id="profile-btn" aria-haspopup="dialog">
+      <span class="player-chip-av" id="profile-av" aria-hidden="true"></span>
+      <span class="player-chip-name" id="profile-name">Set your name</span>
+      <svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>
+    </button>
+  </header>
+
   <main class="home">
-    <div class="home-card">
-      <div class="home-brand">
-        <div class="wordmark"><span class="wordmark-title">SUPER <span class="seven">CARDS</span></span> <img src="{{ url_for('static', filename='img/super_cards_symbol.svg') }}" alt="Joker" class="logo-inline-symbol" /></div>
-        <p class="tagline">Pick a game, grab a seat, and play with friends — free, no signup.</p>
-      </div>
+    <section class="home-hero">
+      <p class="home-eyebrow">Free &middot; No sign-up &middot; Play in your browser or the app</p>
+      <h1 class="home-title">Card nights with friends, wherever they are.</h1>
+      <p class="home-lede">Four table games, played live. Start a table, share the code, deal.</p>
+    </section>
 
-      <div class="home-section">
-        <h2 class="home-label">Choose your game</h2>
-        <div class="picker-tiles" id="game-picker" role="radiogroup" aria-label="Choose your game">
-          {% for g in games %}
-          {% set m = game_meta.get(g.key, {"short": g.display_name, "emblem": g.display_name[:1], "desc": "", "accent": "#e6b23c"}) %}
-          {% if g.ready %}
-          <button type="button" class="game-tile{% if loop.first %} selected{% endif %}"
-                  data-game="{{ g.key }}" role="radio" aria-checked="{{ 'true' if loop.first else 'false' }}"
-                  style="--game-accent: {{ m.accent }}">
-            <span class="gt-emblem">{{ m.emblem }}</span>
-            <span class="gt-name">{{ m.short }}</span>
+    <section class="home-card join-card" id="join-card" aria-labelledby="join-title">
+      <div class="home-card-head">
+        <span class="home-card-ico"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg></span>
+        <div>
+          <h2 id="join-title">Join a table</h2>
+          <p class="home-card-sub" id="join-sub">Got a code from a friend? Enter it here.</p>
+        </div>
+      </div>
+      <div class="join-row">
+        <input type="text" id="code" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" aria-label="Room code" />
+        <button class="btn-primary" id="join-btn">Join</button>
+      </div>
+    </section>
+
+    <section class="home-card create-card" aria-labelledby="create-title">
+      <div class="home-card-head">
+        <span class="home-card-ico"><svg class="ico" aria-hidden="true"><use href="#i-sparkles"/></svg></span>
+        <div>
+          <h2 id="create-title">Start a table</h2>
+          <p class="home-card-sub">Pick a game. You can tune the rules in the lobby.</p>
+        </div>
+      </div>
+      <div class="picker-tiles" id="game-picker" role="radiogroup" aria-label="Choose a game">
+        {% for g in games %}
+        {% set m = game_meta.get(g.key, {"symbol": "super_cards_symbol.svg", "desc": "", "accent": "#e6b23c"}) %}
+        <button type="button" class="game-tile{% if loop.first and g.ready %} selected{% endif %}{% if not g.ready %} disabled{% endif %}"
+                {% if g.ready %}data-game="{{ g.key }}" role="radio" aria-checked="{{ 'true' if loop.first else 'false' }}"{% else %}disabled title="Coming soon"{% endif %}
+                style="--game-accent: {{ m.accent }}">
+          <img class="gt-art" src="{{ url_for('static', filename='img/' + m.symbol) }}" alt="" />
+          <span class="gt-body">
+            <span class="gt-name">{{ g.display_name }}</span>
             <span class="gt-desc">{{ m.desc }}</span>
-          </button>
-          {% else %}
-          <button type="button" class="game-tile disabled" disabled title="Coming soon"
-                  style="--game-accent: {{ m.accent }}">
-            <span class="gt-emblem">{{ m.emblem }}</span>
-            <span class="gt-name">{{ m.short }}</span>
-            <span class="gt-badge">Coming soon</span>
-          </button>
-          {% endif %}
-          {% endfor %}
-        </div>
+            <span class="gt-meta"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>{{ g.min_players }}&ndash;{{ g.max_players }} players</span>
+          </span>
+          {% if g.ready %}<span class="gt-check" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>{% else %}<span class="gt-badge">Coming soon</span>{% endif %}
+        </button>
+        {% endfor %}
       </div>
-
-      <div class="home-section">
-        <label for="name">Your name</label>
-        <div class="field">
-          <input type="text" id="name" maxlength="20" autocomplete="off" placeholder="e.g. Riya" aria-label="Your name" />
-        </div>
-        <div class="action-row">
-          <button class="btn-primary" id="create-btn">Create room</button>
-          <button class="btn-solo" id="solo-btn">Play with Bot</button>
-        </div>
-        <p class="hint">You can adjust round settings once you're in the lobby.</p>
+      <div class="action-row">
+        <button class="btn-primary btn-lg" id="create-btn"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg>Create table</button>
+        <button class="btn-ghost btn-lg" id="solo-btn"><svg class="ico" aria-hidden="true"><use href="#i-bot"/></svg>Play with computer</button>
       </div>
+    </section>
+  </main>
 
-      <div class="home-join">
-        <span class="home-join-label">Have a room code?</span>
-        <div class="join-row">
-          <input type="text" id="code" class="code-input" maxlength="4" autocomplete="off" placeholder="ABCD" aria-label="Room code" />
-          <button class="btn-ghost" id="join-btn">Join a room</button>
-        </div>
+  {# The player dialog: name + avatar, stored on this device only. #}
+  <div class="modal-backdrop" id="profile-modal">
+    <div class="modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+      <div class="dialog-head">
+        <h2 id="profile-title">Your player</h2>
+      </div>
+      <p class="profile-note" id="profile-note">This is how the table will see you. It's saved on this device &mdash; no account needed.</p>
+      <label for="name">Name</label>
+      <input type="text" id="name" maxlength="20" autocomplete="nickname" placeholder="e.g. Riya" />
+      <div class="profile-av-head">
+        <span class="profile-av-label">Avatar</span>
+        <span class="profile-av-hint">Your colour is picked for you at each table</span>
+      </div>
+      <div class="avatar-grid" id="avatar-grid" role="radiogroup" aria-label="Avatar"></div>
+      <div class="close-row">
+        <button type="button" class="btn-ghost" id="profile-cancel">Cancel</button>
+        <button type="button" class="btn-primary" id="profile-save">Save</button>
       </div>
     </div>
-  </main>
+  </div>
 
   {% include 'partials/install_modal.html' %}
 
@@ -105,6 +139,7 @@
   <script src="{{ url_for('static', filename='js/vendor/socket.io.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/identity.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/socket.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/icons.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/connection.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/waking.js') }}"></script>
   <script src="{{ url_for('static', filename='js/core/rules_modal.js') }}"></script>
