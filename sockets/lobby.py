@@ -15,7 +15,7 @@ from flask_socketio import join_room as sio_join, leave_room as sio_leave
 # broadcasts round_start/round_end, so it carries card payloads too.
 from sockets.audience import emit
 
-from game.core import bots, registry, seating
+from game.core import avatars, bots, registry, seating
 from game.core.states import STATE_LOBBY, STATE_ROUND_END, STATE_GAME_END
 from sockets import presenter
 from sockets.common import bind_sid, unbind_sid, error
@@ -42,6 +42,18 @@ def _clean_settings(raw, spec) -> dict:
     return settings
 
 
+def _set_avatar(room, user_id, data) -> None:
+    """Record the avatar a player sent with their name (see game/core/avatars.py).
+
+    Only a known motif is ever stored, so the value is safe to echo to the room.
+    Sent on every enter_room too, so a change made on the home page shows up the
+    next time the player opens the table.
+    """
+    player = room.players.get(user_id)
+    if player is not None and not player.is_bot and "avatar" in data:
+        player.avatar = avatars.clean(data.get("avatar"))
+
+
 def register(socketio, manager):
 
     @socketio.on("create_room")
@@ -59,6 +71,7 @@ def register(socketio, manager):
             return error("Unknown game type.")
         settings = _clean_settings(data.get("settings"), spec)
         room = manager.create_room(user_id, name, settings, game_type)
+        _set_avatar(room, user_id, data)
         emit("room_created", {"code": room.code, "game_type": game_type})
 
     # ---- single-player mode ----
@@ -82,6 +95,7 @@ def register(socketio, manager):
             return error("Unknown game type.")
         settings = _clean_settings(data.get("settings"), spec)
         room = manager.create_room(user_id, name, settings, game_type)
+        _set_avatar(room, user_id, data)
 
         # Same path a host takes when adding a bot from the lobby, so there is
         # exactly one way a computer player enters a room.
@@ -113,6 +127,7 @@ def register(socketio, manager):
                 player.is_spectator = True
         else:
             room.register_player(user_id, name)
+        _set_avatar(room, user_id, data)
 
         emit("join_ok", {"code": code})
 
@@ -156,7 +171,11 @@ def register(socketio, manager):
 
         player = room.attach(user_id, request.sid, name)
         if player is None:
-            return error("You are not in this room.")
+            # A shared /room/<code> link opened by someone who has not joined
+            # yet. The reason lets the page send them to the join screen with
+            # the code filled in, instead of leaving them on a dead table.
+            return error("You are not in this room.", reason="not_in_room")
+        _set_avatar(room, user_id, data)
 
         sio_join(code)
         bind_sid(request.sid, code, user_id)
