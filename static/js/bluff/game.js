@@ -66,7 +66,7 @@
 
   // ---- attach / reconnect ----
   function enter() {
-    socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId });
+    socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId, avatar: window.Identity.avatar() });
   }
   socket.on("connect", enter);
   // Returning to the foreground must re-attach too: a zombie socket fires no
@@ -294,7 +294,7 @@
     if (data.host_id) view.hostId = data.host_id;
     if (data.players) view.players = data.players;
     const wp = view.players.find(p => p.user_id === data.winner);
-    if (window.ActionLog) window.ActionLog.push(`🎉 ${wp ? wp.name : "Someone"} wins the game!`, "win");
+    if (window.ActionLog) window.ActionLog.push(`${wp ? wp.name : "Someone"} wins the game!`, "win");
     showGameOver(data.winner, data.standings);
   });
 
@@ -488,9 +488,9 @@
     });
     const names = order.map((uid) => (uid === youId ? "You" : nameOf(uid)));
     const leader = view.currentTurn === youId ? "You lead" : nameOf(view.currentTurn) + " leads";
-    showToast("\uD83D\uDD00 Seats shuffled \u2014 " + leader, 2600);
+    showToast("Seats shuffled \u2014 " + leader, 2600);
     if (window.ActionLog && names.length) {
-      window.ActionLog.push("\uD83D\uDD00 Seats shuffled: " + names.join(" \u2192 "), "system");
+      window.ActionLog.push("Seats shuffled: " + names.join(" \u2192 "), "system");
     }
   }
 
@@ -502,7 +502,8 @@
     shuffleBtn.classList.toggle("pending", !!view.shufflePending);
     // Queued: the note beside it already says what will happen, so the
     // button only has to offer the undo.
-    shuffleBtn.textContent = view.shufflePending ? "Cancel" : "\uD83D\uDD00 Shuffle seats";
+    shuffleBtn.innerHTML = (window.SS.icon ? window.SS.icon(view.shufflePending ? "x" : "shuffle") : "") +
+      (view.shufflePending ? "Cancel" : "Shuffle seats");
     shuffleNote.hidden = !(live && view.shufflePending);
     const row = document.getElementById("bluff-shuffle-row");
     if (row) row.hidden = shuffleBtn.hidden && shuffleNote.hidden;
