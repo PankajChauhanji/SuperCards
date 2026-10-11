@@ -1,76 +1,31 @@
-<div class="theme-select-wrap" id="theme-select-wrap" style="display:none">
-  <button class="theme-select-btn" id="theme-select-btn" title="Select Table Theme" aria-label="Select Table Theme">
-    <span class="theme-icon" id="current-theme-icon">🎰</span>
-    <span class="theme-name" id="current-theme-name">Casino Felt</span>
-  </button>
-  <div class="theme-dropdown" id="theme-dropdown" role="menu" aria-hidden="true" hidden>
-    <button class="theme-opt" type="button" data-t="casino" title="Classic Emerald Green Casino felt">
-      <span class="theme-opt-icon">🎰</span>
-      <span class="theme-opt-label">Casino Felt</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="marble" title="Luxury Marble felt">
-      <span class="theme-opt-icon">🏛️</span>
-      <span class="theme-opt-label">Marble Luxury</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="red_casino" title="Royal Red Casino Felt">
-      <span class="theme-opt-icon">🍒</span>
-      <span class="theme-opt-label">Red Casino</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="ocean_glow" title="Ocean Glow Night">
-      <span class="theme-opt-icon">🌊</span>
-      <span class="theme-opt-label">Ocean Glow</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="sunset_mirage" title="Sunset Mirage">
-      <span class="theme-opt-icon">🌅</span>
-      <span class="theme-opt-label">Sunset Mirage</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="poker" title="Padded wood-tone rail, rounded corners">
-      <span class="theme-opt-icon">🃏</span>
-      <span class="theme-opt-label">Poker Table</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="royal" title="Gold filigree corners and a crown">
-      <span class="theme-opt-icon">👑</span>
-      <span class="theme-opt-label">Royal</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="hacker" title="Neon HUD corners and a circuit grid">
-      <span class="theme-opt-icon">🖥️</span>
-      <span class="theme-opt-label">Hacker</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="horror" title="Torn edges and bleeding cracks">
-      <span class="theme-opt-icon">🩸</span>
-      <span class="theme-opt-label">Horror</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="pirate" title="Weathered wood rail, rope trim, skull plaque">
-      <span class="theme-opt-icon">☠️</span>
-      <span class="theme-opt-label">Pirate Treasure</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="space" title="Deep-space gradient with a scattered starfield">
-      <span class="theme-opt-icon">🌌</span>
-      <span class="theme-opt-label">Space Galaxy</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="egyptian" title="Sandstone and gold, ankh plaque, desert night sky">
-      <span class="theme-opt-icon">🏺</span>
-      <span class="theme-opt-label">Egyptian Pharaoh</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="wildwest" title="Weathered leather and wood, sheriff-star plaque">
-      <span class="theme-opt-icon">🤠</span>
-      <span class="theme-opt-label">Wild West Saloon</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="forest" title="Mystical greens, vine border, firefly glow">
-      <span class="theme-opt-icon">🌲</span>
-      <span class="theme-opt-label">Enchanted Forest</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="imperial" title="Chinese lacquer red, gold dragons and a meander fret">
-      <span class="theme-opt-icon">🐉</span>
-      <span class="theme-opt-label">Imperial Dragon</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="maharaja" title="Rajput court magenta, Mughal arcade and paisley corners">
-      <span class="theme-opt-icon">🦚</span>
-      <span class="theme-opt-label">Maharaja Durbar</span>
-    </button>
-    <button class="theme-opt" type="button" data-t="deco" title="Black lacquer and champagne gold, Art Deco sunbursts">
-      <span class="theme-opt-icon">🥂</span>
-      <span class="theme-opt-label">Gatsby Deco</span>
-    </button>
+{# Table theme — a section of the Settings sheet (partials/settings_sheet.html).
+   A personal choice, like the card deck: it changes only this player's
+   screen. Each option is a swatch of the felt and its rail rather than an
+   emoji: a theme is a look, so the picker shows the look.
+   core/themes.js wires the buttons (data-t) and marks the selected one;
+   tests/test_theme_assets.py checks every theme has a button here. #}
+<section class="set-sec" id="theme-select-wrap">
+  <div class="set-sec-head">
+    <h3 class="set-sec-title"><svg class="ico" aria-hidden="true"><use href="#i-palette"/></svg>Table theme</h3>
+    <span class="set-sec-note">Only on your screen</span>
   </div>
-</div>
+  <div class="swatch-grid" id="theme-dropdown" role="radiogroup" aria-label="Table theme">
+    <button class="theme-opt" type="button" role="radio" data-t="casino" style="--sw-a:#15803d;--sw-b:#064e3b;--sw-edge:#e6b23c"><span class="theme-swatch"></span><span class="theme-opt-label">Casino Felt</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="marble" style="--sw-a:#3a3b40;--sw-b:#121316;--sw-edge:#e6b23c"><span class="theme-swatch"></span><span class="theme-opt-label">Marble</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="red_casino" style="--sw-a:#b91c1c;--sw-b:#450a0a;--sw-edge:#e6b23c"><span class="theme-swatch"></span><span class="theme-opt-label">Red Casino</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="ocean_glow" style="--sw-a:#0f766e;--sw-b:#052b2b;--sw-edge:#5eead4"><span class="theme-swatch"></span><span class="theme-opt-label">Ocean Glow</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="sunset_mirage" style="--sw-a:#9a2c2c;--sw-b:#431407;--sw-edge:#fbbf24"><span class="theme-swatch"></span><span class="theme-opt-label">Sunset Mirage</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="poker" style="--sw-a:#146334;--sw-b:#08331b;--sw-edge:#6b4423"><span class="theme-swatch"></span><span class="theme-opt-label">Poker Table</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="royal" style="--sw-a:#5b1030;--sw-b:#2a0616;--sw-edge:#e6b23c"><span class="theme-swatch"></span><span class="theme-opt-label">Royal</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="hacker" style="--sw-a:#06201c;--sw-b:#020a09;--sw-edge:#0af0d8"><span class="theme-swatch"></span><span class="theme-opt-label">Hacker</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="horror" style="--sw-a:#3a0909;--sw-b:#050101;--sw-edge:#7f1d1d"><span class="theme-swatch"></span><span class="theme-opt-label">Horror</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="pirate" style="--sw-a:#0b3d3a;--sw-b:#041f1d;--sw-edge:#7a4f2a"><span class="theme-swatch"></span><span class="theme-opt-label">Pirate</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="space" style="--sw-a:#1b0b3a;--sw-b:#030109;--sw-edge:#8b5cf6"><span class="theme-swatch"></span><span class="theme-opt-label">Space</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="egyptian" style="--sw-a:#2e2308;--sw-b:#120d02;--sw-edge:#c9a227"><span class="theme-swatch"></span><span class="theme-opt-label">Egyptian</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="wildwest" style="--sw-a:#6b4226;--sw-b:#2b1608;--sw-edge:#4a2f1c"><span class="theme-swatch"></span><span class="theme-opt-label">Wild West</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="forest" style="--sw-a:#0f3d1f;--sw-b:#1a0b2e;--sw-edge:#22c55e"><span class="theme-swatch"></span><span class="theme-opt-label">Forest</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="imperial" style="--sw-a:#8c1c1a;--sw-b:#250405;--sw-edge:#e8c063"><span class="theme-swatch"></span><span class="theme-opt-label">Imperial</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="maharaja" style="--sw-a:#7a1246;--sw-b:#1e0316;--sw-edge:#f0c85a"><span class="theme-swatch"></span><span class="theme-opt-label">Maharaja</span></button>
+    <button class="theme-opt" type="button" role="radio" data-t="deco" style="--sw-a:#23242a;--sw-b:#08090b;--sw-edge:#d9bb72"><span class="theme-swatch"></span><span class="theme-opt-label">Gatsby Deco</span></button>
+  </div>
+</section>
