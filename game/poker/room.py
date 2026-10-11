@@ -731,6 +731,8 @@ class Room:
             rows.append({
                 "user_id": uid,
                 "name": p.name,
+                "avatar": p.avatar,
+                "color": p.color_index,
                 "chips": chips,
                 "net": chips - self.received.get(uid, 0),
                 "place": place,
@@ -754,6 +756,7 @@ class Room:
                 "connected": p.connected,
                 "color": p.color_index,
                 "is_bot": p.is_bot,
+                "avatar": p.avatar,
                 "is_spectator": p.is_spectator,
                 "pending_join": p.pending_join,
                 "eliminated": p.eliminated,
