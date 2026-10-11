@@ -138,3 +138,20 @@
   .winner-place.r5 .winner-riser { height: 44px; }
   .winner-panel .close-row { margin: 1rem; }
 }
+
+/* The player's avatar on their podium step (core/winner_screen.js). */
+.winner-p-av {
+  width: 30px; height: 30px;
+  margin: 0.2rem auto 0.15rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: #fff;
+  font-family: var(--display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px var(--panel), 0 6px 14px -6px rgba(0, 0, 0, 0.7);
+}
+.winner-p-av .av-motif { width: 16px; height: 16px; stroke-width: 2.2; }
+
