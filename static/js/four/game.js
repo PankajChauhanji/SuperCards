@@ -41,7 +41,7 @@
   const nameOf = (uid) => { const p = view.players.find((x) => x.user_id === uid); return p ? p.name : "Someone"; };
 
   // ---- attach / reconnect ----
-  function enter() { socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId }); }
+  function enter() { socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId, avatar: window.Identity.avatar() }); }
   socket.on("connect", enter);
   // See core/connection.js: foreground resync, not just on `connect`.
   if (window.SS.onResync) window.SS.onResync(enter);
@@ -60,6 +60,7 @@
     view.tableTheme = d.table_theme || "default";
     syncTableTheme();
     sync();
+    syncRoundEndFooter();
   });
   socket.on("player_list", (d) => {
     const before = new Set(view.players.map((p) => p.user_id));
@@ -74,6 +75,7 @@
     }
     if (view.state === "IN_TURN") renderTable(); else window.SS.Lobby.render(view);
     syncThemeSelectorVisibility();
+    syncRoundEndFooter();
   });
   socket.on("room_reset", (d) => {
     view.state = "LOBBY"; view.hostId = d.host_id; view.players = d.players;
@@ -260,7 +262,7 @@
       const seat = document.createElement("div");
       seat.className = "s4-seat" + (view.currentTurn === p.user_id ? " turn" : "");
       const head = document.createElement("div"); head.className = "seat-name";
-      head.innerHTML = `<span>${escapeHtml(window.SS.shortName(p.name))}${p.user_id === view.stopCaller ? " ✋" : ""}</span>` +
+      head.innerHTML = `<span>${escapeHtml(window.SS.shortName(p.name))}${p.user_id === view.stopCaller ? ' <span class="stop-mark" title="Called Stop">' + (window.SS.icon ? window.SS.icon("stop") : "") + "</span>" : ""}</span>` +
         `<span class="seat-total">${p.score}</span>`;
       seat.appendChild(head);
       seat.appendChild(renderSlots(p.user_id, p.slots || [], false, true));
@@ -546,11 +548,12 @@
       const left = document.createElement("span"); left.className = "sb-name";
       const sw = document.createElement("span"); sw.className = "swatch";
       sw.style.background = PAL[(p.color || 0) % PAL.length];
+      if (window.SS.avatarFace) { sw.classList.add("av-mini"); sw.innerHTML = window.SS.avatarFace(p.name, p.avatar); }
       left.appendChild(sw);
       const dot = document.createElement("span"); dot.className = "dot" + (p.connected ? " on" : "");
       left.appendChild(dot);
       if (p.user_id === view.hostId) {
-        const c = document.createElement("span"); c.className = "host-crown"; c.textContent = "♛"; c.title = "Host";
+        const c = document.createElement("span"); c.className = "host-crown"; c.innerHTML = (window.SS.icon ? window.SS.icon("crown") : "\u265B"); c.title = "Host";
         left.appendChild(c);
       }
       const text = document.createElement("span"); text.className = "sb-text";
@@ -585,7 +588,7 @@
         const li = document.createElement("li");
         li.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:.4rem";
         const nm = document.createElement("span");
-        nm.textContent = "👁 " + window.SS.shortName(p.name) + (p.user_id === youId ? " (you)" : "");
+        nm.textContent = window.SS.shortName(p.name) + (p.user_id === youId ? " (you)" : "");
         li.appendChild(nm);
         if (p.pending_join) {
           const tag = document.createElement("span");
@@ -617,7 +620,7 @@
 
   // ================= round end =================
   function showRoundEnd(d) {
-    const title = $("roundend-title"), sub = $("roundend-sub"), body = $("roundend-body"), footer = $("roundend-footer");
+    const title = $("roundend-title"), sub = $("roundend-sub"), body = $("roundend-body");
     const winners = d.winners || [];
     const winNames = winners.map(nameOf).join(", ");
 
@@ -668,10 +671,19 @@
     html += "</table>";
     body.innerHTML = html;
 
-    // Game over is handled by the winner screen, so this footer only ever has
-    // to move the game to the next round.
+    renderRoundEndFooter();
+    openModal("roundend-modal");
+  }
+
+  // Game over is handled by the winner screen, so this footer only ever has
+  // to move the game to the next round. Drawn for whoever is host at the time,
+  // so it is redrawn if the role moves while the summary is up.
+  let roundEndFooterHost = null;
+  function renderRoundEndFooter() {
+    const footer = $("roundend-footer");
     footer.innerHTML = "";
-    if (youId === view.hostId) {
+    roundEndFooterHost = youId === view.hostId;
+    if (roundEndFooterHost) {
       const b = document.createElement("button"); b.className = "btn-primary";
       b.textContent = "Next round";
       b.addEventListener("click", () => { socket.emit("s4_next_round", { code, user_id: youId }); closeModal("roundend-modal"); });
@@ -681,7 +693,15 @@
       p.textContent = "Waiting for the host…";
       footer.appendChild(p);
     }
-    openModal("roundend-modal");
+  }
+
+  // The host's socket dropping (a refresh, a locked phone) hands the role to
+  // someone else; without a redraw nobody would hold a working Next round.
+  function syncRoundEndFooter() {
+    const m = $("roundend-modal");
+    if (!m || !m.classList.contains("open")) return;
+    if (roundEndFooterHost === (youId === view.hostId)) return;
+    renderRoundEndFooter();
   }
 
   function showGameOver(winnerId, rows) {
@@ -711,7 +731,7 @@
     // During the preview window the chip counts down the memorize time.
     if (view.previewLeft > 0) {
       el.style.display = "inline-block";
-      el.textContent = "👁 memorize " + view.previewLeft + "s";
+      el.textContent = "Memorize " + view.previewLeft + "s";
       el.classList.add("low");
       return;
     }
