@@ -1,0 +1,333 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Home page (templates/index.html)
+   ══════════════════════════════════════════════════════════════════════
+   A landing page rather than a form on an empty background: a short pitch,
+   then the two things people come to do — join a table they were invited to,
+   or start one. Joining sits beside the pitch on desktop and first on phones,
+   because a shared room code is how most players arrive. */
+
+body.home-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background:
+    radial-gradient(70% 55% at 85% 0%, rgba(230, 178, 60, 0.07) 0%, transparent 60%),
+    radial-gradient(90% 70% at 10% -10%, rgba(63, 158, 100, 0.12) 0%, transparent 65%),
+    var(--bg);
+}
+
+/* ---------- nav ---------- */
+.home-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--sp-5) var(--sp-6) 0;
+}
+.home-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+  text-decoration: none;
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.home-logo img { height: 34px; width: auto; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45)); }
+.home-logo b { color: var(--accent); font-weight: 700; }
+
+.player-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 60vw;
+  padding: 0.3rem 0.75rem 0.3rem 0.3rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.player-chip:hover { border-color: color-mix(in srgb, var(--gold) 50%, var(--line)); }
+.player-chip > .ico { width: 15px; height: 15px; color: var(--muted); }
+.player-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-chip.unset .player-chip-name { color: var(--gold); }
+.player-chip-av {
+  width: 30px; height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #4ea1ff, #2f6fd1);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.player-chip-av .av-motif { width: 17px; height: 17px; stroke-width: 2.1; }
+
+/* ---------- layout ---------- */
+.home {
+  flex: 1 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-areas:
+    "hero   join"
+    "create create";
+  gap: var(--sp-6);
+  align-items: end;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 6vh, 4rem) var(--sp-6) var(--sp-10);
+}
+.home-hero   { grid-area: hero; }
+.join-card   { grid-area: join; }
+.create-card { grid-area: create; }
+
+/* ---------- hero ---------- */
+.home-eyebrow {
+  margin: 0 0 var(--sp-3);
+  color: var(--gold);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.home-title {
+  margin: 0;
+  max-width: 15ch;
+  font-family: var(--display);
+  font-size: clamp(2rem, 4.6vw, 3.25rem);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+.home-lede {
+  margin: var(--sp-4) 0 0;
+  max-width: 44ch;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
+/* ---------- cards ---------- */
+.home-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%), var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--el-2);
+  padding: var(--sp-6);
+}
+.home-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+.home-card-head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.home-card-sub { margin: 0.15rem 0 0; color: var(--muted); font-size: var(--fs-sm); }
+.home-card-ico {
+  width: 38px; height: 38px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  color: var(--gold);
+}
+.home-card-ico .ico { width: 20px; height: 20px; }
+
+/* ---------- join ---------- */
+.join-row { display: flex; gap: var(--sp-2); }
+.join-row .code-input {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.45em;
+  padding-left: 0.45em;   /* balance the tracking after the last letter */
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+.join-row .code-input::placeholder { color: #4a4f53; }
+.join-row .btn-primary { width: auto; min-width: 104px; min-height: 52px; }
+/* Before a full code is typed, Join reads as available but not yet the move. */
+.join-card:not(.ready) .join-row .btn-primary { filter: saturate(0.6) brightness(0.85); box-shadow: none; }
+.join-card.invited {
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
+  box-shadow: var(--el-2), 0 0 0 4px rgba(230, 178, 60, 0.08);
+}
+
+/* ---------- game picker ---------- */
+.picker-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+.game-tile {
+  --game-accent: var(--gold);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  text-align: left;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  color: inherit;
+  font-weight: 400;
+  overflow: hidden;
+  transition: border-color var(--dur) ease, background var(--dur) ease, transform var(--dur-fast) ease, box-shadow var(--dur) ease;
+}
+/* A wash of the game's colour from the top corner. */
+.game-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--game-accent) 16%, transparent), transparent 70%);
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity var(--dur) ease;
+}
+.game-tile:hover:not(:disabled) { transform: translateY(-2px); border-color: color-mix(in srgb, var(--game-accent) 55%, var(--line)); }
+.game-tile:hover:not(:disabled)::before { opacity: 0.8; }
+.game-tile.selected {
+  border-color: var(--game-accent);
+  background: color-mix(in srgb, var(--game-accent) 7%, var(--bg-2));
+  box-shadow: 0 0 0 1px var(--game-accent) inset, 0 14px 30px -18px var(--game-accent);
+}
+.game-tile.selected::before { opacity: 1; }
+.game-tile.disabled { cursor: not-allowed; opacity: 0.5; }
+.gt-art {
+  position: relative;
+  height: 54px;
+  width: auto;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
+}
+.gt-body { position: relative; display: flex; flex-direction: column; gap: 0.3rem; }
+.gt-name { font-family: var(--display); font-size: 1.05rem; font-weight: 600; color: var(--text); }
+.gt-desc { color: var(--muted); font-size: var(--fs-sm); line-height: 1.4; }
+.gt-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+}
+.gt-meta .ico { width: 13px; height: 13px; }
+.gt-check {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  width: 24px; height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--game-accent);
+  color: var(--ink);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--dur) ease, transform var(--dur) var(--ease-out);
+}
+.gt-check .ico { width: 14px; height: 14px; stroke-width: 2.6; }
+.game-tile.selected .gt-check { opacity: 1; transform: none; }
+.gt-badge {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  font-size: var(--fs-2xs);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 0.1rem 0.5rem;
+}
+
+.action-row { display: flex; gap: var(--sp-3); margin-top: var(--sp-5); }
+.action-row .btn-primary,
+.action-row .btn-ghost { width: auto; flex: 1; }
+.action-row .btn-primary { flex: 1.4; }
+
+/* ---------- player dialog ---------- */
+.profile-modal { max-width: 460px; }
+.profile-note { color: var(--muted); margin: 0 0 var(--sp-5); }
+.profile-av-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin: var(--sp-5) 0 var(--sp-2);
+}
+.profile-av-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.profile-av-hint { font-size: var(--fs-xs); color: var(--muted); opacity: 0.8; }
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: var(--sp-2);
+}
+.av-opt {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 2px solid transparent;
+  color: var(--text);
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.av-opt .av-motif { width: 22px; height: 22px; stroke-width: 2; }
+.av-opt:hover { border-color: var(--line); background: #33373a; }
+.av-opt.selected { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 18%, var(--panel-2)); color: var(--gold); }
+
+/* ---------- tablet + phone ---------- */
+@media (max-width: 900px) {
+  .home {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "hero" "join" "create";
+    align-items: stretch;
+    gap: var(--sp-5);
+    padding-top: var(--sp-8);
+  }
+  .picker-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .home-nav { padding: var(--sp-4) var(--sp-4) 0; }
+  .home-logo { font-size: 1.05rem; }
+  .home-logo img { height: 28px; }
+  .player-chip { max-width: 52vw; }
+  .home { padding: var(--sp-6) var(--sp-4) var(--sp-8); gap: var(--sp-4); }
+  .home-title { font-size: 2rem; }
+  .home-lede { font-size: 0.98rem; }
+  .home-card { padding: var(--sp-5) var(--sp-4); border-radius: var(--r-lg); }
+  .game-tile { padding: var(--sp-3); gap: var(--sp-2); }
+  .gt-art { height: 40px; }
+  .gt-desc { display: none; }   /* names + player counts carry it on a phone */
+  .action-row { flex-direction: column; }
+  .join-row .code-input { letter-spacing: 0.35em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-tile, .gt-check { transition: none; }
+}
