@@ -1,0 +1,29 @@
+{# The join screen a shared room link opens on (core/join_gate.js).
+
+   Someone who follows /room/<code> without having joined gets this instead of
+   a table they are not seated at: their name (pre-filled if this device knows
+   them), an optional avatar, and one button that seats them and brings the
+   room up behind it. No game picker and no code to type — the link already
+   says which table. #}
+<div class="join-gate" id="join-gate" hidden>
+  <div class="join-gate-card" role="dialog" aria-modal="true" aria-labelledby="jg-title">
+    <img class="jg-symbol" src="{{ url_for('static', filename='img/' + game_type + '_symbol.svg') }}" alt="" />
+    <p class="jg-eyebrow">You're invited</p>
+    <h1 class="jg-title" id="jg-title">Join this {{ display_name }} table</h1>
+    <p class="jg-sub">
+      {% if host_name %}<b>{{ host_name }}</b> is hosting &middot; {% endif %}Room <b>{{ code }}</b>
+      {% if room_started %}<br /><span class="jg-note">The game has started &mdash; you'll watch until the host lets you in.</span>{% endif %}
+    </p>
+
+    <label for="jg-name">Your name</label>
+    <input type="text" id="jg-name" maxlength="20" autocomplete="nickname" placeholder="e.g. Riya" />
+
+    <div class="jg-av-head">
+      <span>Avatar</span><small>Optional</small>
+    </div>
+    <div class="jg-avatars" id="jg-avatars" role="radiogroup" aria-label="Avatar"></div>
+
+    <button type="button" class="btn-primary btn-lg" id="jg-join"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg>Join table</button>
+    <a class="jg-home" href="/">Not now &mdash; go to the home page</a>
+  </div>
+</div>
