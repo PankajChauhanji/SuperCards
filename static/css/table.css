@@ -100,6 +100,13 @@
   user-select: none;
 }
 .action-log h3 { margin-bottom: 0; border-bottom: 1px solid var(--line); }
+/* Icon, title, then the chevron pushed to the far edge. */
+.action-log h3,
+#scores-toggle { justify-content: flex-start; gap: 0.5rem; }
+.action-log h3 > .ico,
+#scores-toggle > .ico { width: 15px; height: 15px; }
+.collapse-chevron { margin-left: auto; }
+.collapse-chevron .ico { width: 14px; height: 14px; }
 
 /* A small round badge (not just a bare glyph) so the collapse control reads
    clearly as an interactive toggle, not decoration. */
@@ -365,6 +372,9 @@
 }
 .opp-seat.no-ring .opp-avatar,
 .my-seat.no-ring .opp-avatar { border: 2px solid var(--line); }
+/* A chosen avatar motif (game/core/avatars.py) in place of the initial. */
+.opp-avatar .av-motif { width: 52%; height: 52%; stroke-width: 2.1; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
+.opp-avatar.gauge .av-ini { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
 
 /* ---------- the elimination gauge ----------
    A liquid level inside the avatar that DRAINS as the score climbs: full and
@@ -897,21 +907,71 @@
 }
 
 /* ---------- round-end reveal ---------- */
-.modal.roundend { max-width: 560px; }
-.re-sub { color: var(--muted); margin-top: -0.4rem; }
-.re-row {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.7rem 0.85rem;
-  margin-bottom: 0.6rem;
-  background: var(--bg);
+/* ---------- round summary ----------
+   A gold edge on top, one card per player: avatar, name and badges, the
+   change this round as a pill, then the total; their cards underneath. */
+.modal.roundend {
+  max-width: 580px;
+  border-top: 3px solid var(--gold);
 }
-.re-row.caller { border-color: var(--gold); background: rgba(230,178,60,0.06); }
-.re-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
-.re-name { font-weight: 600; display: flex; align-items: center; }
-.re-score { font-family: var(--display); font-weight: 600; color: var(--gold); white-space: nowrap; }
+.modal.roundend > h2 { margin-bottom: 0.25rem; }
+.re-sub { color: var(--muted); margin: 0 0 var(--sp-5); }
+#roundend-body { display: flex; flex-direction: column; gap: var(--sp-2); }
+.re-row {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.re-row.caller {
+  border-color: color-mix(in srgb, var(--gold) 60%, var(--line));
+  background: color-mix(in srgb, var(--gold) 7%, var(--bg-2));
+}
+.re-head { display: flex; align-items: center; gap: var(--sp-3); }
+.re-head + * { margin-top: var(--sp-3); }
+.re-av {
+  width: 32px; height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-family: var(--display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+.re-av .av-motif { width: 17px; height: 17px; stroke-width: 2.2; }
+.re-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.re-score {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--display);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text);
+}
+.re-delta {
+  padding: 0.05rem 0.55rem;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-sm);
+  background: rgba(239, 100, 80, 0.14);
+  color: #ff8a73;
+}
+.re-delta.zero { background: rgba(87, 217, 138, 0.14); color: var(--success); }
+.re-total-pts { min-width: 4.2ch; text-align: right; }
 .re-cards { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; }
-.re-card { width: 38px; height: 53px; border-radius: 4px; }
+.re-card { width: 40px; height: 56px; border-radius: 5px; box-shadow: 0 4px 10px -6px rgba(0, 0, 0, 0.8); }
 .re-total { color: var(--muted); font-size: 0.82rem; margin-left: 0.4rem; }
 .re-empty { color: var(--turn); font-size: 0.85rem; font-weight: 600; }
 
@@ -927,6 +987,21 @@
   margin-right: 0.1rem;
   flex: 0 0 auto;
 }
+/* The Scores rows' mini avatar: the player's colour with their motif or
+   initial, matching their seat. */
+.swatch.av-mini {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  color: #fff;
+  font-family: var(--display);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+.swatch.av-mini .av-motif { width: 12px; height: 12px; stroke-width: 2.4; }
 
 /* just-drawn card highlight (clears after ~5s) */
 .card-slot.just-drawn .hand-card {
@@ -939,16 +1014,6 @@
   50% { box-shadow: 0 0 0 6px rgba(230,178,60,0.35); }
 }
 
-/* lobby settings readout */
-.lobby-settings { margin-bottom: 1.25rem; }
-.lobby-settings h3 {
-  font-family: var(--display);
-  font-size: 0.78rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 0.6rem;
-}
 .settings-readout {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -968,142 +1033,52 @@
 .sr-item strong { font-family: var(--display); color: var(--text); }
 
 
-/* ---------- footer ---------- */
+/* ---------- footer (home page only) ----------
+   Room pages have no footer at all. On the home page it is one slim row: the
+   name, Install, and About — the maker's links live in the About dialog. */
 .site-footer {
   border-top: 1px solid var(--line);
-  padding: 1.1rem var(--page-pad);
-  background: linear-gradient(0deg, var(--panel) 0%, var(--bg-2) 100%);
-  box-shadow: 0 -1px 0 rgba(230, 178, 60, 0.14);
+  padding: 0.85rem var(--page-pad) calc(0.85rem + env(safe-area-inset-bottom));
+  background: var(--bg);
 }
 .footer-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
-}
-.footer-brand {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-.footer-brand-name { font-family: var(--display); font-weight: 700; font-size: 0.95rem; }
-.footer-tagline { font-size: 0.76rem; color: var(--muted); white-space: nowrap; }
-.footer-right {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-.footer-links {
-  display: flex;
-  align-items: center;
   gap: 1rem;
-}
-.footer-links a {
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 0.8rem;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  transition: color 0.15s ease;
-}
-.footer-links a:hover { color: var(--text); }
-.footer-star-cta {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  font-family: var(--display); font-weight: 600; font-size: 0.78rem;
-  color: var(--gold);
-  border: 1px solid rgba(230, 178, 60, 0.4);
-  background: rgba(230, 178, 60, 0.06);
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background 0.15s ease;
-}
-.footer-star-cta:hover { background: rgba(230, 178, 60, 0.12); }
-/* the one CTA in the footer allowed to be filled/loud — everything else
-   here stays quiet so this is what the eye lands on */
-.footer-install-cta {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  font-family: var(--display); font-weight: 700; font-size: 0.8rem;
-  color: var(--ink);
-  border: 1px solid var(--gold);
-  background: var(--gold);
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: filter 0.15s ease;
-}
-.footer-install-cta:hover { filter: brightness(1.06); }
-
-/* ---------- footer at a live table ----------------------------------------
-   Same footer, different job. On the landing page it is legitimate marketing
-   space and stays exactly as it was. At a table it is chrome sitting under a
-   game, so it flattens and quietens: no gradient, no gold glow along the top,
-   tighter height, smaller type.
-
-   The install CTA is the deliberate exception being overridden here. Its
-   comment above ("the one CTA allowed to be filled/loud") is right for the
-   landing page, but on a room page a filled-gold pill was the single loudest
-   element on screen — louder than the felt's own frame and the turn indicator,
-   which is backwards while someone is deciding a move. It becomes an outline
-   pill here and keeps its full prominence on the landing page.
-
-   Room pages get this via body.room-page (set in templates/game.html). */
-/* `.compact` is matched too, on purpose: reactions.css styles
-   `.site-footer.compact` and loads after this file, so a plain
-   `.room-page .site-footer` ties on specificity and loses on source order —
-   leaving 16px of horizontal padding that knocked the footer content off the
-   page rail at any width where the max-width below is not binding. */
-.room-page .site-footer,
-.room-page .site-footer.compact {
-  background: var(--bg-2);
-  box-shadow: none;
-  padding: 0.6rem 0;          /* the inset moves onto .footer-main, below */
-}
-
-/* The bar keeps its full-bleed background, but its CONTENTS mirror
-   .table-view's box model exactly — same cap, same centring, same padding
-   (including the reserved right gutter on wide screens). The result is that the
-   footer brand starts on the same line as the Scores column and the CTAs end on
-   the same line as the felt, instead of the footer running out to the window
-   edges on its own. That single alignment is most of what made the page read as
-   scattered along the bottom. */
-.room-page .footer-main {
-  gap: 1rem;
-  max-width: var(--page-max);
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 0 var(--page-pad);
 }
-@media (min-width: 1700px) {
-  .room-page .footer-main {
-    max-width: var(--page-max-wide);
-    padding-right: calc(var(--side-col) + var(--side-gap) + var(--page-pad));
-  }
+.footer-brand-name { font-family: var(--display); font-weight: 600; font-size: 0.85rem; color: var(--muted); }
+.footer-links { display: flex; align-items: center; gap: 0.25rem; }
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.65rem;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 500;
 }
-.room-page .footer-brand-name { font-size: 0.85rem; font-weight: 600; }
-/* "Multiplayer card games, no signup" is a pitch for someone deciding whether
-   to play. They are already playing. */
-.room-page .footer-tagline { display: none; }
-.room-page .footer-links { gap: 0.85rem; }
-.room-page .footer-links a { font-size: 0.74rem; }
-.room-page .footer-right { gap: 0.55rem; }
-.room-page .footer-star-cta,
-.room-page .footer-install-cta {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.32rem 0.7rem;
+.footer-link:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+.footer-link[hidden] { display: none; }
+
+.about-modal .about-games { color: var(--muted); font-size: 0.85rem; }
+.about-links { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 1rem; }
+.about-links a {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
 }
-.room-page .footer-install-cta {
-  color: var(--gold);
-  background: rgba(230, 178, 60, 0.06);
-  border-color: rgba(230, 178, 60, 0.4);
-}
-.room-page .footer-install-cta:hover {
-  filter: none;
-  background: rgba(230, 178, 60, 0.13);
-}
+.about-links a .ico { color: var(--muted); }
+.about-links a:hover { background: rgba(255, 255, 255, 0.05); }
 
 /* ---------- Batch 1 enhancements ---------- */
 /* 3-second pick countdown on the deck */
@@ -1141,6 +1116,7 @@
   transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 .kick-btn:hover { background: rgba(239, 68, 68, 0.18); color: #ff6b6b; opacity: 1; }
+.kick-btn .ico { width: 15px; height: 15px; }
 
 /* host-editable lobby settings */
 .se-hint { font-weight: 400; font-size: 0.7rem; color: var(--muted); text-transform: none; letter-spacing: 0; }
@@ -1160,4 +1136,58 @@
   font-size: 0.95rem;
 }
 .se-save { margin-top: 0.7rem; width: auto; padding: 0.5rem 1rem; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Table motion (core/motion.js sets the body classes)
+   ══════════════════════════════════════════════════════════════════════
+   Always on the inner card image, never the slot: the hand fan positions each
+   slot with its own transform, and an animation there would fight it. Fill mode
+   is `backwards`, so once a card has landed its normal styles (raised when
+   selected, the fan tilt) apply untouched. */
+
+/* The deal: each card flies in from the deck, one after another. */
+@keyframes card-deal {
+  from { opacity: 0; transform: translateY(-46vh) rotate(-14deg) scale(0.6); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+body.dealing .hand .card-slot .hand-card {
+  animation: card-deal 520ms var(--ease-out) backwards;
+}
+body.dealing .hand .card-slot:nth-child(2)  .hand-card { animation-delay: 60ms; }
+body.dealing .hand .card-slot:nth-child(3)  .hand-card { animation-delay: 120ms; }
+body.dealing .hand .card-slot:nth-child(4)  .hand-card { animation-delay: 180ms; }
+body.dealing .hand .card-slot:nth-child(5)  .hand-card { animation-delay: 240ms; }
+body.dealing .hand .card-slot:nth-child(6)  .hand-card { animation-delay: 300ms; }
+body.dealing .hand .card-slot:nth-child(7)  .hand-card { animation-delay: 360ms; }
+body.dealing .hand .card-slot:nth-child(8)  .hand-card { animation-delay: 410ms; }
+body.dealing .hand .card-slot:nth-child(9)  .hand-card { animation-delay: 460ms; }
+body.dealing .hand .card-slot:nth-child(10) .hand-card { animation-delay: 500ms; }
+body.dealing .hand .card-slot:nth-child(n+11) .hand-card { animation-delay: 540ms; }
+
+/* A throw lands in the centre. Both games rebuild the pile only when it
+   actually changes, so this plays once per throw — and only on the newest
+   cards, so a long Bluff pile does not all drop in again. */
+@keyframes card-land {
+  from { opacity: 0; transform: translateY(-28px) rotate(-6deg) scale(1.14); }
+  to   { opacity: 1; transform: none; }
+}
+.discard img.center-card:nth-last-of-type(-n+4) {
+  animation: card-land 320ms var(--ease-out) backwards;
+}
+
+/* Your turn: a soft ring of light rolls out from your seat, twice. */
+@keyframes turn-halo {
+  0%   { box-shadow: 0 0 0 0 rgba(87, 217, 138, 0.55); }
+  100% { box-shadow: 0 0 0 18px rgba(87, 217, 138, 0); }
+}
+body.turn-arrived .my-seat .opp-avatar {
+  animation: turn-halo 650ms ease-out 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.dealing .hand .card-slot .hand-card,
+  .discard img.center-card,
+  body.turn-arrived .my-seat .opp-avatar { animation: none !important; }
+}
 
