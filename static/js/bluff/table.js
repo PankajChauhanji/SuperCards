@@ -1,7 +1,11 @@
 (function () {
   const PALETTE = ["#4ea1ff", "#ff9f43", "#a98cf0", "#f06ea9", "#43c6c6", "#d6c04a"];
   function colorOf(p) { return PALETTE[(p && typeof p.color === "number" ? p.color : 0) % PALETTE.length]; }
-  function swatch(p) { const s = document.createElement("span"); s.className = "swatch"; s.style.background = colorOf(p); return s; }
+  function swatch(p) {
+    const s = document.createElement("span"); s.className = "swatch"; s.style.background = colorOf(p);
+    if (window.SS.avatarFace && p) { s.classList.add("av-mini"); s.innerHTML = window.SS.avatarFace(p.name, p.avatar); }
+    return s;
+  }
 
   // Turn-timer info for whichever seat (opponent or you) is currently
   // active — feeds core/seats.js's ring, which shows this instead of the
@@ -79,7 +83,8 @@
       if (p.user_id === state.hostId) {
         const crown = document.createElement("span");
         crown.className = "host-crown";
-        crown.textContent = "\u265B";
+        crown.title = "Host";
+        crown.innerHTML = (window.SS.icon ? window.SS.icon("crown") : "\u265B");
         left.appendChild(crown);
       }
 
@@ -132,6 +137,7 @@
       return {
         name: window.SS.shortName(p.name),
         color: colorOf(p),
+        avatar: p.avatar,
         cardCount: p.card_count || 0,
         ringPct: null,
         timerPct: timer ? timer.pct : null,
@@ -208,6 +214,7 @@
     window.SS.renderMySeat(wrap, {
       name: window.SS.shortName(me.name),
       color: colorOf(me),
+      avatar: me.avatar,
       cardCount: me.card_count || 0,
       ringPct: null,
       timerPct: timer ? timer.pct : null,
