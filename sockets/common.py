@@ -23,6 +23,14 @@ def unbind_sid(sid: str) -> Optional[Tuple[str, str]]:
     return SID_INDEX.pop(sid, None)
 
 
-def error(message: str) -> None:
-    """Reply to the current requester with a standard error event."""
-    emit("error", {"message": message})
+def error(message: str, reason: str = "") -> None:
+    """Reply to the current requester with a standard error event.
+
+    ``reason`` is an optional machine-readable tag for the few errors a client
+    acts on rather than just showing (e.g. "not_in_room"); the message stays the
+    human-readable part.
+    """
+    payload = {"message": message}
+    if reason:
+        payload["reason"] = reason
+    emit("error", payload)
