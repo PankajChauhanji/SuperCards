@@ -23,5 +23,14 @@
       }
       return localStorage.getItem("ss_name") || "";
     },
+    // A motif from game/core/avatars.py, or "" to show the initial. The server
+    // validates it, so anything stale or unknown simply falls back to "".
+    avatar(value) {
+      if (value !== undefined) {
+        localStorage.setItem("ss_avatar", value || "");
+        return value || "";
+      }
+      return localStorage.getItem("ss_avatar") || "";
+    },
   };
 })();
