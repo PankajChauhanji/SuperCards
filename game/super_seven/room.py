@@ -127,6 +127,13 @@ class Room:
                 self.awaiting_draw = False
                 self.turn_start_ts = time.time()
                 self._skip_to_playable()
+        elif user_id in self.turn_order:
+            # Between rounds (summary or podium up). start_round rebuilds the
+            # rotation, but until then round_end_payload walks turn_order, and a
+            # quitter left in it made the summary raise for everyone who
+            # reconnected — they landed on a lobby whose Start game the server
+            # refuses, and a refresh took the same path.
+            self.turn_order.remove(user_id)
 
         self.players.pop(user_id, None)
 
@@ -452,7 +459,9 @@ class Room:
         """Full reveal — hands are public now that the round is over."""
         rows = []
         for uid in self.turn_order:
-            player = self.players[uid]
+            player = self.players.get(uid)
+            if player is None:
+                continue   # left the room; never let one quitter break the summary
             rows.append({
                 "user_id": uid,
                 "name": player.name,
@@ -485,6 +494,8 @@ class Room:
             {
                 "user_id": p.user_id,
                 "name": p.name,
+                "avatar": p.avatar,
+                "color": p.color_index,
                 "total_score": p.total_score,
                 "eliminated": p.eliminated,
             }
