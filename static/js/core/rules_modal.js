@@ -9,7 +9,7 @@
   const rulesTitle = document.getElementById("rules-title");
   const openRulesBtn = document.getElementById("rules-btn");
   const closeRulesBtn = document.getElementById("rules-close");
-  const langBtns = document.querySelectorAll(".lang-btn");
+  const langBtns = document.querySelectorAll("#rules-modal .lang-btn");
 
   const installModal = document.getElementById("install-modal");
   const installContent = document.getElementById("install-content-container");
@@ -23,10 +23,10 @@
     function loadRules(lang) {
       langBtns.forEach((b) => {
         const on = b.dataset.lang === lang;
-        b.style.background = on ? "#6706ce" : "transparent";
-        b.style.color = on ? "white" : "inherit";
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
       });
-      if (rulesTitle) rulesTitle.innerText = lang === "hi" ? "📖 नियम पुस्तिका" : "📖 Rule Book";
+      if (rulesTitle) rulesTitle.innerText = lang === "hi" ? "नियम पुस्तिका" : "Rule book";
       if (cache[lang]) { rulesContainer.innerHTML = cache[lang]; return; }
       rulesContainer.innerHTML = "<p>Loading rules…</p>";
       fetch(`/static/rules/${gameType}/${lang}.html`)
@@ -53,11 +53,11 @@
     function updateInstallButtons(lang) {
       installLangBtns.forEach((btn) => {
         const active = btn.dataset.lang === lang;
-        btn.style.background = active ? "#6706ce" : "transparent";
-        btn.style.color = active ? "white" : "inherit";
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
       });
       if (installTitle) {
-        installTitle.innerText = lang === "hi" ? "📱 सुपर कार्ड्स इंस्टॉल करें" : "📱 Install Super Cards";
+        installTitle.innerText = lang === "hi" ? "सुपर कार्ड्स इंस्टॉल करें" : "Install Super Cards";
       }
     }
 
