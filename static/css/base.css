@@ -48,17 +48,102 @@
   --side-col:      280px;    /* the Scores / Action History column */
   --side-gap:      1.5rem;   /* gap between that column and the felt */
   --page-pad:      1.5rem;   /* inset from the rail to content */
+
+  /* ---- design system tokens ----
+     One scale for each kind of decision, so two screens built months apart
+     still look like the same product. New and touched CSS uses these; older
+     literal values are migrated as each surface is reworked. */
+
+  /* type: a 1.125 scale on a 16px root */
+  --fs-2xs: 0.6875rem;  /* 11px — micro labels only */
+  --fs-xs:  0.75rem;    /* 12px */
+  --fs-sm:  0.8125rem;  /* 13px */
+  --fs-md:  0.9375rem;  /* 15px — body in panels */
+  --fs-lg:  1.125rem;   /* 18px */
+  --fs-xl:  1.375rem;   /* 22px */
+  --fs-2xl: 1.75rem;    /* 28px */
+  --fs-3xl: 2.375rem;   /* 38px */
+
+  /* spacing: 4px steps */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.25rem;
+  --sp-6: 1.5rem;
+  --sp-8: 2rem;
+  --sp-10: 2.5rem;
+
+  /* radii */
+  --r-sm:   8px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-xl:   20px;
+  --r-pill: 999px;
+
+  /* elevation: hairline, raised (cards, menus), overlay (dialogs, sheets) */
+  --el-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --el-2: 0 10px 28px -14px rgba(0, 0, 0, 0.75), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  --el-3: 0 28px 64px -24px rgba(0, 0, 0, 0.85);
+
+  /* motion */
+  --ease-out:  cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-std:  cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:  120ms;
+  --dur:       200ms;
+  --dur-slow:  320ms;
+
+  /* semantic colour, beside the brand palette above */
+  --success: #57d98a;
+  --warning: #f5b947;
+  --danger:  #ef6450;
+  --info:    #7aa7ff;
+
+  /* one focus ring for every interactive element */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold);
+
+  /* layers, lowest first — documented here so a new overlay picks a slot
+     instead of guessing a number */
+  --z-dock: 61;       /* floating reaction / scores buttons */
+  --z-tsheet: 70;     /* phone Scores / History sheet */
+  /* Dialogs sit above the floating buttons: at 50 the reaction button drew on
+     top of every dialog and covered the round summary's Next round button on
+     narrow phones (todos §22). */
+  --z-modal: 85;      /* dialogs (.modal-backdrop) */
+  --z-sheet: 90;      /* Settings sheet */
+  --z-toast: 100;
 }
 
 * { box-sizing: border-box; }
+
+/* ---------- icons ----------
+   The one icon set (templates/partials/icons.html): thin-line, drawn in the
+   surrounding text colour, sized to the text by default. Buttons that hold
+   only an icon size it explicitly. */
+.ico {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -0.2em;
+}
 
 html, body {
   margin: 0;
   min-height: 100%;
 }
+/* The canvas colour behind everything — what shows when iOS rubber-bands past
+   the end of the page, instead of a white flash. */
+html { background: var(--bg); }
 
 body {
   font-family: var(--body);
+  /* Inter: open digits and a straight-legged 1 read better at small sizes. */
+  font-feature-settings: "cv05", "ss01";
   color: var(--text);
   background:
     radial-gradient(120% 90% at 50% -10%, var(--bg-2) 0%, var(--bg) 60%);
@@ -185,52 +270,9 @@ body.home-page {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
 }
 
-/* ---------- home: felt-backdrop hero ----------
-   A full-bleed table-textured hero (the same radial-gradient recipe as
-   .felt) with a single glass card holding everything — ties the home
-   screen to the actual game instead of reading as a generic form page.
-   .home is a flex child of body.home-page so it grows to fill the
-   viewport and the footer sticks to the bottom on short pages. */
-.home {
-  flex: 1 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: clamp(1.5rem, 4vh, 2.75rem) 1.25rem;
-  background: radial-gradient(120% 120% at 50% 0%, #1b3a33 0%, var(--felt) 70%);
-}
-.home-card {
-  width: 100%;
-  max-width: 640px;
-  background: rgba(15, 31, 28, 0.72);
-  border: 1px solid rgba(230, 178, 60, 0.25);
-  border-radius: 16px;
-  padding: 2rem 2.2rem;
-  backdrop-filter: blur(2px);
-}
-.home-brand { text-align: center; margin-bottom: 1.75rem; }
-.home .wordmark { font-size: clamp(1.6rem, 6vw, 2.1rem); }
-.home .tagline {
-  color: var(--muted);
-  margin: 0.5rem 0 0;
-  font-size: 0.95rem;
-}
-.home-section { margin-bottom: 1.5rem; }
-.home-section:last-of-type { margin-bottom: 0; }
-.home-label {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 0.95rem;
-  margin: 0 0 0.8rem;
-  letter-spacing: 0.01em;
-}
-.home-join {
-  margin-top: 1.4rem;
-  padding-top: 1.2rem;
-  border-top: 1px dashed var(--line);
-}
-.home-join-label {
+/* The home page's own styles live in home.css. */
+
+label {
   display: block;
   font-size: 0.82rem;
   color: var(--muted);
@@ -279,34 +321,130 @@ button {
   border-radius: 10px;
   padding: 0.75rem 1rem;
   font-weight: 600;
-  transition: transform 0.05s ease, filter 0.15s ease, background 0.15s ease;
+  transition: transform 0.05s ease, filter 0.15s ease, background 0.15s ease,
+              border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 button:active { transform: translateY(1px); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.btn-primary {
-  width: 100%;
-  background: var(--gold);
-  color: var(--ink);
+/* One focus ring for everything a keyboard can reach. :focus-visible only, so
+   a mouse click never leaves a ring behind. */
+/* Text fields and selects are excluded: they show focus with a gold border
+   instead (below), and a ring on top of that reads as an error state. */
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
-.btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+
+/* ---------- buttons ----------
+   .btn-primary  gold, the one way forward on a screen (Start, Create, Next round)
+   .btn-secondary quiet filled, for real but secondary actions
+   .btn-ghost    outline, for alternatives
+   .btn-danger   destructive (Leave, Remove)
+   Sizes: default 44px tall; .btn-sm 34px; .btn-lg 52px. Icons inside any of
+   them sit on the text's baseline with a consistent gap.
+   .is-loading swaps the label for a spinner and blocks clicks. */
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-danger,
+.btn-solo {
+  position: relative;
+  width: 100%;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  border-radius: var(--r-md);
+  letter-spacing: 0.005em;
+}
+.btn-primary {
+  background: linear-gradient(180deg, #f0c255 0%, var(--gold) 100%);
+  color: var(--ink);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 8px 20px -10px rgba(230, 178, 60, 0.55);
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.05); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 10px 24px -10px rgba(230, 178, 60, 0.7); }
+
+.btn-secondary {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+.btn-secondary:hover:not(:disabled) { background: #33373a; }
 
 .btn-ghost {
-  width: 100%;
   background: transparent;
   color: var(--text);
   border: 1px solid var(--line);
 }
-.btn-ghost:hover:not(:disabled) { border-color: var(--gold); }
+.btn-ghost:hover:not(:disabled) { border-color: color-mix(in srgb, var(--gold) 60%, var(--line)); background: rgba(255, 255, 255, 0.03); }
+
+.btn-danger {
+  background: transparent;
+  color: #ff8a73;
+  border: 1px solid rgba(239, 100, 80, 0.45);
+}
+.btn-danger:hover:not(:disabled) { background: rgba(239, 100, 80, 0.12); border-color: var(--danger); }
+.btn-danger.solid { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-danger.solid:hover:not(:disabled) { filter: brightness(1.06); }
 
 .btn-solo {
-  width: 100%;
   background: transparent;
   color: var(--turn);
-  border: 1px solid var(--turn);
+  border: 1px solid color-mix(in srgb, var(--turn) 70%, transparent);
   margin-top: 0.6rem;
 }
-.btn-solo:hover:not(:disabled) { background: rgba(87,217,138,0.1); }
+.btn-solo:hover:not(:disabled) { background: rgba(87, 217, 138, 0.08); border-color: var(--turn); }
+
+.btn-sm { min-height: 34px; padding: 0.35rem 0.8rem; font-size: var(--fs-sm); border-radius: 10px; }
+.btn-lg { min-height: 52px; padding: 0.85rem 1.4rem; font-size: 1.02rem; border-radius: 14px; }
+.btn-primary .ico, .btn-secondary .ico, .btn-ghost .ico, .btn-danger .ico, .btn-solo .ico { width: 18px; height: 18px; }
+
+.is-loading { color: transparent !important; pointer-events: none; }
+.is-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  border-top-color: var(--ink);
+  animation: btn-spin 0.7s linear infinite;
+}
+.btn-ghost.is-loading::after, .btn-secondary.is-loading::after { border-color: rgba(255, 255, 255, 0.2); border-top-color: var(--text); }
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* ---------- fields ---------- */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--text);
+  background-color: var(--bg);
+  /* chevron drawn inline so no icon font or extra request is needed */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239aa0a2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.55rem 2rem 0.55rem 0.8rem;
+  min-height: 40px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+select:hover { border-color: color-mix(in srgb, var(--gold) 45%, var(--line)); }
+select:focus { outline: none; border-color: var(--gold); }
+select option { background: var(--panel); color: var(--text); }
+
+/* Numbers in scores, timers and chips keep their width as they change, so
+   nothing beside them jitters every second. */
+.round-chip, .sb-score, .opp-score, .pile-count, .seat-total, .code, #turn-timer,
+.re-score, .timer, .pk-amount { font-variant-numeric: tabular-nums; }
 
 /* collapsible settings */
 .settings-toggle {
