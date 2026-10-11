@@ -29,16 +29,17 @@ class BotProfile:
     key: str      # stable, used to build the user_id; never shown to players
     name: str     # what the table sees
     gender: str   # "m" / "f" — the picker shows a balanced roster, nothing else
+    avatar: str = ""  # a motif from game/core/avatars.py
 
 
 # Five profiles for a cap of five, so seating a full table of computer
 # players never has to fall back to a numbered repeat.
 ROSTER: Tuple[BotProfile, ...] = (
-    BotProfile("sooryavanshi", "Sooryavanshi", "m"),
-    BotProfile("rajnikant", "Rajnikant", "m"),
-    BotProfile("modi", "Modi", "m"),
-    BotProfile("rashmika", "Rashmika Mandanna", "f"),
-    BotProfile("smriti", "Smriti Mandhana", "f"),
+    BotProfile("sooryavanshi", "Sooryavanshi", "m", "bolt"),
+    BotProfile("rajnikant", "Rajnikant", "m", "flame"),
+    BotProfile("modi", "Modi", "m", "sun"),
+    BotProfile("rashmika", "Rashmika Mandanna", "f", "star"),
+    BotProfile("smriti", "Smriti Mandhana", "f", "moon"),
 )
 
 DEFAULT_KEY = ROSTER[0].key
@@ -54,7 +55,7 @@ def profile(key: str) -> Optional[BotProfile]:
 
 def public_roster() -> List[dict]:
     """The roster as the lobby picker needs it."""
-    return [{"key": p.key, "name": p.name, "gender": p.gender} for p in ROSTER]
+    return [{"key": p.key, "name": p.name, "gender": p.gender, "avatar": p.avatar} for p in ROSTER]
 
 
 def bots_in(room) -> List[str]:
@@ -122,4 +123,9 @@ def add_to(room, key: Optional[str] = None):
     bot = room.register_player(user_id, name)
     bot.is_bot = True
     bot.connected = True
+    # A repeat is numbered ("Modi 2"), so match on the profile's name as a prefix.
+    for entry in ROSTER:
+        if name == entry.name or name.startswith(entry.name + " "):
+            bot.avatar = entry.avatar
+            break
     return bot
