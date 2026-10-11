@@ -49,7 +49,7 @@
     '<button class="ts-tab active" type="button" role="tab" data-tab="scores" aria-selected="true">Scores</button>' +
     '<button class="ts-tab" type="button" role="tab" data-tab="history" aria-selected="false">' +
     'History<span class="ts-dot" id="ts-tab-dot" hidden></span></button>' +
-    '<button class="ts-close" type="button" aria-label="Close">&#10006;</button>' +
+    '<button class="ts-close" type="button" aria-label="Close">' + (SS.icon ? SS.icon("x") : "&#10006;") + '</button>' +
     "</div>" +
     '<div class="ts-body" id="ts-body"></div>';
 
@@ -69,7 +69,7 @@
   fab.setAttribute("aria-expanded", "false");
   fab.setAttribute("aria-controls", "table-sheet");
   fab.innerHTML =
-    '<span aria-hidden="true">&#127942;</span><span class="ts-fab-dot" id="ts-fab-dot" hidden></span>';
+    (SS.icon ? SS.icon("trophy") : '<span aria-hidden="true">&#127942;</span>') + '<span class="ts-fab-dot" id="ts-fab-dot" hidden></span>';
   const fabDot = fab.querySelector("#ts-fab-dot");
 
   const dock = document.getElementById("reaction-dock");
