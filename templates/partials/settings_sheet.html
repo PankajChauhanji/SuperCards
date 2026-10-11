@@ -1,0 +1,43 @@
+{# Settings — one sheet for everything that used to crowd the topbar.
+
+   A drawer on the right on desktop, a bottom sheet on phones (settings.css).
+   Opened by the gear in the topbar (core/settings.js). Personal choices first
+   (sound, deck, hand view), the table-wide theme next, and the way out last,
+   separated, so "Leave table" is never one slip away from a theme swatch. #}
+<div class="sheet-backdrop" id="settings-backdrop" hidden></div>
+<aside class="settings-sheet" id="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <header class="sheet-head">
+    <span class="sheet-grab" aria-hidden="true"></span>
+    <h2 class="sheet-title" id="settings-title">Settings</h2>
+    <button type="button" class="icon-btn sheet-close" id="settings-close" aria-label="Close settings"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+  </header>
+
+  <div class="sheet-body">
+    <section class="set-sec">
+      <label class="set-row" for="mute-switch">
+        <span class="set-row-ico"><svg class="ico" aria-hidden="true"><use href="#i-volume"/></svg></span>
+        <span class="set-row-text"><strong>Sound</strong><small>A chime when it's your turn</small></span>
+        <input type="checkbox" role="switch" class="switch" id="mute-switch" />
+      </label>
+      {# Shown only where the browser can vibrate (core/motion.js). #}
+      <label class="set-row" for="vibrate-switch" id="vibrate-row" hidden>
+        <span class="set-row-ico"><svg class="ico" aria-hidden="true"><use href="#i-vibrate"/></svg></span>
+        <span class="set-row-text"><strong>Vibrate</strong><small>A buzz when it's your turn, even on mute</small></span>
+        <input type="checkbox" role="switch" class="switch" id="vibrate-switch" />
+      </label>
+    </section>
+
+    {% include 'partials/deck_selector.html' %}
+    {% include 'partials/view_mode_selector.html' %}
+    {% include 'partials/theme_selector.html' %}
+
+    <section class="set-sec set-links">
+      <button type="button" class="set-link" id="settings-rules"><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>How to play</span><svg class="ico set-link-go" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+      <button type="button" class="set-link footer-install" id="install-help-link"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span>Install the app</span><svg class="ico set-link-go" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+    </section>
+
+    <section class="set-sec set-danger">
+      <button type="button" class="set-link danger" id="quit-btn"><svg class="ico" aria-hidden="true"><use href="#i-leave"/></svg><span>Leave table</span></button>
+    </section>
+  </div>
+</aside>
