@@ -16,9 +16,18 @@
 
   const socket = window.SS && window.SS.socket;
   const code = window.SS_ROOM_CODE;
-  const CONFIRM =
-    "Quit this game?\n\nYou'll be removed and your scores cleared. " +
-    "The game keeps going for everyone else.";
+  const CONFIRM = {
+    title: "Leave this table?",
+    message: "You'll be removed and your score cleared. The game carries on for everyone else.",
+    confirmLabel: "Leave table",
+    cancelLabel: "Stay",
+    danger: true,
+  };
+  // The app's own dialog (core/dialog.js); the browser box only as a fallback.
+  function ask() {
+    if (window.SS && window.SS.confirm) return window.SS.confirm(CONFIRM);
+    return Promise.resolve(window.confirm(CONFIRM.title + "\n\n" + CONFIRM.message));
+  }
 
   let leaving = false;
 
@@ -41,7 +50,8 @@
 
   btn.addEventListener("click", () => {
     if (leaving) return;
-    if (window.confirm(CONFIRM)) doQuit();
+    if (window.SS && window.SS.settings) window.SS.settings.close();
+    ask().then((ok) => { if (ok) doQuit(); });
   });
 
   if (socket) socket.on("quit_ok", go);
@@ -60,12 +70,13 @@
     /* The sentinel has been consumed by this press. */
     guarded = false;
     if (leaving) return;
-    if (window.confirm(CONFIRM)) {
-      doQuit();
-    } else {
+    /* Not seated yet (the join screen is up): there is nothing to leave. */
+    if (document.body.classList.contains("gated")) { go(); return; }
+    ask().then((ok) => {
+      if (ok) doQuit();
       /* Stay put — put the sentinel back so the next press asks again. */
-      arm();
-    }
+      else arm();
+    });
   });
 
   arm();
