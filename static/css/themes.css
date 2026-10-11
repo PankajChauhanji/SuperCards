@@ -43,55 +43,123 @@
    Palette themes — Classic frame, distinct felt colors
    ================================================================== */
 
+/* ---------- the Classic table ----------
+   The five palette themes share one table: rounded corners, a padded rail
+   (box-shadow rings outside the border, so the felt keeps its full width and
+   nothing inside moves), light falling from above with a vignette toward the
+   edges, and a faint emblem in the middle of the felt. Each theme supplies only
+   its cloth (background), its rim colour (--rim) and its rail colour (--rail).
+
+   The rings sit outside the element; .table-view's padding (1rem desktop,
+   ~0.6rem phones) is what they draw into, which is why the rail narrows on
+   phones. */
+body.theme-casino .felt,
+body.theme-marble .felt,
+body.theme-red_casino .felt,
+body.theme-ocean_glow .felt,
+body.theme-sunset_mirage .felt {
+  --table-r: 30px;
+  --rail-w: 9px;
+  isolation: isolate;          /* lets the emblem below sit under the cards */
+  border: 2px solid var(--rim) !important;
+  border-radius: var(--table-r) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 46px 90px -46px rgba(255, 255, 255, 0.11),
+    inset 0 0 140px rgba(0, 0, 0, 0.55),
+    0 0 0 var(--rail-w) var(--rail),
+    0 0 0 calc(var(--rail-w) + 1px) color-mix(in srgb, var(--rim) 40%, transparent),
+    0 30px 60px -20px rgba(0, 0, 0, 0.75) !important;
+}
+body.theme-casino .felt::before,
+body.theme-marble .felt::before,
+body.theme-red_casino .felt::before,
+body.theme-ocean_glow .felt::before,
+body.theme-sunset_mirage .felt::before {
+  inset: 8px;
+  border-color: color-mix(in srgb, var(--rim) 30%, transparent);
+  border-radius: calc(var(--table-r) - 8px);
+}
+/* The emblem: a ring and a spade, drawn as geometry, barely there. */
+body.theme-casino .felt::after,
+body.theme-marble .felt::after,
+body.theme-red_casino .felt::after,
+body.theme-ocean_glow .felt::after,
+body.theme-sunset_mirage .felt::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 210px;
+  height: 210px;
+  transform: translate(-50%, -50%);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Ccircle cx='60' cy='60' r='55' fill='none' stroke='white' stroke-width='1.6'/%3E%3Ccircle cx='60' cy='60' r='49' fill='none' stroke='white' stroke-width='0.8'/%3E%3Cpath transform='translate%2828.8 24%29 scale%282.6%29' fill='white' d='M12 2.5c-2.6 3.6-7.5 6.3-7.5 10.6a3.9 3.9 0 0 0 6.6 2.8V18l-1.6 3.5h5L13 18v-2.1a3.9 3.9 0 0 0 6.6-2.8C19.5 8.8 14.6 6.1 12 2.5z'/%3E%3Cpath fill='white' d='M15 60l4.5-6.5L24 60l-4.5 6.5z'/%3E%3Cpath fill='white' d='M96 60l4.5-6.5L105 60l-4.5 6.5z'/%3E%3C/svg%3E") center / contain no-repeat;
+  opacity: 0.055;
+  pointer-events: none;
+  z-index: -1;
+}
+@media (max-width: 720px) {
+  body.theme-casino .felt,
+  body.theme-marble .felt,
+  body.theme-red_casino .felt,
+  body.theme-ocean_glow .felt,
+  body.theme-sunset_mirage .felt { --table-r: 22px; --rail-w: 5px; }
+  body.theme-casino .felt::after,
+  body.theme-marble .felt::after,
+  body.theme-red_casino .felt::after,
+  body.theme-ocean_glow .felt::after,
+  body.theme-sunset_mirage .felt::after { width: 150px; height: 150px; }
+}
+
 /* 1. Casino Felt (default) */
 body.theme-casino .felt {
+  --rim: var(--gold);
+  --rail: #2a1b11;
   background: radial-gradient(120% 120% at 50% 0%, #15803d 0%, #064e3b 80%) !important;
-  border: 4px solid var(--gold) !important;
-  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8), 0 10px 30px rgba(0,0,0,0.5) !important;
 }
 body.theme-casino .opponents .opp-avatar { border-color: rgba(230, 178, 60, 0.3) !important; }
 body.theme-casino .s4-seat { background: #022c22 !important; border-color: rgba(230, 178, 60, 0.3) !important; }
 
 /* 2. Marble Luxury */
 body.theme-marble .felt {
+  --rim: var(--gold);
+  --rail: #1a1a1e;
   background: radial-gradient(120% 120% at 50% 0%, #2a2b2f 0%, #121316 80%) !important;
-  border: 2px solid var(--gold) !important;
-  box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.9) !important;
 }
 body.theme-marble .opponents .opp-avatar { border-color: rgba(230, 178, 60, 0.2) !important; }
 body.theme-marble .s4-seat { background: #18191c !important; border-color: rgba(230, 178, 60, 0.2) !important; }
 
 /* 3. Red Casino */
 body.theme-red_casino .felt {
+  --rim: var(--gold);
+  --rail: #2b130e;
   background: radial-gradient(120% 120% at 50% 0%, #b91c1c 0%, #450a0a 80%) !important;
-  border: 4px solid var(--gold) !important;
-  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8), 0 10px 30px rgba(0,0,0,0.5) !important;
 }
 body.theme-red_casino .opponents .opp-avatar { border-color: rgba(230, 178, 60, 0.3) !important; }
 body.theme-red_casino .s4-seat { background: #2d0505 !important; border-color: rgba(230, 178, 60, 0.3) !important; }
 
 /* 4. Ocean Glow */
 body.theme-ocean_glow .felt {
+  --rim: #7dd3fc;
+  --rail: #0a2226;
   background:
     radial-gradient(120% 120% at 50% 0%, #0f766e 0%, #134e4a 45%, #052b2b 100%) !important;
   background-image:
     radial-gradient(circle at 20% 15%, rgba(103,232,249,0.16), transparent 24%),
     radial-gradient(circle at 80% 20%, rgba(34,211,238,0.14), transparent 20%),
     linear-gradient(135deg, #0f766e 0%, #134e4a 45%, #052b2b 100%) !important;
-  border: 3px solid #7dd3fc !important;
-  box-shadow: inset 0 0 70px rgba(6,182,212,0.16), 0 12px 32px rgba(0,0,0,0.38) !important;
 }
 body.theme-ocean_glow .opponents .opp-avatar { border-color: rgba(125, 211, 252, 0.35) !important; }
 body.theme-ocean_glow .s4-seat { background: #07313a !important; border-color: rgba(125, 211, 252, 0.35) !important; }
 
 /* 5. Sunset Mirage */
 body.theme-sunset_mirage .felt {
+  --rim: #fbbf24;
+  --rail: #29120a;
   background:
     radial-gradient(circle at 15% 15%, rgba(255,237,213,0.18), transparent 20%),
     radial-gradient(circle at 80% 20%, rgba(251,146,60,0.18), transparent 22%),
     linear-gradient(135deg, #7c2d12 0%, #9a2c2c 45%, #431407 100%) !important;
-  border: 3px solid #fbbf24 !important;
-  box-shadow: inset 0 0 70px rgba(251,191,36,0.15), 0 12px 32px rgba(0,0,0,0.35) !important;
 }
 body.theme-sunset_mirage .opponents .opp-avatar { border-color: rgba(251,191,36,0.35) !important; }
 body.theme-sunset_mirage .s4-seat { background: #2e1209 !important; border-color: rgba(251,191,36,0.35) !important; }
@@ -450,81 +518,7 @@ body.theme-forest .s4-seat { background: #06210f !important; border-color: rgba(
   body.theme-forest .felt::before { font-size: 14px; top: -10px; }
 }
 
-/* ---------- Theme Select Dropdown ---------- */
-.theme-select-wrap {
-  position: relative;
-  display: inline-flex;
-}
-.theme-select-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--text);
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 0.9rem;
-  padding: 0.5rem 0.8rem;
-  border-radius: 999px;
-  cursor: pointer;
-  min-height: 40px;
-  transition: background 0.15s ease, border-color 0.15s ease;
-  user-select: none;
-}
-.theme-select-btn:hover {
-  background: var(--panel-2);
-  border-color: var(--muted);
-}
-/* Inside the topbar's toolbar pill, blend in rather than stacking a
-   second panel+border on top of the pill's own. */
-.topbar-actions .theme-select-btn { background: transparent; border: none; }
-.topbar-actions .theme-select-btn:hover { background: rgba(255, 255, 255, 0.08); }
-.theme-icon {
-  font-size: 1.1rem;
-}
-.theme-name {
-  white-space: nowrap;
-}
-.theme-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 0.4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
-  z-index: 80;
-  width: 180px;
-  max-height: min(60vh, 420px);
-  overflow-y: auto;
-}
-.theme-dropdown[hidden] {
-  display: none !important;
-}
-.theme-opt {
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--body);
-  font-size: 0.85rem;
-  padding: 0.5rem 0.6rem;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-align: left;
-  transition: background 0.12s ease;
-}
-.theme-opt:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
+/* The theme picker itself is a section of the Settings sheet — see settings.css. */
 
 /* ==================================================================
    Chrome bloom per theme
