@@ -281,7 +281,7 @@
 }
 .pk-hands-btn:hover, .pk-hands-btn.on { border-color: var(--gold); color: var(--gold); }
 .pk-hands-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.pk-hands-ico { font-size: 1rem; line-height: 1; }
+.pk-hands-ico { width: 16px; height: 16px; }
 .pk-hands-dot {
   width: 8px; height: 8px; border-radius: 50%; background: var(--gold);
   box-shadow: 0 0 8px rgba(230, 178, 60, 0.9);
@@ -328,6 +328,7 @@
 }
 .pk-ranks-mine:not([hidden]) + .pk-hands-close { margin-left: 0.2rem; }
 .pk-hands-close:hover { color: var(--text); border-color: var(--muted); }
+.pk-hands-close .ico { width: 16px; height: 16px; }
 .pk-ranks-note { margin: 0 0 0.4rem; font-size: 0.7rem; color: var(--muted); line-height: 1.3; }
 
 .pk-ranks-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
