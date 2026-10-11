@@ -23,6 +23,11 @@
   padding-right: calc(1.25rem + env(safe-area-inset-right));
   padding-bottom: calc(2rem + env(safe-area-inset-bottom));
 }
+/* On phones the start bar is pinned to the bottom, so the lobby needs room
+   underneath it for the last card to scroll clear. */
+@media (max-width: 820px) {
+  .lobby { padding-bottom: calc(7rem + env(safe-area-inset-bottom)); }
+}
 
 .table-view {
   padding-left: calc(1.5rem + env(safe-area-inset-left));
