@@ -3,13 +3,13 @@
   <div class="table-view" id="table-view" style="display:none">
     <aside class="scoreboard">
       <div class="sb-players" id="sb-players">
-        <h3 id="scores-toggle" role="button" tabindex="0" aria-expanded="true">🏆 Scores <span class="collapse-chevron">▾</span></h3>
+        <h3 id="scores-toggle" role="button" tabindex="0" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-trophy"/></svg>Scores <span class="collapse-chevron"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></span></h3>
         <ul id="score-list"></ul>
         <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
         <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
       </div>
       <div class="action-log" id="action-log">
-        <h3 id="action-log-toggle" role="button" tabindex="0" aria-expanded="true">📜 Action History <span class="collapse-chevron">▾</span></h3>
+        <h3 id="action-log-toggle" role="button" tabindex="0" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Action history <span class="collapse-chevron"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></span></h3>
         <ul id="action-log-list"></ul>
       </div>
     </aside>
@@ -45,8 +45,8 @@
         <div class="action-bar" id="action-bar">
           <span class="play-label" id="play-label"></span>
           <div class="action-btns">
-            <button class="btn-throw" id="throw-btn" disabled><span class="btn-ico" aria-hidden="true">&#8593;</span> Throw</button>
-            <button class="btn-stop" id="stop-btn" disabled title="Call Stop at the start of your turn"><span class="btn-ico" aria-hidden="true">&#9724;</span> Stop</button>
+            <button class="btn-throw" id="throw-btn" disabled><svg class="ico btn-ico" aria-hidden="true"><use href="#i-arrow-up"/></svg> Throw</button>
+            <button class="btn-stop" id="stop-btn" disabled title="Call Stop at the start of your turn"><svg class="ico btn-ico" aria-hidden="true"><use href="#i-stop"/></svg> Stop</button>
           </div>
         </div>
       </div>
