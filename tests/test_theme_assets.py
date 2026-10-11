@@ -33,7 +33,7 @@ def check(ok, msg, extra=""):
 
 # ---- the four registries -----------------------------------------------------
 catalogue_block = JS.split("THEME_MAP = {", 1)[1].split("};", 1)[0]
-catalogue = re.findall(r"(\w+):\s*\{\s*icon:", catalogue_block)
+catalogue = re.findall(r"(\w+):\s*\{\s*name:", catalogue_block)
 buttons = re.findall(r'data-t="([^"]+)"', HTML)
 blooms = re.findall(r"body\.theme-([\w-]+)\s*\{\s*--bloom:", CSS)
 styled = set(re.findall(r"body\.theme-([\w-]+)\b", CSS))
