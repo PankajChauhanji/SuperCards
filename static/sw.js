@@ -20,7 +20,7 @@
    indistinguishable, from the player's seat, from the state-desync bug this cache
    name was last bumped for. `activate` purges every cache that is not this one,
    so changing the name is what forces a clean fetch. */
-const CACHE_NAME = "super-cards-v7";
+const CACHE_NAME = "super-cards-v14";
 
 /* Static assets to pre-cache on install for instant second loads. */
 const PRECACHE_URLS = [
@@ -30,10 +30,12 @@ const PRECACHE_URLS = [
   "/static/css/table.css",
   "/static/css/reactions.css",
   "/static/css/themes.css",
+  "/static/css/home.css",
   "/static/css/safe-area.css",
   "/static/js/vendor/socket.io.min.js",
   "/static/js/core/identity.js",
   "/static/js/core/socket.js",
+  "/static/js/core/icons.js",
   "/static/js/core/install.js",
   "/static/js/core/connection.js",
   "/static/js/core/waking.js",
