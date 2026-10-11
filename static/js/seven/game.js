@@ -59,7 +59,7 @@
 
   // ---- attach / reconnect ----
   function enter() {
-    socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId });
+    socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId, avatar: window.Identity.avatar() });
   }
   socket.on("connect", enter);
   // Returning to the foreground must re-attach too: a zombie socket fires no
@@ -79,12 +79,14 @@
     view.tableTheme = data.table_theme || "casino";
     syncTableTheme();
     sync();
+    syncRoundEndFooter();
   });
 
   socket.on("player_list", (data) => {
     view.hostId = data.host_id;
     view.players = data.players;
     sync();
+    syncRoundEndFooter();
   });
 
   socket.on("room_reset", (data) => {
@@ -289,6 +291,10 @@
     tableView.style.display = inRound ? "flex" : "none";
     const dock = document.getElementById("reaction-dock");
     if (dock) dock.style.display = inRound ? "flex" : "none";
+    // Table.render shows the round chip; outside a round it would read
+    // "Round 1" over a lobby where nothing has been dealt.
+    const chip = document.getElementById("round-chip");
+    if (chip && !inRound) chip.style.display = "none";
 
     syncThemeSelectorVisibility();
     syncTableTheme();
@@ -358,9 +364,24 @@
       name.textContent = r.name;
       if (r.user_id === data.caller) name.appendChild(makeBadge("Caller", "host"));
       if (r.is_safe) name.appendChild(makeBadge("Safe", "safe"));
+      // Points added this round as a pill (green when nothing was added —
+      // lower is better in Super Seven), then the running total.
       const score = document.createElement("span");
       score.className = "re-score";
-      score.textContent = "+" + r.round_score + "  \u2192  " + r.total_score;
+      const delta = document.createElement("span");
+      delta.className = "re-delta" + (r.round_score > 0 ? "" : " zero");
+      delta.textContent = "+" + r.round_score;
+      const total = document.createElement("span");
+      total.className = "re-total-pts";
+      total.textContent = r.total_score + " pts";
+      score.append(delta, total);
+      const who = byId[r.user_id] || {};
+      const av = document.createElement("span");
+      av.className = "re-av";
+      av.style.background = window.ActionLog && window.ActionLog.PALETTE
+        ? window.ActionLog.PALETTE[(who.color || 0) % window.ActionLog.PALETTE.length] : "var(--line)";
+      av.innerHTML = window.SS.avatarFace ? window.SS.avatarFace(r.name, who.avatar) : "";
+      head.appendChild(av);
       head.appendChild(name);
       head.appendChild(score);
 
@@ -390,10 +411,18 @@
       body.appendChild(row);
     });
 
-    // Footer: host advances the game; others wait.
+    renderRoundEndFooter();
+    modal.classList.add("open");
+  }
+
+  // Footer: host advances the game; others wait. Drawn for whoever is host at
+  // the time, so it is redrawn if the role moves while the summary is up.
+  let roundEndFooterHost = null;
+  function renderRoundEndFooter() {
     const footer = document.getElementById("roundend-footer");
     footer.innerHTML = "";
-    if (youId === view.hostId) {
+    roundEndFooterHost = youId === view.hostId;
+    if (roundEndFooterHost) {
       // Optional reshuffle of the seats for the next round (shared control —
       // core/lobby.js — so the host's choice carries from round to round).
       if (window.SS.Lobby && window.SS.Lobby.shuffleOption) {
@@ -415,8 +444,16 @@
       wait.textContent = "Waiting for the host to deal the next round\u2026";
       footer.appendChild(wait);
     }
+  }
 
-    modal.classList.add("open");
+  // The host's socket dropping (a refresh, a locked phone) hands the role to
+  // someone else. Without this the old host kept a Next round button the server
+  // refuses and the new host saw "Waiting for the host", so nobody could deal.
+  function syncRoundEndFooter() {
+    const modal = document.getElementById("roundend-modal");
+    if (!modal.classList.contains("open")) return;
+    if (roundEndFooterHost === (youId === view.hostId)) return;
+    renderRoundEndFooter();
   }
 
   function showGameOver(winnerId, rows) {
