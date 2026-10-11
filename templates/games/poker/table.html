@@ -10,13 +10,13 @@
   <div class="table-view" id="table-view" style="display:none">
     <aside class="scoreboard">
       <div class="sb-players" id="sb-players">
-        <h3 id="scores-toggle" role="button" tabindex="0" aria-expanded="true">🏆 Coins <span class="collapse-chevron">▾</span></h3>
+        <h3 id="scores-toggle" role="button" tabindex="0" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-trophy"/></svg>Coins <span class="collapse-chevron"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></span></h3>
         <ul id="score-list"></ul>
         <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
         <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
       </div>
       <div class="action-log" id="action-log">
-        <h3 id="action-log-toggle" role="button" tabindex="0" aria-expanded="true">📜 Action History <span class="collapse-chevron">▾</span></h3>
+        <h3 id="action-log-toggle" role="button" tabindex="0" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Action history <span class="collapse-chevron"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></span></h3>
         <ul id="action-log-list"></ul>
       </div>
     </aside>
@@ -35,7 +35,7 @@
          scroll and the shared phone sheet squeezed it to ~120px. #}
       <button type="button" class="pk-hands-btn" id="pk-hands-btn"
               aria-expanded="false" aria-controls="pk-hands" title="Hand rankings">
-        <span class="pk-hands-ico" aria-hidden="true">&#127183;</span>
+        <svg class="ico pk-hands-ico" aria-hidden="true"><use href="#i-spade"/></svg>
         <span class="pk-hands-btn-label">Hands</span>
         <span class="pk-hands-dot" id="pk-hands-dot" hidden></span>
       </button>
@@ -45,7 +45,7 @@
         <div class="pk-hands-head">
           <h3>Hand rankings</h3>
           <span class="pk-ranks-mine" id="pk-ranks-mine" hidden></span>
-          <button type="button" class="pk-hands-close" id="pk-hands-close" aria-label="Close hand rankings">&#10005;</button>
+          <button type="button" class="pk-hands-close" id="pk-hands-close" aria-label="Close hand rankings"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
         </div>
         <p class="pk-ranks-note" id="pk-ranks-note"></p>
         <ol class="pk-ranks-list" id="pk-ranks-list"></ol>
@@ -82,10 +82,10 @@
             </div>
           </div>
           <div class="action-btns pk-btns" id="pk-btns">
-            <button class="btn-stop" id="pk-fold"><span class="btn-ico" aria-hidden="true">&#10005;</span> Fold</button>
-            <button class="btn-throw pk-call" id="pk-call"><span class="btn-ico" aria-hidden="true">&#10003;</span> <span id="pk-call-label">Check</span></button>
+            <button class="btn-stop" id="pk-fold"><svg class="ico btn-ico" aria-hidden="true"><use href="#i-x"/></svg> Fold</button>
+            <button class="btn-throw pk-call" id="pk-call"><svg class="ico btn-ico" aria-hidden="true"><use href="#i-check"/></svg> <span id="pk-call-label">Check</span></button>
             <button class="btn-throw pk-raise-btn" id="pk-raise-btn"><span class="btn-ico" aria-hidden="true">&#8593;</span> <span id="pk-raise-label">Raise</span></button>
-            <button class="btn-stop solid" id="pk-allin"><span class="btn-ico" aria-hidden="true">&#9889;</span> <span id="pk-allin-label">All-in</span></button>
+            <button class="btn-stop solid" id="pk-allin"><svg class="ico btn-ico" aria-hidden="true"><use href="#i-bolt"/></svg> <span id="pk-allin-label">All-in</span></button>
           </div>
           <button class="btn-primary pk-back" id="pk-back" hidden>I'm back</button>
         </div>
