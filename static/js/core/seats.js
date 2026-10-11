@@ -144,11 +144,13 @@
       avatar.appendChild(level);
       const ini = document.createElement("b");
       ini.className = "av-ini";
-      ini.textContent = initial;
+      if (s.avatar && window.SS.avatarFace) ini.innerHTML = window.SS.avatarFace(s.name, s.avatar);
+      else ini.textContent = initial;
       avatar.appendChild(ini);
     } else {
       avatar.style.background = s.color || "var(--line)";
-      avatar.textContent = initial;
+      if (s.avatar && window.SS.avatarFace) avatar.innerHTML = window.SS.avatarFace(s.name, s.avatar);
+      else avatar.textContent = initial;
     }
     ring.appendChild(avatar);
     outer.appendChild(ring);
