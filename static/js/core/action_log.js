@@ -15,14 +15,15 @@
   // so a player's name colour here matches their swatch on the table.
   const PALETTE = ["#4ea1ff", "#ff9f43", "#a98cf0", "#f06ea9", "#43c6c6", "#d6c04a"];
 
-  // A little emoji per event type keeps the feed lively and readable at a glance.
+  // A small icon per event type keeps the feed readable at a glance. Names
+  // from the shared icon set (templates/partials/icons.html).
   const ICONS = {
-    info:      "💬",
-    play:      "🃏",
-    pass:      "😴",
-    challenge: "👀",
-    win:       "🏆",
-    system:    "✨",
+    info:      "message",
+    play:      "fan",
+    pass:      "chevron-right",
+    challenge: "eye",
+    win:       "trophy",
+    system:    "sparkles",
   };
 
   function init() {
@@ -85,7 +86,8 @@
 
     const icon = document.createElement("span");
     icon.className = "al-icon";
-    icon.textContent = ICONS[type] || ICONS.info;
+    const iconName = ICONS[type] || ICONS.info;
+    if (window.SS && window.SS.icon) icon.innerHTML = window.SS.icon(iconName);
     li.appendChild(icon);
 
     const text = document.createElement("span");
