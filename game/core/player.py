@@ -31,6 +31,8 @@ class Player:
     color_index: int = 0         # stable per-player colour (assigned at join)
     is_bot: bool = False         # a computer player: no socket, always "connected"
                                  # (game/core/bots.py). Any room may hold several.
+    avatar: str = ""             # a motif from game/core/avatars.py, or "" for the
+                                 # initial. Chosen on the player's device.
 
     # ---- scoring / lifecycle (all games) ----
     round_score: int = 0         # points this round
@@ -66,4 +68,5 @@ class Player:
             "is_spectator": self.is_spectator,
             "pending_join": self.pending_join,
             "is_bot": self.is_bot,
+            "avatar": self.avatar,
         }
