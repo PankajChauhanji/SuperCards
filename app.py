@@ -21,6 +21,7 @@ from flask_socketio import SocketIO
 import config
 from game.core import bots, registry
 from game.core.manager import RoomManager
+from game.core.states import STATE_LOBBY
 from sockets import register_handlers
 
 # Identifies this process. Two consecutive /healthz calls returning different
@@ -45,7 +46,8 @@ def index():
     # The landing-page picker is driven entirely by the registry, including
     # readiness — see GameSpec.ready. Nothing here needs editing to add a game.
     games = [
-        {"key": spec.key, "display_name": spec.display_name, "ready": spec.ready}
+        {"key": spec.key, "display_name": spec.display_name, "ready": spec.ready,
+         "min_players": spec.min_players, "max_players": spec.max_players}
         for spec in registry.all_games().values()
     ]
     return render_template("index.html", games=games)
@@ -127,7 +129,9 @@ def room(code):
     code = code.strip().upper()
     game_room = manager.get_room(code)
     if game_room is None:
-        return redirect(url_for("index"))
+        # A stale invite: tell the home page which table is gone, so it can say
+        # so instead of silently showing the front page.
+        return redirect(url_for("index", gone=code[:4]))
     # game_type + display_name let the game page bootstrap the correct variant
     # bundle and branding (Phase 2).
     spec = registry.get(game_room.game_type)
@@ -142,6 +146,10 @@ def room(code):
         bot_roster=bots.public_roster(),
         max_bots=bots.MAX_BOTS,
         max_players=spec.max_players if spec else 0,
+        min_players=spec.min_players if spec else 2,
+        # For the join screen a shared link opens on (partials/join_gate.html).
+        host_name=getattr(game_room.players.get(game_room.host_id), "name", ""),
+        room_started=game_room.state != STATE_LOBBY,
     )
 
 
