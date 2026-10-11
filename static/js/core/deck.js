@@ -19,8 +19,6 @@
 // table templates — so switching is instant instead of waiting for the next
 // server event to re-render the table.
 //
-// Reuses the theme selector's dropdown markup and CSS rather than inventing new
-// chrome for what is structurally the same "pick one of a few options" control.
 (function () {
   const SS = window.SS || (window.SS = {});
   const STORAGE_KEY = "super_cards_deck";
@@ -58,7 +56,9 @@
   // about deck switching.
   function repaint() {
     const target = dir();
-    document.querySelectorAll('img[src*="/static/img/cards"]').forEach((img) => {
+    // data-deck-fixed: the Settings sheet's previews, which show each deck as
+    // itself and must not follow the player's choice.
+    document.querySelectorAll('img[src*="/static/img/cards"]:not([data-deck-fixed])').forEach((img) => {
       const m = (img.getAttribute("src") || "")
         .match(/^(.*)\/static\/img\/cards(?:_v2)?\/(.+)$/);
       if (m && m[2]) img.setAttribute("src", m[1] + "/static/img/" + target + "/" + m[2]);
@@ -72,57 +72,29 @@
   // first paint if this player prefers the other deck.
   repaint();
 
-  // ---- the selector ----
-  const wrap = document.getElementById("deck-select-wrap");
-  if (!wrap) return;
-  wrap.style.display = "inline-flex";
+  // ---- the selector (a section of the Settings sheet) ----
+  const opts = Array.from(document.querySelectorAll("#deck-dropdown .deck-opt[data-deck]"));
+  if (!opts.length) return;
 
-  const LABELS = {
-    royal: { icon: "👑", name: "Royal deck" },       // crown
-    standard: { icon: "🃏", name: "Standard deck" },  // joker card
-  };
-  const iconEl = document.getElementById("current-deck-icon");
-  const nameEl = document.getElementById("current-deck-name");
-
-  function applyLabel(name) {
-    const l = LABELS[name] || LABELS[DEFAULT];
-    if (iconEl) iconEl.textContent = l.icon;
-    if (nameEl) nameEl.textContent = l.name;
+  function mark(name) {
+    opts.forEach((opt) => {
+      const on = opt.dataset.deck === name;
+      opt.classList.toggle("selected", on);
+      opt.setAttribute("aria-checked", on ? "true" : "false");
+    });
   }
-  applyLabel(get());
+  mark(get());
 
-  const btn = document.getElementById("deck-select-btn");
-  const dropdown = document.getElementById("deck-dropdown");
-  if (!btn || !dropdown) return;
-
-  function close() {
-    dropdown.setAttribute("hidden", "");
-    dropdown.setAttribute("aria-hidden", "true");
-  }
-
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (dropdown.hasAttribute("hidden")) {
-      dropdown.removeAttribute("hidden");
-      dropdown.setAttribute("aria-hidden", "false");
-    } else {
-      close();
-    }
-  });
-
-  dropdown.querySelectorAll(".theme-opt").forEach((opt) => {
-    opt.addEventListener("click", (e) => {
-      e.stopPropagation();
+  opts.forEach((opt) => {
+    opt.addEventListener("click", () => {
       const name = opt.dataset.deck;
+      if (name === get()) return;
       set(name);
-      applyLabel(name);
-      close();
+      mark(name);
       repaint();
       // Re-render as well: the hand fan's geometry is measured in JS, and on a
       // real phone a src swap alone left the layout untouched until a reload.
       if (window.SS.repaintUI) window.SS.repaintUI();
     });
   });
-
-  document.addEventListener("click", close);
 })();
