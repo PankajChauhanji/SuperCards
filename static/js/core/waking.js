@@ -29,14 +29,14 @@
 
   const GAME_TIPS = {
     super_seven: [
-      "Super 7: reaching exactly zero makes you Safe for the round.",
-      "Super 7: calling Stop when you're not lowest is expensive — count first.",
-      "Super 7: pairs, sets and sequences let you shed several cards at once.",
+      "Super Seven: reaching exactly zero makes you Safe for the round.",
+      "Super Seven: calling Stop when you're not lowest is expensive — count first.",
+      "Super Seven: pairs, sets and sequences let you shed several cards at once.",
     ],
     super_four: [
-      "Super 4: the King of Hearts is worth −1. Hold onto it.",
-      "Super 4: 7s and 8s peek at your own cards; 9s and 10s peek at someone else's.",
-      "Super 4: you only remember what you've actually seen — so watch the swaps.",
+      "Super Four: the King of Hearts is worth −1. Hold onto it.",
+      "Super Four: 7s and 8s peek at your own cards; 9s and 10s peek at someone else's.",
+      "Super Four: you only remember what you've actually seen — so watch the swaps.",
     ],
     bluff: [
       "Bluff: only the next player can call Show on you.",
