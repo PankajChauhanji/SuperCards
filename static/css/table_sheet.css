@@ -58,22 +58,22 @@
 /* ---- backdrop + sheet ---------------------------------------------------- */
 .ts-backdrop {
   position: fixed; inset: 0;
-  z-index: 70;
-  background: rgba(0, 0, 0, 0.42);
+  z-index: var(--z-tsheet);
+  background: rgba(6, 8, 9, 0.55);
 }
 .ts-backdrop[hidden] { display: none; }
 
 .ts-sheet {
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  z-index: 71;
+  z-index: calc(var(--z-tsheet) + 1);
   display: flex;
   flex-direction: column;
   max-height: 52vh;
   background: var(--panel);
   border-top: 1px solid var(--line);
-  border-radius: 16px 16px 0 0;
-  box-shadow: 0 -12px 32px rgba(0,0,0,0.5);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -24px 48px -24px rgba(0, 0, 0, 0.85);
   padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px));
   animation: ts-rise 0.16s ease-out;
 }
@@ -106,8 +106,10 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(0, 0, 0, 0.22);
-  border-radius: 20px;
+  /* Same segmented control as the Settings sheet's hand-view switch. */
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
   padding: 3px;
   flex: 0 0 auto;
   margin-bottom: 8px;
@@ -124,13 +126,14 @@
   font-size: 0.82rem;
   font-weight: 600;
   padding: 7px 4px;
-  border-radius: 20px;
+  border-radius: 9px;
   cursor: pointer;
 }
 .ts-tab.active {
-  background: var(--gold);
-  color: #1a1206;
+  background: var(--panel-2);
+  color: var(--text);
   opacity: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .ts-tab .ts-dot {
   display: inline-block;
@@ -155,6 +158,7 @@
   border-radius: 50%;
 }
 .ts-close:hover { opacity: 1; }
+.ts-close .ico { width: 18px; height: 18px; }
 
 /* ---- the relocated panels ----------------------------------------------- */
 /* table.css styles these as fixed-height side-column cards. Inside the sheet
