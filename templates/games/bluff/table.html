@@ -1,13 +1,13 @@
   <div class="table-view" id="table-view" style="display:none">
     <aside class="scoreboard">
       <div class="sb-players" id="sb-players">
-        <h3 id="scores-toggle" role="button" tabindex="0" aria-expanded="true">🏆 Players <span class="collapse-chevron">▾</span></h3>
+        <h3 id="scores-toggle" role="button" tabindex="0" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-trophy"/></svg>Players <span class="collapse-chevron"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></span></h3>
         <ul id="score-list"></ul>
         <h3 id="spectators-heading" style="display:none; margin-top:1.5rem;">Spectators</h3>
         <ul id="spectator-list" style="list-style:none; padding:0; margin:0; font-size: 0.9em; gap: 0.5rem; display: flex; flex-direction: column;"></ul>
       </div>
       <div class="action-log" id="action-log">
-        <h3 id="action-log-toggle" role="button" tabindex="0" aria-expanded="true">📜 Action History <span class="collapse-chevron">▾</span></h3>
+        <h3 id="action-log-toggle" role="button" tabindex="0" aria-expanded="true"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Action history <span class="collapse-chevron"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></span></h3>
         <ul id="action-log-list"></ul>
       </div>
     </aside>
@@ -28,6 +28,7 @@
            covered the right-most seat on narrow screens). */
         #bluff-shuffle-row { display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
         #bluff-shuffle-row[hidden], #bluff-shuffle-btn[hidden], #bluff-shuffle-note[hidden] { display: none; }
+        #bluff-shuffle-btn, #bluff-shuffle-note { display: inline-flex; align-items: center; gap: 0.4rem; }
         #bluff-shuffle-btn {
           padding: 0.28rem 0.75rem; border-radius: 999px; cursor: pointer;
           font-family: var(--display); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em;
@@ -42,9 +43,9 @@
         }
       </style>
       <div id="bluff-shuffle-row" hidden>
-        <div id="bluff-shuffle-note" hidden>&#128256; Seats shuffle after this round</div>
+        <div id="bluff-shuffle-note" hidden><svg class="ico" aria-hidden="true"><use href="#i-shuffle"/></svg> Seats shuffle after this round</div>
         <button type="button" id="bluff-shuffle-btn" hidden
-                title="Shuffle the seats when this round ends (the leader keeps the lead)">&#128256; Shuffle seats</button>
+                title="Shuffle the seats when this round ends (the leader keeps the lead)"><svg class="ico" aria-hidden="true"><use href="#i-shuffle"/></svg>Shuffle seats</button>
       </div>
 
       <div class="center-row">
@@ -89,9 +90,9 @@
           <button type="button" class="btn-ghost" id="select-all-btn" hidden
                   style="width:auto; margin:0; padding:0.35rem 0.9rem; font-size:0.8rem; border-radius:999px;">Select all</button>
           <div class="action-btns">
-            <button class="btn-throw" id="throw-btn" disabled><span class="btn-ico" aria-hidden="true">&#8593;</span> Throw</button>
-            <button class="btn-stop" id="pass-btn" disabled><span class="btn-ico" aria-hidden="true">&#8618;</span> Pass</button>
-            <button class="btn-stop solid" id="show-btn" disabled><span class="btn-ico" aria-hidden="true">&#128065;</span> Show!</button>
+            <button class="btn-throw" id="throw-btn" disabled><svg class="ico btn-ico" aria-hidden="true"><use href="#i-arrow-up"/></svg> Throw</button>
+            <button class="btn-stop" id="pass-btn" disabled><svg class="ico btn-ico" aria-hidden="true"><use href="#i-chevron-right"/></svg> Pass</button>
+            <button class="btn-stop solid" id="show-btn" disabled><svg class="ico btn-ico" aria-hidden="true"><use href="#i-eye"/></svg> Show!</button>
           </div>
         </div>
       </div>
