@@ -61,11 +61,17 @@
     el.className = "winner-place " + tier.cls;
     el.innerHTML =
       trophySvg(tier.fill, rank === 1) +
+      '<div class="winner-p-av"></div>' +
       '<div class="winner-p-name"></div>' +
       (isWinner ? '<div class="winner-you-badge" hidden>You</div>' : "") +
       '<div class="winner-p-score"></div>' +
       '<div class="winner-riser"><span class="winner-rank-num">' + rank + "</span></div>";
     el.querySelector(".winner-p-name").textContent = row.name;
+    // The player's avatar in their colour, as at the table (rows carry both).
+    const av = el.querySelector(".winner-p-av");
+    const pal = window.ActionLog && window.ActionLog.PALETTE;
+    if (SS.avatarFace) av.innerHTML = SS.avatarFace(row.name, row.avatar);
+    if (pal) av.style.background = pal[(row.color || 0) % pal.length];
     el.querySelector(".winner-p-score").textContent = scoreText(row);
     return el;
   }
@@ -112,7 +118,6 @@
     const podiumRow = document.getElementById("winner-podium-row");
     const overflow = document.getElementById("winner-overflow");
     const confettiLayer = document.getElementById("winner-confetti-layer");
-    const footer = document.getElementById("winner-footer");
     if (!modal) return;
 
     /* A game that ends with no ranked rows has nothing to show, and rendering an
@@ -156,15 +161,28 @@
     confettiLayer.innerHTML = "";
     spawnConfetti(confettiLayer, Math.min(40, 10 + podiumRows.length * 6));
 
+    last = { youId, isHost, onRematch };
+    renderFooter();
+
+    modal.classList.add("open");
+  }
+
+  // Footer: Play again for the host, a waiting line for everyone else, and
+  // Back to home for all. Kept apart from the podium so a change of host can
+  // redraw just this.
+  let last = null;
+  function renderFooter() {
+    const footer = document.getElementById("winner-footer");
+    if (!footer || !last) return;
     footer.innerHTML = "";
-    if (isHost) {
+    if (last.isHost) {
       const again = document.createElement("button");
       again.className = "btn-primary";
       again.style.width = "auto";
       again.textContent = "Play again";
       again.addEventListener("click", () => {
         again.disabled = true;
-        if (onRematch) onRematch();
+        if (last.onRematch) last.onRematch();
       });
       footer.appendChild(again);
     } else {
@@ -180,8 +198,23 @@
     home.textContent = "Back to home";
     home.addEventListener("click", () => { window.location.href = "/"; });
     footer.appendChild(home);
+  }
 
-    modal.classList.add("open");
+  // The host can change while the podium is up: the host's socket dropped (a
+  // refresh, a locked phone) and the role moved on. Every game announces that
+  // with the same roster events, so this listens for them itself and no game
+  // bundle has to remember to.
+  function onRoster(d) {
+    if (!last || !d || !d.host_id) return;
+    const isHost = d.host_id === last.youId;
+    if (isHost === last.isHost) return;
+    last.isHost = isHost;
+    const modal = document.getElementById("winner-modal");
+    if (modal && modal.classList.contains("open")) renderFooter();
+  }
+  if (SS.socket) {
+    SS.socket.on("player_list", onRoster);
+    SS.socket.on("room_joined", onRoster);
   }
 
   function hideWinnerScreen() {
