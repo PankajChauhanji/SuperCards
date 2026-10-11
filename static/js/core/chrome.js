@@ -1,4 +1,4 @@
-// Shared topbar/lobby chrome bits: mute toggle, copy-room-code, and the
+// Shared lobby chrome bits: copy-room-code, the scores-panel collapse, and the
 // host's spectator-admit modal. All self-wiring and game-agnostic.
 //
 // The spectator-admit flow is exposed as SS.openSpectatorModal(targetId, name),
@@ -10,13 +10,8 @@
   const youId = window.Identity ? window.Identity.userId() : null;
   const showToast = SS.showToast || function () {};
 
-  // ---- mute toggle ----
-  const muteBtn = document.getElementById("mute-btn");
-  if (muteBtn && SS.sound) {
-    const paint = () => { muteBtn.textContent = SS.sound.muted() ? "🔇" : "🔊"; };
-    paint();
-    muteBtn.addEventListener("click", () => { SS.sound.toggleMute(); paint(); });
-  }
+  // Sound lives in core/settings.js now: the topbar button and the Settings
+  // switch are one setting, so one module paints both.
 
   // ---- copy room code ----
   const copyBtn = document.getElementById("copy-btn");
@@ -24,38 +19,10 @@
     copyBtn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(code);
-        showToast("Room code copied.");
+        showToast("Room code copied", 0, "success");
       } catch (_) {
         showToast("Code: " + code);
       }
-    });
-  }
-
-  // ---- mobile topbar menu (hamburger) ----
-  // On narrow widths the action controls (sound/theme/rules/quit) collapse into
-  // this dropdown; on desktop they sit inline and the hamburger is hidden (CSS).
-  const menuBtn = document.getElementById("topbar-menu-btn");
-  const menuPanel = document.getElementById("topbar-actions");
-  if (menuBtn && menuPanel) {
-    const setOpen = (open) => {
-      menuPanel.classList.toggle("open", open);
-      menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
-    };
-    menuBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      setOpen(!menuPanel.classList.contains("open"));
-    });
-    // Close when tapping outside, or after choosing Rules/Quit (which navigate
-    // away or open a modal). Sound/theme keep the menu open for repeat use.
-    document.addEventListener("click", (e) => {
-      if (menuPanel.classList.contains("open") &&
-          !menuPanel.contains(e.target) && e.target !== menuBtn) {
-        setOpen(false);
-      }
-    });
-    ["rules-btn", "quit-btn"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener("click", () => setOpen(false));
     });
   }
 
