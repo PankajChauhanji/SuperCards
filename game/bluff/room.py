@@ -632,6 +632,8 @@ class Room:
             rows.append({
                 "user_id": uid,
                 "name": player.name,
+                "avatar": player.avatar,
+                "color": player.color_index,
                 "cards_left": 0,
                 "finished": True,
                 "place": place,
@@ -649,6 +651,8 @@ class Room:
             rows.append({
                 "user_id": player.user_id,
                 "name": player.name,
+                "avatar": player.avatar,
+                "color": player.color_index,
                 "cards_left": len(player.hand),
                 "finished": False,
                 "place": len(self.finish_order) + offset + 1,
