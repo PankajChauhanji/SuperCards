@@ -1362,6 +1362,109 @@ a small shared fix if wanted.
   * the button over sockets (`test_all_games_socket.py`);
   * the full queue → round clears → re-seat flow in the browser.
 
+
+## 23. "Next round does nothing" between rounds — ✅ FIXED (2026-10-11)
+
+Reported from production: a six-player Super Seven table could not start round 2. The
+Next round / Start game button did nothing, and a page refresh did not help. It never
+happened locally, because both causes need something a two-tab local test does not do.
+
+**A. A player quitting during the round summary broke the summary (Super Seven only).**
+- `Room.remove_participant` repaired `turn_order` only mid-round. Between rounds it
+  removed the player from `room.players` but left them in `turn_order`.
+- `round_end_payload` walks `turn_order`, so it raised `KeyError`. The quit broadcast
+  died half-way. After that, **every reconnect or refresh raised in `enter_room`**: the
+  player got `room_joined` (state ROUND_END) but no summary. They saw the lobby view, and
+  its Start game is refused ("The game has already started"). A reload took the same path.
+- Fix: a between-rounds quit also leaves `turn_order`, and `round_end_payload` skips any
+  id no longer in the room, so one quitter can never break the summary again.
+- Other games checked by fuzzing quits at every point, including 31 / 147 quits during a
+  Super Four / Poker summary: no crash. Bluff has no round summary.
+
+**B. The host role moved, but the summary's footer did not (Super Seven, Super Four,
+Poker, and the shared podium).**
+- Any drop of the host's socket (a refresh, a locked phone, a network blip) hands the
+  role to the first connected human in seat order. With seat shuffling that is a random
+  player. This behaviour is old; the shuffle only made it less predictable.
+- Each footer was drawn once, for whoever was host when the summary opened. The old host
+  kept a Next round button the server refuses; the new host saw "Waiting for the host…".
+  Super Seven and Super Four have no auto-deal, so nobody could continue.
+- Fix: the round-summary footer is redrawn when `player_list` / `room_joined` shows that
+  the host changed (`seven/`, `four/`, `poker/` `game.js`; Poker keeps its countdown).
+  The podium's Play again does the same, from `core/winner_screen.js` itself, so no game
+  has to remember it. `core/lobby.js` shows "👑 You're the host now" to whoever gets the role.
+- `sw.js` cache `v7` → `v8` (shared JS changed — see the §18 deploy note).
+
+**Verified:**
+- `tests/test_quit_between_rounds.py` (10 checks). Engine: quits during the summary for
+  Super Seven, Super Four and Poker. Sockets, in-process: the six-player production
+  scenario, a refresh, and a host drop. It fails on the old code.
+- In the browser: the host's socket dropped while the summary was open. The other
+  player's footer changed from "Waiting…" to Next round with the toast, and round 2 dealt.
+- Suite: **47 files, 45 pass, 2 unscored.**
+
+**Still open:** when the original host comes back they stay a normal player until Play
+again (`reset_for_rematch` restores them). Giving the role back on reconnect is a
+behaviour choice for the owner.
+
+## 24. Premium UI — four phases — ✅ DONE (2026-10-11)
+
+Owner's ask: the app works and is well liked (100+ regular players), but looked like a
+personal project rather than a product. Four phases, no new games, no database, no rule
+changes. The detailed checklist and notes are in `docs/ui_premium_todos.md`.
+
+1. **Quick wins.** One inline SVG icon set instead of emoji used as controls; the topbar
+   cut to brand / round / sound / rules / a Settings sheet (deck, hand view, table theme
+   as swatches, install, leave); no footer on room pages; neutral toasts (red only for
+   errors); full game names.
+2. **Design system.** Tokens (type, spacing, radii, elevation, motion, semantic colour,
+   layers), one button set and focus ring, styled selects, sentence-case badges, one
+   dialog style and `SS.confirm()` instead of `window.confirm()`. Dialogs now sit above
+   the floating buttons (the §22 note).
+3. **Home and lobby.** A landing-page home that remembers the player; invite links
+   (`/?join=CODE`, and a bare room link now lands on the join screen); the lobby as a
+   waiting room; player avatars (a validated motif on `Player.avatar`).
+4. **Table.** A railed, lit Classic table; deal / throw / your-turn motion; vibration on
+   your turn; a redesigned round summary; avatars in Scores and on the podium.
+
+New tests: `test_avatars.py`. Changed test: `test_theme_assets.py` reads the theme
+catalogue's `name:` key (its `icon:` emoji were removed). Suite: **48 files, 46 pass, 2
+unscored.** `sw.js` cache `v8` → `v12` across the phases.
+
+## 25. Seat guard — an action must come from the player it names — ✅ FIXED (2026-10-11)
+
+**The hole.** Every socket handler took the `user_id` in the payload at its word, and
+every player's `user_id` is public (it rides in every roster broadcast). So anyone could
+open the browser console and send `next_round`, `kick_player`, `update_settings` or a
+move *as someone else* — acting as the host, or playing another player's turn. Proven by
+`tests/test_seat_guard.py`: with the guard disabled, all 12 impersonation attempts
+succeed.
+
+**The fix — one chokepoint, no handler changed** (`sockets/seat_guard.py`):
+- `enter_room` already binds each socket to one `(code, user_id)` in
+  `sockets.common.SID_INDEX`. The guard wraps `socketio.on` before any module registers
+  (installed in `sockets/__init__.py` right after the emit guard), so every handler
+  first checks that the payload's `user_id` and `code` match the caller's binding. A
+  mismatch never reaches the handler; it gets `error(..., reason="not_your_seat")`.
+- Same shape as `sockets/audience.py` for outgoing emits: a handler added later is
+  covered without anyone remembering to.
+- Open events, which come before a seat exists or only describe the socket itself:
+  `create_room`, `create_solo`, `join_room`, `enter_room` (which already checks the
+  user is registered in that room), `client_ping`, `client_sync`, `connect`,
+  `disconnect`.
+- A genuine client only sees the refusal if its binding was lost in a reconnect race;
+  `core/socket.js` then re-enters the room (`SS.resync()`) and says "try that again".
+- Refusals are logged with the event and the caller's real seat, so an attempt shows up
+  in the server log.
+- Bots are unaffected: they act server-side through the director, not through events.
+
+**Verified:** `tests/test_seat_guard.py` (21 checks) — guests cannot change rules, add a
+computer player, start, make the host leave, kick, play the turn-holder's cards, or send
+Bluff / Super Four / Poker moves or reactions in someone else's name; the real owners'
+actions go through; a fresh socket is untrusted until it re-enters. The whole existing
+suite passed unchanged with the guard on (every real flow already enters before
+acting). Browser: a normal solo game played four moves and a reaction with no errors.
+
 ---
 
 ## Super 4 — game-specific notes & ideas
