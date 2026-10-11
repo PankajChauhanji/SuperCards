@@ -195,6 +195,7 @@
     return {
       name: SS.shortName(p.name),
       color: colorOf(p),
+      avatar: p.avatar,
       cardCount: null,          // the badge slot becomes the money pouch below
       ringPct: state.state === "LOBBY" ? null : drainOf(p),
       timerPct: t ? t.pct : null,
@@ -478,9 +479,15 @@
       const left = el("span", "sb-name");
       const sw = el("span", "swatch");
       sw.style.background = colorOf(p);
+      if (SS.avatarFace) { sw.classList.add("av-mini"); sw.innerHTML = SS.avatarFace(p.name, p.avatar); }
       left.appendChild(sw);
       left.appendChild(el("span", "dot" + (p.connected ? " on" : "")));
-      if (p.user_id === state.hostId) left.appendChild(el("span", "host-crown", "♛"));
+      if (p.user_id === state.hostId) {
+        const crown = el("span", "host-crown");
+        crown.title = "Host";
+        crown.innerHTML = (window.SS.icon ? window.SS.icon("crown") : "\u265B");
+        left.appendChild(crown);
+      }
       left.appendChild(el("span", "sb-text", SS.shortName(p.name)));
       if (p.user_id === state.you) left.appendChild(el("span", "sb-you", "you"));
       li.appendChild(left);
