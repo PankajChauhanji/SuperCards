@@ -183,6 +183,7 @@ class Room:
                 "is_spectator": p.is_spectator,
                 "pending_join": p.pending_join,
                 "is_bot": p.is_bot,
+                "avatar": p.avatar,
                 # Super-4 specific: per-slot occupancy (never the card faces).
                 "slots": [c is not None for c in self.slots.get(uid, [])],
             }
@@ -700,6 +701,8 @@ class Room:
             {
                 "user_id": p.user_id,
                 "name": p.name,
+                "avatar": p.avatar,
+                "color": p.color_index,
                 "total_score": p.total_score,
                 "eliminated": p.eliminated,
             }
