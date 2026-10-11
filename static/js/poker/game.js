@@ -73,7 +73,7 @@
 
   // ---- attach / reconnect ----
   function enter() {
-    socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId });
+    socket.emit("enter_room", { code, name: window.Identity.name(), user_id: youId, avatar: window.Identity.avatar() });
   }
   socket.on("connect", enter);
   if (SS.onResync) SS.onResync(enter);
@@ -91,12 +91,14 @@
     if (data.settings) view.settings = data.settings;
     view.tableTheme = data.table_theme || "casino";
     sync();
+    syncRoundEndFooter();
   });
 
   socket.on("player_list", (data) => {
     view.hostId = data.host_id;
     view.players = data.players;
     sync();
+    syncRoundEndFooter();
   });
 
   socket.on("settings_updated", (data) => {
@@ -700,7 +702,13 @@
       left.textContent = r.eliminated ? "Out of coins" : C.chips(r.chips) + " left";
       left.title = C.full(r.chips) + " coins";
       score.append(delta, left);
-      head.append(name, score);
+      const who = playerOf(r.user_id) || {};
+      const av = document.createElement("span");
+      av.className = "re-av";
+      av.style.background = window.ActionLog && window.ActionLog.PALETTE
+        ? window.ActionLog.PALETTE[(who.color || 0) % window.ActionLog.PALETTE.length] : "var(--line)";
+      av.innerHTML = SS.avatarFace ? SS.avatarFace(r.name, who.avatar) : "";
+      head.append(av, name, score);
       row.appendChild(head);
 
       const shown = hands[r.user_id];
@@ -738,11 +746,24 @@
       body.insertBefore(boardRow, body.firstChild);
     }
 
+    // The countdown is the server's; the payout animation above eats a couple
+    // of its seconds, which is fine — the server deals on its own clock anyway.
+    reEndsAt = Date.now() + Math.max(0, d.seconds_left || 0) * 1000;
+    renderRoundEndFooter();
+    modal.classList.add("open");
+  }
+
+  // Drawn for whoever is host at the time, so it is redrawn (keeping the same
+  // countdown) if the role moves while the summary is up.
+  let reEndsAt = 0;
+  let reFooterHost = null;
+  function renderRoundEndFooter() {
     const footer = $("roundend-footer");
     footer.innerHTML = "";
+    reFooterHost = isHost();
     let btn = null;
     let wait = null;
-    if (isHost()) {
+    if (reFooterHost) {
       btn = document.createElement("button");
       btn.className = "btn-primary";
       btn.addEventListener("click", () => {
@@ -757,18 +778,24 @@
       footer.appendChild(wait);
     }
 
-    // The countdown is the server's; the payout animation above eats a couple
-    // of its seconds, which is fine — the server deals on its own clock anyway.
-    const endsAt = Date.now() + Math.max(0, d.seconds_left || 0) * 1000;
     function paint() {
-      const s = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      const s = Math.max(0, Math.ceil((reEndsAt - Date.now()) / 1000));
       if (btn && !btn.disabled) btn.textContent = s > 0 ? "Start next round (" + s + "s)" : "Dealing…";
       if (wait) wait.textContent = s > 0 ? "Next round starts in " + s + "s…" : "Dealing…";
     }
     paint();
     clearInterval(reTimer);
     reTimer = setInterval(paint, 500);
-    modal.classList.add("open");
+  }
+
+  // The host's socket dropping (a refresh, a locked phone) hands the role to
+  // someone else. The auto-deal would still come, but the old host would hold
+  // a button the server refuses and the new host none.
+  function syncRoundEndFooter() {
+    const modal = $("roundend-modal");
+    if (!modal || !modal.classList.contains("open")) return;
+    if (reFooterHost === isHost()) return;
+    renderRoundEndFooter();
   }
 
   // ---- game over: the last pot pays out, then the shared podium ----
@@ -797,7 +824,7 @@
     const podium = () => {
       if (SS.pokerRanks) SS.pokerRanks.yieldToOverlay();
       if (window.ActionLog && !already) {
-        window.ActionLog.push("🎉 " + nameOf(d.winner) + " " + verb(d.winner, "win") + " the game!", "win");
+        window.ActionLog.push(nameOf(d.winner) + " " + verb(d.winner, "win") + " the game!", "win");
       }
       SS.showWinnerScreen({
         winnerId: d.winner,
