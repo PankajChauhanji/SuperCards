@@ -60,7 +60,8 @@
     // Actually, in our logic, anyone can call show? No, the rules say:
     // "Only the immediate next active player has the power to call Show"
     // Since turn has advanced to ME, I am the immediate next active player.
-    showBtn.disabled = !(mine && v.lastPlay);
+    // Never on your own claim (the turn can come back round to you).
+    showBtn.disabled = !(mine && v.lastPlay && v.lastPlay.user_id !== v.you);
 
     if (!mine) {
       const them = (v.players || []).find((p) => p.user_id === v.currentTurn);
@@ -81,6 +82,9 @@
     // Wait, it's easier to just show it when targetRank is not set.
     if (v.targetRank) {
       rankSelector.style.display = "none";
+      // A rank is locked: forget any earlier choice, so your next lead starts
+      // from "Select Rank" rather than a stale pick.
+      rankSelector.value = "";
     } else {
       rankSelector.style.display = "inline-block";
     }
@@ -135,7 +139,7 @@
   }
 
   function doShow() {
-    if (view().state === "IN_TURN" && myTurn() && view().lastPlay) {
+    if (view().state === "IN_TURN" && myTurn() && view().lastPlay && view().lastPlay.user_id !== view().you) {
       socket.emit("bluff_show", { code, user_id: you });
     }
   }
@@ -168,5 +172,13 @@
     },
     refresh,
     reset,
+    // A resync re-sends your hand mid-turn (any reconnect does): keep what you
+    // had already picked — cards still in your hand, and the rank — instead of
+    // wiping a half-made move. Cards that left the hand drop out.
+    keep(hand) {
+      const ids = new Set((hand || []).map((c) => c.id));
+      [...selected].forEach((id) => { if (!ids.has(id)) selected.delete(id); });
+      refresh();
+    },
   };
 })();
