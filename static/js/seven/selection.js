@@ -169,5 +169,13 @@
     },
     refresh,
     reset,
+    // A resync re-sends your hand mid-turn (any reconnect does): keep what you
+    // had already picked — cards still in your hand— instead of
+    // wiping a half-made move. Cards that left the hand drop out.
+    keep(hand) {
+      const ids = new Set((hand || []).map((c) => c.id));
+      [...selected].forEach((id) => { if (!ids.has(id)) selected.delete(id); });
+      refresh();
+    },
   };
 })();
