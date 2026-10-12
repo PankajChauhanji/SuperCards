@@ -27,15 +27,15 @@
 .tb-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); border-color: var(--line); }
 .tb-btn[aria-expanded="true"] { color: var(--text); background: rgba(255, 255, 255, 0.08); border-color: var(--line); }
 .tb-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-#mute-btn[aria-pressed="true"] { color: var(--muted); opacity: 0.75; }
-
+/* Leave: quiet until hovered, then the danger colour. It keeps its word on
+   phones too — a lone door icon is easy to misread as "back" or "menu". */
+.tb-leave:hover { color: #ff8a73; background: rgba(239, 100, 80, 0.1); border-color: rgba(239, 100, 80, 0.4); }
+/* The round chip never wraps ("Round" over "1" read as broken). */
+.round-chip { white-space: nowrap; flex: none; }
 @media (max-width: 600px) {
-  .tb-btn .btn-label { display: none; }
-  .tb-btn { padding: 0; width: 40px; }
-}
-@media (max-width: 480px) {
-  /* Sound is also in the sheet, so the topbar gives its slot to the brand. */
-  #mute-btn { display: none; }
+  .tb-btn { padding: 0 0.5rem; font-size: 0.82rem; }
+  .tb-btn:not(.tb-leave) .btn-label { display: none; }
+  .tb-btn:not(.tb-leave) { padding: 0; width: 40px; }
 }
 
 /* ---------- sheet + backdrop ---------- */
