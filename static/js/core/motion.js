@@ -60,7 +60,10 @@
     body.classList.add("turn-arrived");
     clearTimeout(turnTimer);
     turnTimer = setTimeout(() => body.classList.remove("turn-arrived"), 1400);
-    if (canVibrate && vibrateOn()) {
+    // Chrome refuses (and logs an error for) a buzz before the player has
+    // touched the page at all — e.g. the turn arriving right after a reload.
+    const touched = !navigator.userActivation || navigator.userActivation.hasBeenActive;
+    if (canVibrate && vibrateOn() && touched) {
       try { navigator.vibrate([35, 60, 35]); } catch (e) { /* not allowed yet */ }
     }
   }
