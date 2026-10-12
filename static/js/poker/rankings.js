@@ -14,6 +14,8 @@
 // ten hands fit without scrolling), a bottom sheet on a phone. It stays open until
 // the player closes it; nothing closes it on their behalf, not even their turn —
 // with one exception on a phone, where it steps aside for the round summary.
+// Docked, it shortens itself rather than lie over your cards or your betting
+// controls (fit()).
 (function () {
   const SS = window.SS || (window.SS = {});
   const $ = (id) => document.getElementById(id);
@@ -120,6 +122,24 @@
     backdrop.hidden = panel.hidden || !PHONE.matches;
   }
 
+  // Docked on desktop, the card must never lie over your cards or the betting
+  // controls: on a short, wide screen those sit to the right, right under it.
+  // It ends above whichever of them it would cover, and scrolls inside.
+  const CSS_MAX = "min(calc(100% - 84px), calc(100vh - 190px))";
+  function fit() {
+    if (panel.hidden || PHONE.matches) { panel.style.maxHeight = ""; return; }
+    const p = panel.getBoundingClientRect();
+    let limit = Infinity;
+    ["hand", "pk-hand-name", "myseat", "play-label", "pk-pre", "pk-raise", "pk-btns", "pk-back"].forEach((id) => {
+      const el = $(id);
+      if (!el || el.hidden || !el.offsetParent) return;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height || r.right <= p.left || r.left >= p.right) return;
+      limit = Math.min(limit, r.top - p.top - 8);
+    });
+    panel.style.maxHeight = limit === Infinity ? "" : "min(" + CSS_MAX + ", " + Math.max(120, Math.floor(limit)) + "px)";
+  }
+
   function open() {
     build();
     panel.hidden = false;
@@ -128,6 +148,7 @@
     syncBackdrop();
     applyMark();
     panel.scrollTop = 0;
+    fit();
     // After layout; instant rather than smooth, which a busy tab can drop.
     setTimeout(showMine, 0);
   }
@@ -146,13 +167,17 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !panel.hidden) close();
   });
-  if (PHONE.addEventListener) PHONE.addEventListener("change", syncBackdrop);
+  if (PHONE.addEventListener) PHONE.addEventListener("change", () => { syncBackdrop(); fit(); });
+  window.addEventListener("resize", fit);
 
   SS.pokerRanks = {
     // hints: the host's setting; row/name: your hand, or null when you hold none.
     mark(hints, row, name) {
       hintState = { hints: !!hints, row: typeof row === "number" ? row : null, name: name || null };
       applyMark();
+      // mark() runs after every table render, so the dock follows the
+      // controls as they appear (your turn) and go.
+      fit();
     },
     // The round summary / podium is about to open. On a phone the card is a
     // full-width sheet above the page, so it would bury that screen and the
