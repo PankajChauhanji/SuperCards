@@ -240,7 +240,7 @@
     // hand hasn't changed on most of those - rebuilding all the card <img>
     // elements anyway causes a visible flicker of your OWN hand, reading as
     // "my cards got thrown again". Skip the rebuild when nothing changed.
-    const sig = sortedHand.map((c) => c.id).join(",") + "|" + (boxView ? "box" : "fan");
+    const sig = sortedHand.map((c) => c.id).join(",") + "|" + (boxView ? "box" : "fan") + "|" + hand.clientWidth;
     if (hand.dataset.sig === sig) {
       if (window.Selection) window.Selection.refresh();
       return;

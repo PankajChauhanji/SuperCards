@@ -423,12 +423,40 @@
     return Math.max(a.min_to, Math.min(a.max_to, v));
   }
 
+  // A betting button's label as two parts: the action ("Raise") and the amount
+  // ("60K"). On desktop they read as one line — "Raise to 60K"; on a phone,
+  // where all four buttons share one row, poker.css stacks the amount under the
+  // action and hides the small linking word (`ext`, e.g. " to").
+  function setBtnLabel(el, verb, amount, ext) {
+    el.textContent = "";
+    const v = document.createElement("span");
+    v.className = "pk-verb";
+    v.textContent = verb;
+    if (ext) {
+      const x = document.createElement("span");
+      x.className = "pk-verb-ext";
+      x.textContent = ext;
+      v.appendChild(x);
+    }
+    el.appendChild(v);
+    if (amount) {
+      // A real space, so it reads "Call 5K" (and is announced that way); in the
+      // phone's stacked layout a whitespace-only node in a flex box takes no room.
+      el.appendChild(document.createTextNode(" "));
+      const m = document.createElement("span");
+      m.className = "pk-amt-line";
+      m.textContent = amount;
+      el.appendChild(m);
+    }
+  }
+
   function setRaise(v, a) {
     raiseTo = clampRaise(v, a);
     bar.slider.value = String(raiseTo);
     if (document.activeElement !== bar.amount) bar.amount.value = String(raiseTo);
     const verbText = a.verb === "bet" ? "Bet " : "Raise to ";
-    bar.raiseLabel.textContent = verbText + C.chips(raiseTo);
+    if (a.verb === "bet") setBtnLabel(bar.raiseLabel, "Bet", C.chips(raiseTo));
+    else setBtnLabel(bar.raiseLabel, "Raise", C.chips(raiseTo), " to");
     bar.raise.title = verbText + C.full(raiseTo);
   }
 
@@ -485,6 +513,10 @@
 
     bar.back.hidden = !(me && me.sitting_out && !me.eliminated && view.state !== "GAME_END");
     renderPreActions(me);
+    // Lets the phone layout (poker.css) tighten the bar while your betting
+    // controls are up, so the table keeps the same height on your turn.
+    const acting = !!myTurn && !(preAction && !pending);
+    $("action-bar").classList.toggle("pk-acting", acting);
 
     if (!myTurn) {
       closeConfirm();
@@ -506,11 +538,11 @@
     setLabel(a.to_call ? C.chips(a.to_call) + " to call" : "Your turn", "ok");
 
     if (a.check) {
-      bar.callLabel.textContent = "Check";
+      setBtnLabel(bar.callLabel, "Check");
     } else if (a.call >= a.stack) {
-      bar.callLabel.textContent = "Call all-in " + C.chips(a.call);
+      setBtnLabel(bar.callLabel, "Call", C.chips(a.call), " all-in");
     } else {
-      bar.callLabel.textContent = "Call " + C.chips(a.call);
+      setBtnLabel(bar.callLabel, "Call", C.chips(a.call));
     }
 
     const canRaise = a.raise;
@@ -518,7 +550,7 @@
     bar.raiseRow.hidden = !canRaise || onlyAllIn;
     bar.raise.style.display = canRaise && !onlyAllIn ? "" : "none";
     bar.allin.style.display = canRaise ? "" : "none";
-    bar.allinLabel.textContent = "All-in " + C.chips(a.max_to);
+    setBtnLabel(bar.allinLabel, "All-in", C.chips(a.max_to));
     bar.allin.title = "All-in: " + C.full(a.stack) + " coins";
 
     if (canRaise && !onlyAllIn) {

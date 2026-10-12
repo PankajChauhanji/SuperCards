@@ -328,7 +328,11 @@
     // it happens to coincide with the turnPing sound (turn passing to you
     // after the mover's post-throw draw), reading as "my cards got thrown
     // again". Skip the rebuild when nothing relevant actually changed.
-    const sig = cards.map((c) => c.id).join(",") + "|" + (state.justDrawnId || "") + "|" + (boxView ? "box" : "fan");
+    // The width is part of it: the fan's overlap is fitted to the container,
+    // so a rotated phone or a first layout taken before the table was visible
+    // must re-fit even when the cards are the same.
+    const sig = cards.map((c) => c.id).join(",") + "|" + (state.justDrawnId || "") + "|" + (boxView ? "box" : "fan") +
+      "|" + hand.clientWidth;
     if (hand.dataset.sig === sig) {
       if (window.Selection) window.Selection.refresh();
       return;
