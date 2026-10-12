@@ -700,6 +700,12 @@ class Room:
         # _finish_round makes the call.
         if self.state == STATE_ROUND_END and len(self.players_with_chips()) <= 1:
             self._end_game()
+        elif self.state == STATE_GAME_END:
+            # The quit settled the game's last round while the quitter was still
+            # seated, so the winner was picked with them in it — possibly them.
+            # Someone who left is never ranked; pick again without them.
+            ranked = self.standings()
+            self.winner = ranked[0]["user_id"] if ranked else None
 
     # ---- ranking ----
     def standings(self) -> List[dict]:
