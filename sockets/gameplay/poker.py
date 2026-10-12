@@ -61,7 +61,10 @@ def _broadcast(room):
     also keeps each player's own hand label current as the board grows.
     """
     _send("poker_state", room.public_round_state(), room.code)
-    if room.state in (STATE_IN_TURN, STATE_ROUND_END):
+    # GAME_END too: the move that ends the game's last round can also deal its
+    # last cards (a showdown, an all-in runout), and the hand each player is
+    # told they hold must match the one the podium's summary names.
+    if room.state in (STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END):
         _deal_private(room)
     if room.state == STATE_ROUND_END:
         _send("poker_round_end", room.round_end_payload(), room.code)
@@ -105,6 +108,7 @@ def _resync_one(room, user_id):
         _send("poker_round_end", room.round_end_payload(), player.sid)
     elif room.state == STATE_GAME_END:
         _send("poker_state", room.public_round_state(), player.sid)
+        _deal_private(room, user_id)
         _send("game_end", room.game_end_payload(), player.sid)
 
 
