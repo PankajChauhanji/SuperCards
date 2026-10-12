@@ -200,3 +200,18 @@ Status key: `[ ]` todo · `[~]` in progress / awaiting review · `[x]` done
       failed about 3% of runs when everyone ended level. It now uses rigged cards for three
       cases.
 
+**2026-10-12 — stability pass (owner: "buttons missing, small cards behind my cards, hint said
+High Card but the summary said a pair")** — full write-up in `todos.md` §26.
+- [x] Fold + Call collapsing into thin pills on phones when no raise was allowed.
+- [x] Betting buttons below the screen on laptops and short phones; seat now beside the
+      cards, layouts measured at 12 sizes (`tests/e2e/measure.js`).
+- [x] Hint vs summary: the last round's final cards never reached the hint (GAME_END).
+- [x] A player quitting in the last round could be named the winner.
+- [x] Rematch could flash the previous game's round-1 cards.
+- [x] New: `tests/test_poker_fuzz.py`, `tests/test_poker_socket_fuzz.py`, browser soak
+      `tests/e2e/` (poker.js). Soaks with 6 browsers, 100+ reloads and 60+ dropped
+      connections ran clean.
+- The "small cards behind" report: no stale-card path reproduced in hundreds of rounds; the
+  closest causes found and fixed were the deal animation widening the page on phones and
+  unpreloaded card images. Watch for it in the next play-test.
+
