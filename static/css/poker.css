@@ -206,6 +206,8 @@
   background: rgba(0, 0, 0, 0.35); color: var(--text); border: 1px solid var(--line);
 }
 .pk-btns { flex-wrap: wrap; justify-content: center; }
+/* Button labels come in two parts (game.js setBtnLabel): "Raise" + "60K".
+   Side by side here; stacked on a phone, below. */
 .pk-btns .btn-throw, .pk-btns .btn-stop { min-width: 104px; }
 .pk-back { width: auto; margin: 0; }
 .pk-back[hidden] { display: none; }
@@ -438,6 +440,71 @@
   .pk-rank-card { width: 52px; height: 73px; }
 }
 @keyframes pk-hands-rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ================= phones: your turn fits one screen =================
+   On a phone the betting controls (raise presets, slider, four buttons) used to
+   add ~160px when your turn came, so the table grew past the screen and the
+   opponents scrolled off the top — exactly when you needed to see them.
+   Three changes, phone-only:
+   1. The bar reserves one fixed height in every state, so the table never
+      changes size between "waiting" and "your turn".
+   2. On your turn the bar itself is tighter: the "5K to call" line hides (the
+      Call button already says "Call 5K"), presets and buttons are shorter.
+   3. The empty space around the arc, the pot and the gaps is trimmed a little,
+      and the hole cards are a touch smaller. */
+@media (max-width: 600px) {
+  .poker-felt { gap: 0.55rem; padding-top: 0.6rem; padding-bottom: 0.7rem; }
+  .poker-felt .opponents { height: 128px; }
+  .pk-center { gap: 0.3rem; min-height: 0; }
+  .pk-pot { gap: 0.15rem; }
+  .pk-coins { transform: scale(0.82); transform-origin: center bottom; margin-top: -6px; }
+  .pk-hand .pk-hole { width: 58px; height: 82px; }
+  .pk-hand { min-height: 82px; }
+  .poker-felt .myhand-wrap { gap: 0.4rem; }
+
+  /* = the bar's height on your turn (raise row + two rows of buttons), held in
+     every state so nothing above it moves when the turn reaches you. */
+  .pk-bar { gap: 0.35rem; min-height: 156px; justify-content: flex-end; }
+  .pk-bar.pk-acting .play-label { display: none; }
+  .pk-bar.pk-acting .pk-raise { gap: 0.3rem; }
+  .pk-presets { gap: 0.25rem; }
+  .pk-preset { min-height: 28px; padding: 0.15rem 0.2rem; font-size: 0.7rem; }
+  .pk-slider-row { height: 34px; }
+  .pk-slider { height: 24px; margin: 0; }
+  .pk-amount { padding: 0.2rem 0.45rem; height: 32px; min-height: 0; }
+  .pk-btns { gap: 0.35rem; }
+  .pk-btns .btn-throw, .pk-btns .btn-stop {
+    min-height: 38px; padding-top: 0.25rem; padding-bottom: 0.25rem; font-size: 0.82rem;
+  }
+}
+
+/* ================= phones: four betting buttons on one row =================
+   Fold / Call / Raise / All-in side by side instead of two rows, which gives
+   the table back one row of height on your turn. The row is only ~250px wide
+   (it stays clear of the floating buttons in the corner), so each button
+   drops its icon and stacks its amount under its action — "Raise" over "60K".
+   Buttons that are not offered (no raise allowed) simply leave the others
+   wider. */
+@media (max-width: 600px) {
+  .pk-btns { flex-wrap: nowrap; gap: 0.3rem; }
+  .pk-btns .btn-throw, .pk-btns .btn-stop {
+    flex: 1 1 0; min-width: 0;
+    flex-direction: column; gap: 0;
+    min-height: 44px; padding: 0.2rem 0.15rem;
+    font-size: 0.78rem; line-height: 1.15; white-space: nowrap;
+  }
+  .pk-btns .btn-ico { display: none; }
+  #pk-call-label, #pk-raise-label, #pk-allin-label {
+    display: flex; flex-direction: column; align-items: center; min-width: 0; max-width: 100%;
+  }
+  .pk-verb-ext { display: none; }
+  .pk-amt-line {
+    font-size: 0.68rem; font-weight: 600; opacity: 0.85;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  }
+  /* One row of buttons now: the bar's reserved height shrinks with it. */
+  .pk-bar { min-height: 118px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .pk-hands { animation: none; }
