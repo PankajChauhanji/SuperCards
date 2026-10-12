@@ -71,7 +71,14 @@ unchanged, and games that pass no `type` render exactly as before. Guests see "O
    * Under the cards, **"Your hand: Two Pair, Kings and Sevens"**, only when the host has
      turned on **Hand hints**. It is computed by the server from your cards and the board,
      sent only to you, and kept current every stage. With hints off it is not sent at all.
-   * Your seat (the shared own-seat badge, dressed the same way) and the action bar.
+   * Your seat (the shared own-seat badge, dressed the same way) sits **beside your two
+     cards**, not under them; the hint is centred under both. Then the action bar.
+   * **The whole table fits one screen on your turn** (2026-10-12, `todos.md` §26): checked
+     by `tests/e2e/measure.js` from a 360x640 phone to a 1920x950 desktop, including real
+     laptop windows (a 1366x768 screen shows about 1366x657 under the browser's toolbar).
+     Short screens tighten gaps and shrink cards a little; on a short, wide screen
+     (≥1240px wide, ≤720px tall) the betting controls sit to the right of your seat and
+     cards instead of under them.
 
 ## Motion
 
@@ -92,7 +99,8 @@ Every motion is skipped under `prefers-reduced-motion`.
 `[ Fold ]  [ Check | Call 20K ]  [ Raise to 60K ]  [ All-in 1.2M ]`
 
 * Above the buttons sits a **raise row**: presets **Min · ½ Pot · Pot · All-in**, a slider
-  that steps in small-blind units from the minimum raise to all-in, and a number box.
+  that steps in small-blind units from the minimum raise to all-in, and a number box. On
+  wider screens the presets and the slider share one line (wrapping when the felt is narrow).
   Changing any of the three updates the other two and the Raise button's label.
 * **Bet** replaces **Raise** when nobody has bet in the stage.
 * The raise row and Raise button are hidden when a raise is not allowed: a short all-in did
@@ -113,8 +121,12 @@ Every motion is skipped under `prefers-reduced-motion`.
 * When it is not your turn, the bar shows a status line instead: "Waiting for Ben…",
   "Folded — waiting for the next round", "All-in", or a big **I'm back** button when you
   are sat out.
-* On phones the buttons wrap two per row, the slider runs full width, and the bar keeps
-  clear of the floating reaction buttons.
+* On phones the four buttons share one row (the amount stacked under each action), the
+  slider runs full width, and the bar keeps clear of the floating reaction buttons. The bar
+  always spans the hand column, so with only **Fold** and **Call** offered the two buttons
+  are wide, never squeezed (the 2026-10-12 "missing buttons" bug).
+* The docked **Hand rankings** card (desktop) shortens itself rather than lie over your
+  cards or these controls.
 
 ## Round summary popup
 
