@@ -114,6 +114,10 @@
     if (data.settings) view.settings = data.settings;
     view.tableTheme = data.table_theme || "casino";
     view.hand = [];
+    // A new game counts rounds from 1 again: forget which round the old hand
+    // was from, or round 1 of the rematch could pass for the old game's round 1.
+    view.handRound = 0;
+    view.roundNumber = 0;
     view.handName = null;
     view.handRank = null;
     view.board = [];
