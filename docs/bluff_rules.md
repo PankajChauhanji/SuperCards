@@ -86,6 +86,14 @@ If a player suspects that the person who *just* played lied about their cards, t
 *   **Who can call?** Only the **immediate next active player** has the power to call "Show" on the player who just laid down cards.
 *   **How is it resolved?** Only the **exact cards that the active player just threw** are flipped over and revealed to everyone. The rest of the table pile remains face down.
 
+> **As implemented (2026-10-12, open [decision] — `todos.md` §26):** the game lets *any* player
+> whose turn it is call Show on the live claim, even after others have passed on it, until the
+> pile is swept — and a player who emptied their hand is placed once everyone has passed on
+> that claim (or the next play is made). Nobody can call Show on their own play. Players have
+> always played it this way, so it was left as is; switching to the strict "immediate next
+> player only" rule above is a one-line rules change plus `BLUFF_STRICT_SHOW=1` in
+> `tests/test_bluff_fuzz.py`.
+
 ### Challenge Outcomes:
 
 | Scenario | Outcome | Penalty / Reward | Next Lead-Off |
