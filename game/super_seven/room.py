@@ -54,6 +54,7 @@ class Room:
         self.awaiting_draw = False        # current player owes a draw
         self.awaiting_draw_ts = 0.0       # when the owed draw began (pick timer)
         self.turns_completed = 0          # completed turns this round
+        self.turns_taken = set()          # who has had a turn this round (first orbit)
         self.initial_active = 0           # players dealt in this round
         self.first_orbit_complete = False # gates calling Stop
         self.last_caller = None           # who called Stop last round
@@ -119,7 +120,7 @@ class Room:
             # One fewer player was dealt this round — keep orbit accounting sane.
             if not self.first_orbit_complete and self.initial_active > 0:
                 self.initial_active -= 1
-                if self.turns_completed >= self.initial_active:
+                if self._orbit_done():
                     self.first_orbit_complete = True
             if was_current:
                 # The quitter was mid-turn; drop any owed draw and restart the
@@ -140,6 +141,14 @@ class Room:
         if was_host:
             self.migrate_host()
 
+        if self.state == STATE_ROUND_END:
+            # Between rounds: a quit can leave one player standing. Without this
+            # the next round dealt a single player a hand to throw alone.
+            remaining = self.non_eliminated()
+            if len(remaining) <= 1:
+                self.game_over = True
+                self.winner = remaining[0] if remaining else None
+                self.state = STATE_GAME_END
         if in_play:
             remaining = self.non_eliminated()
             if len(remaining) <= 1:
@@ -190,7 +199,13 @@ class Room:
             uid for uid, p in self.players.items()
             if p.connected and not p.eliminated and not p.is_spectator
         ]
-        deck = shuffled_deck(self.settings.get("num_decks", 1))
+        # A big table can need more than the host's deck count: eight players
+        # are 56 cards on one 52-card deck, and the deal used to crash halfway,
+        # leaving the room stuck in the lobby. Add decks until everyone gets a
+        # full hand with at least one card left to draw.
+        decks = int(self.settings.get("num_decks", 1) or 1)
+        decks = max(decks, -(-(HAND_SIZE * len(active) + 1) // 52))
+        deck = shuffled_deck(decks)
 
         # Reset per-round player state.
         for player in self.players.values():
@@ -211,6 +226,7 @@ class Room:
         self.start_offset += 1
         self.awaiting_draw = False
         self.turns_completed = 0
+        self.turns_taken = set()
         self.initial_active = len(active)
         self.first_orbit_complete = False
         self.last_caller = None
@@ -301,9 +317,12 @@ class Room:
         n = len(self.turn_order)
         if n == 0:
             return
-        # One turn has just completed.
+        # One turn has just completed — by whoever holds it right now.
         self.turns_completed += 1
-        if self.turns_completed >= self.initial_active:
+        mover = self.current_turn_id()
+        if mover is not None:
+            self.turns_taken.add(mover)
+        if self._orbit_done():
             self.first_orbit_complete = True
         for _ in range(n):
             self.turn_index = (self.turn_index + 1) % n
@@ -313,6 +332,19 @@ class Room:
                 return
         # No eligible player remains — the caller-less auto-end is handled
         # by the gameplay layer via active_count().
+
+    def _orbit_done(self) -> bool:
+        """Stop is "never during the first orbit": the orbit is over once every
+        player still dealt in has had a turn. Counted by who, not how many — a
+        player who had already played and then quit used to shorten the count,
+        letting someone who had not played yet call Stop on their first turn.
+        """
+        return all(
+            uid in self.turns_taken
+            or self.players.get(uid) is None
+            or self.players[uid].eliminated
+            for uid in self.turn_order
+        )
 
     def turn_seconds_left(self) -> Optional[int]:
         """Whole seconds remaining on the current turn, or None when not in play."""
@@ -372,8 +404,12 @@ class Room:
         """Score the round, apply totals, resolve eliminations, set end state."""
         from game.super_seven.scoring import score_round
 
+        # A player removed mid-round (timeouts) keeps their seat in turn_order
+        # but is out of the round: like a safe player, they are not a rival the
+        # Stop caller has to beat ("you only compete against players still
+        # holding cards").
         participants = [
-            (uid, self.players[uid].hand, self.players[uid].is_safe)
+            (uid, self.players[uid].hand, self.players[uid].is_safe or self.players[uid].eliminated)
             for uid in self.turn_order
         ]
         result = score_round(participants, caller_id, self.settings)
@@ -500,6 +536,9 @@ class Room:
                 "eliminated": p.eliminated,
             }
             for p in self.players.values()
+            # A spectator never admitted to the game played no part in it, and
+            # unranked they would sort above the winner (no elimination, 0 pts).
+            if not p.is_spectator
         ]
         rows.sort(key=lambda r: (
             r["eliminated"],
@@ -511,7 +550,8 @@ class Room:
     def game_end_payload(self) -> dict:
         return {
             "winner": self.winner,
-            "winner_name": self.players[self.winner].name if self.winner else None,
+            # The winner may have left the podium already; the result stays.
+            "winner_name": self.players[self.winner].name if self.winner in self.players else None,
             "standings": self.standings(),
             "players": self.public_players(),
             "host_id": self.host_id,
@@ -593,6 +633,7 @@ class Room:
         self.awaiting_draw = False
         self.awaiting_draw_ts = 0.0
         self.turns_completed = 0
+        self.turns_taken = set()
         self.initial_active = 0
         self.first_orbit_complete = False
         self.last_caller = None
@@ -620,4 +661,12 @@ class Room:
             if player.connected and not player.is_bot and not player.eliminated:
                 self.host_id = player.user_id
                 return self.host_id
+        # Nobody still in the game is here — but someone must be able to press
+        # Next round / Play again, so an eliminated human beats a host who has
+        # left the room (that left the table with no one able to continue).
+        if self.host_id not in self.players or not self.players[self.host_id].connected:
+            for player in self.players.values():
+                if player.connected and not player.is_bot:
+                    self.host_id = player.user_id
+                    return self.host_id
         return None
