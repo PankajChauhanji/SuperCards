@@ -125,7 +125,8 @@ super_cards/
 ├── static/                 # CSS, JavaScript, images, and generated card assets
 ├── templates/              # Page templates and per-game views
 ├── docs/                   # Rules, design notes and the platform TODO log
-├── tests/                  # Game logic, scoring, socket, and engine tests
+├── tests/                  # Game logic, scoring, socket, fuzz and engine tests
+│   └── e2e/                # Browser soak tests (Node + Chrome; see tests/e2e/README.md)
 ├── tools/                  # Asset generation and development helpers
 ├── Procfile                # Gunicorn startup command
 ├── render.yaml             # Render deployment blueprint
@@ -183,6 +184,17 @@ Verify a running instance is the only one, and see how many rooms it holds:
 ```bash
 curl -s localhost:5000/healthz
 ```
+
+---
+
+## 🧪 Tests
+
+```bash
+.venv/bin/python run_tests.py            # the whole suite; boots its own test server
+```
+
+Browser soak tests — real browsers at phone, tablet and laptop sizes playing whole games —
+live in `tests/e2e/` and need Node and Chrome; see `tests/e2e/README.md`.
 
 ---
 
