@@ -261,3 +261,38 @@ Status key: `[ ]` todo · `[~]` in progress · `[x]` done
   desktop behind a "Scores | History" tab; decided to leave it visible for now. It
   carries real game information in Bluff (passes, throw counts, Show results) and
   Poker (bets per street). Revisit only if players ask.
+
+## Follow-up 2 — phone fit + topbar (2026-10-12) — ✅ DONE
+
+- [x] **Super Seven: seven fanned cards fit the felt on a phone.** Measured at 375px:
+      the fan spanned x=13–362 over a felt of 24–351. Two causes in
+      `layoutHandFan()` (`core/seats.js`): the card was measured with
+      `getBoundingClientRect()`, which includes transforms (a dealt or tilted card),
+      and the ±20° tilt of the end cards was never reserved, so their corners stuck
+      out even when the boxes fit. Now it uses `offsetWidth` / `offsetHeight`, reserves
+      the tilt on both sides, and retries next frame if the table is not laid out yet.
+      The hand's re-render guard now includes the hand's width (Super Seven and Bluff),
+      and `core/connection.js` repaints on resize / rotation. Phone hand cards 60×84 →
+      54×76, as the owner asked.
+- [x] **Poker on a phone: your turn no longer pushes the table off the top.** The
+      betting controls used to add ~160px on your turn (felt 671 → 832px, page 943px
+      on an 812px screen). Phone-only (`poker.css`): the bar holds one fixed height in
+      every state (so nothing moves when the turn reaches you), the "to call" line hides
+      on your turn (the Call button already says it), presets / slider / buttons are
+      shorter, and a little empty space around the arc, the pot and the gaps is
+      trimmed; hole cards 64×90 → 58×82. Measured: felt 693px and page 812px in both
+      states. `poker/game.js` sets `.pk-acting` on the bar while your controls are up.
+- [x] **Topbar: Leave + Settings.** Sound and Rules moved into Settings (Sound was
+      already there; "How to play" is now the rules button itself). The topbar shows the
+      game, the round, **Leave** (labelled, also on phones — a lone door icon reads as
+      "back") and the gear. The round chip no longer wraps.
+- [x] **Phone toasts at the top of the table**, slimmer, so "X calls 5K" never sits on
+      your betting buttons.
+- Suite 49 / 47 / 2 unscored. `sw.js` v14 → v15.
+- [x] **Poker on a phone: the four betting buttons share one row** (owner's call).
+      The row is ~250px wide (it stays clear of the floating buttons), so each button
+      drops its icon and stacks the amount under the action — "Raise" over "20K".
+      `game.js` builds each label as action + amount (`setBtnLabel`); desktop still
+      reads "Raise to 20K" on one line. The bar's reserved height drops 156 → 118px;
+      on your turn the felt is 655px (was 693) and the page still fits 812px.
+      `sw.js` v15 → v16.
