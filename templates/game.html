@@ -46,15 +46,14 @@
 
   {% include 'partials/icons.html' %}
 
-  {# The topbar carries only what a player needs at a glance. Everything else —
-     deck, hand view, table theme, install, leaving — lives in the Settings sheet
-     behind the gear, at every width. #}
+  {# The topbar carries only what a player needs at a glance: the game, the
+     round, the way out, and the gear. Sound, rules, deck, hand view, table
+     theme and install live in the Settings sheet, at every width. #}
   <div class="topbar">
     {% include 'games/' + game_type + '/branding.html' %}
     <div class="topbar-right">
       <span class="round-chip" id="round-chip" style="display:none">Round 1</span>
-      <button class="icon-btn tb-btn" id="mute-btn" title="Sound" aria-label="Sound on/off" aria-pressed="false"><svg class="ico" aria-hidden="true"><use href="#i-volume"/></svg></button>
-      <button class="icon-btn tb-btn" id="rules-btn" title="How to play" aria-label="How to play"><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span class="btn-label">Rules</span></button>
+      <button class="icon-btn tb-btn tb-leave" id="quit-btn" title="Leave table" aria-label="Leave table"><svg class="ico" aria-hidden="true"><use href="#i-leave"/></svg><span class="btn-label">Leave</span></button>
       <button class="icon-btn tb-btn" id="settings-btn" title="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="settings-sheet"><svg class="ico" aria-hidden="true"><use href="#i-settings"/></svg></button>
     </div>
   </div>

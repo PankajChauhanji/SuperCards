@@ -2,8 +2,8 @@
 
    A drawer on the right on desktop, a bottom sheet on phones (settings.css).
    Opened by the gear in the topbar (core/settings.js). Personal choices first
-   (sound, deck, hand view), the table-wide theme next, and the way out last,
-   separated, so "Leave table" is never one slip away from a theme swatch. #}
+   (sound, deck, hand view, theme), then rules and install. Leaving the table is
+   its own button in the topbar, so it is never one slip away from a swatch. #}
 <div class="sheet-backdrop" id="settings-backdrop" hidden></div>
 <aside class="settings-sheet" id="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
   <header class="sheet-head">
@@ -32,12 +32,9 @@
     {% include 'partials/theme_selector.html' %}
 
     <section class="set-sec set-links">
-      <button type="button" class="set-link" id="settings-rules"><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>How to play</span><svg class="ico set-link-go" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+      <button type="button" class="set-link" id="rules-btn"><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>How to play</span><svg class="ico set-link-go" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
       <button type="button" class="set-link footer-install" id="install-help-link"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span>Install the app</span><svg class="ico set-link-go" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
     </section>
 
-    <section class="set-sec set-danger">
-      <button type="button" class="set-link danger" id="quit-btn"><svg class="ico" aria-hidden="true"><use href="#i-leave"/></svg><span>Leave table</span></button>
-    </section>
   </div>
 </aside>
