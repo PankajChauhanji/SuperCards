@@ -65,12 +65,35 @@
     });
   }
 
-  SS.deck = { get, set, dir, repaint };
+  // Fetch every face of the chosen deck once the page has settled, so a card
+  // dealt or picked up for the first time is already in the browser's cache.
+  // Without it a slow phone showed such a card as an empty box for a moment —
+  // most visibly when a Bluff pile full of unseen cards landed in a hand.
+  // Table pages only (they have a #hand); poker's own preload is the same idea.
+  const warmed = new Set();
+  function preload() {
+    if (!document.getElementById("hand")) return;
+    const faces = ["back"];
+    ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"].forEach((r) =>
+      ["S", "H", "D", "C"].forEach((s) => faces.push(r + s)));
+    faces.forEach((face) => {
+      const src = cardSrc(face);
+      if (warmed.has(src)) return;
+      warmed.add(src);
+      const img = new Image();
+      img.decoding = "async";
+      img.src = src;
+    });
+  }
+
+  SS.deck = { get, set, dir, repaint, preload };
   SS.cardSrc = cardSrc;
 
   // The server renders the deck back with the default path; correct it before
   // first paint if this player prefers the other deck.
   repaint();
+  if (document.readyState === "complete") setTimeout(preload, 300);
+  else window.addEventListener("load", () => setTimeout(preload, 300));
 
   // ---- the selector (a section of the Settings sheet) ----
   const opts = Array.from(document.querySelectorAll("#deck-dropdown .deck-opt[data-deck]"));
@@ -92,6 +115,7 @@
       set(name);
       mark(name);
       repaint();
+      preload();
       // Re-render as well: the hand fan's geometry is measured in JS, and on a
       // real phone a src swap alone left the layout untouched until a reload.
       if (window.SS.repaintUI) window.SS.repaintUI();
