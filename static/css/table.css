@@ -761,7 +761,9 @@
    one row. */
 @media (max-width: 600px) {
   .felt { padding: 1rem 0.75rem; }
-  .card.hand-card { width: 60px; height: 84px; }
+  /* A little smaller than before (60x84): seven cards fanned across a 375px
+     phone now fit inside the felt with their corner indexes still readable. */
+  .card.hand-card { width: 54px; height: 76px; }
   .bluff-hand .hand-card { width: 46px; height: 66px; }
   .myhand-wrap { max-width: 100%; }
 
