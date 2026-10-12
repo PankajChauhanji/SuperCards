@@ -37,6 +37,10 @@ class Room:
         self.last_play: Optional[dict] = None
         self.pass_count = 0
         self.dead_pile: List = []
+        # Who has passed on the live play. The pile is swept once every player
+        # still racing, other than the claimant, is in here — counted by who,
+        # so a passer who then leaves can no longer sweep it early.
+        self.passers: set = set()
 
         self.turn_order: List[str] = []
         self.turn_index = 0
@@ -132,6 +136,7 @@ class Room:
                 self.target_rank = None
                 self.last_play = None
                 self.pass_count = 0
+                self.passers = set()
             if was_current:
                 self.turn_start_ts = time.time()
                 self._skip_to_playable()
@@ -149,7 +154,11 @@ class Room:
             # A quit can settle the game by leaving nobody to race. Routed
             # through the same check as a normal finish so there is one
             # definition of "the game is over" and one of who won.
-            self._maybe_end_game()
+            if not self._maybe_end_game() and not getattr(self, "is_showing", False):
+                # Everyone still at the table may now have passed on the live
+                # play — otherwise the turn came back round to the claimant with
+                # their own claim still standing.
+                self._sweep_if_all_passed()
 
     def _skip_to_playable(self) -> None:
         """Advance turn_index to the next player still in the race (no side effects)."""
@@ -206,6 +215,7 @@ class Room:
         self.center_pile = []
         self.last_play = None
         self.pass_count = 0
+        self.passers = set()
         self.dead_pile = []
 
         self.finish_order = []
@@ -315,6 +325,7 @@ class Room:
             "declared_rank": declared_rank
         }
         self.pass_count = 0
+        self.passers = set()
 
         # A player whose hand emptied on an earlier turn is now safe from the
         # challenge, so their place is banked here — and the game may be over.
@@ -345,51 +356,51 @@ class Room:
             self.known_cards.pop(user_id, None)
 
     def apply_pass(self, user_id: str) -> None:
-        """Player passes. If pass_count hits (active_count - 1), clear table."""
-        swept = False
+        """Player passes. Once everyone still racing has passed on the live
+        play, the pile is swept and its claimant leads a fresh round."""
         self.pass_count += 1
-        
-        # A pass is also an action, so it too closes the challenge window on
-        # whoever played last.
+        self.passers.add(user_id)
+        # A pass is also an action: anyone whose hand emptied on an earlier
+        # play (not the live claim) is now safe from the challenge.
         if self._confirm_finishers():
             return
-
-        # If everyone passed back to the last player who played, clear the table.
-        # Counted against players who can still act: a finished player never
-        # passes, so including them would mean the pile could never be swept.
-        active_count = len(self.still_holding())
-        if self.pass_count >= active_count - 1 and self.last_play:
-            last_actor = self.last_play["user_id"]
-            if not self.players[last_actor].hand:
-                # Everyone declined to challenge their last play: their place is
-                # banked, and the pile they left goes out of the game with them.
-                if not self.is_finished(last_actor):
-                    self.finish_order.append(last_actor)
-                self.dead_pile.extend(self.center_pile)
-                self.center_pile = []
-                self.target_rank = None
-                self.last_play = None
-                self.pass_count = 0
-                if self._maybe_end_game():
-                    return
-                self.advance_turn()
-                self._apply_pending_shuffle()     # pile swept: a fresh round
-                return
-
-            self.dead_pile.extend(self.center_pile)
-            self.center_pile = []
-            self.target_rank = None
-            self.last_play = None
-            self.pass_count = 0
-            swept = True
-            # Turn remains with the player who won the table (the last person who played)
-            self.turn_index = self.turn_order.index(self.current_turn_id()) # actually it naturally advances back to them
-            # Wait, if pass_count == active_count - 1, the NEXT turn is the person who played last.
-            # So advancing turn will naturally put it on them. Let's just advance turn normally.
-            
+        if self._sweep_if_all_passed():
+            return
         self.advance_turn()
-        if swept:
-            self._apply_pending_shuffle()         # pile swept: a fresh round
+
+    def _sweep_if_all_passed(self) -> bool:
+        """Sweep the pile if every player still racing, other than the claimant,
+        has passed on the live play. Returns True if it swept (and placed the
+        turn). Also called after a player leaves or is removed, since that can
+        leave everyone remaining already passed."""
+        if not self.last_play:
+            return False
+        claimant = self.last_play["user_id"]
+        rivals = [u for u in self.still_holding() if u != claimant]
+        if any(u not in self.passers for u in rivals):
+            return False
+        cp = self.players.get(claimant)
+        if cp is not None and not cp.hand and not cp.eliminated and not self.is_finished(claimant):
+            # Everyone declined to challenge their last play: their place is
+            # banked, and the pile they left goes out of the game with them.
+            self.finish_order.append(claimant)
+        self.dead_pile.extend(self.center_pile)
+        self.center_pile = []
+        self.target_rank = None
+        self.last_play = None
+        self.pass_count = 0
+        self.passers = set()
+        if self._maybe_end_game():
+            return True
+        if claimant in self.turn_order and not self._out_of_play(claimant):
+            # The table passed back round to the claimant: they lead.
+            self.turn_index = self.turn_order.index(claimant)
+            self.turn_start_ts = time.time()
+        else:
+            # The claimant went out (or left): the next player still racing leads.
+            self.advance_turn()
+        self._apply_pending_shuffle()     # pile swept: a fresh round
+        return True
 
     # ---- shuffle seats ----------------------------------------------------
     def _round_is_fresh(self) -> bool:
@@ -435,8 +446,9 @@ class Room:
         """Player calls Show. Determines the result, but doesn't alter piles yet."""
         if not self.last_play:
             return {}
-
         defender_id = self.last_play["user_id"]
+        if defender_id == user_id:
+            return {}                 # nobody challenges their own claim
         cards = self.last_play["cards"]
         declared_rank = self.last_play["declared_rank"]
 
@@ -456,7 +468,16 @@ class Room:
         }
 
     def resolve_show(self, result: dict) -> None:
-        """Applies the consequence of a show after the delay."""
+        """Applies the consequence of a show after the delay.
+
+        The delay is real time (the cards sit face up for everyone), so the
+        table can change under it: the challenger or the defender may leave in
+        those seconds, and a departure can even end the game. Nothing here may
+        assume either of them is still seated — a crash would leave the room
+        stuck mid-reveal for everyone still at it.
+        """
+        if self.state != STATE_IN_TURN:
+            return            # the game ended (a quit) while the cards were face up
         loser_id = result["loser"]
         winner_id = result["winner"]
 
@@ -471,15 +492,21 @@ class Room:
             "was_bluff": bool(result["is_bluff"]),
             "loser": loser_id,
         })
-        # Whoever picks the pile up demonstrably now holds the revealed cards.
-        self.known_cards.setdefault(loser_id, []).extend(revealed)
-
-        # Loser picks up the entire center pile
-        self.players[loser_id].hand.extend(self.center_pile)
+        loser = self.players.get(loser_id)
+        if loser is not None:
+            # Whoever picks the pile up demonstrably now holds the revealed cards.
+            self.known_cards.setdefault(loser_id, []).extend(revealed)
+            # Loser picks up the entire center pile
+            loser.hand.extend(self.center_pile)
+        else:
+            # The loser left during the reveal: their pile is retired, exactly as
+            # when a player quits holding the live play (remove_participant).
+            self.dead_pile.extend(self.center_pile)
 
         self.center_pile = []
         self.target_rank = None
         self.pass_count = 0
+        self.passers = set()
         self.last_play = None
 
         # A challenge is the strongest confirmation there is: whoever is left
@@ -497,12 +524,17 @@ class Room:
         if self._maybe_end_game():
             return
 
-        self.turn_index = self.turn_order.index(winner_id)
         self.turn_start_ts = time.time()
-        # The winner of the show leads the next round — unless they were the one
-        # who just went out, in which case it moves on.
-        if self._out_of_play(winner_id):
-            self.advance_turn()
+        if winner_id in self.turn_order:
+            self.turn_index = self.turn_order.index(winner_id)
+            # The winner of the show leads the next round — unless they were the
+            # one who just went out, in which case it moves on.
+            if self._out_of_play(winner_id):
+                self.advance_turn()
+        else:
+            # The winner left during the reveal; remove_participant already
+            # repaired the rotation, so the next player still racing leads.
+            self._skip_to_playable()
         # The pile is empty and a fresh round is about to be led: the moment a
         # pending host shuffle may re-seat the table, leader unchanged.
         self._apply_pending_shuffle()
@@ -584,7 +616,8 @@ class Room:
             # Removing a player can leave too few to race on — same check as a
             # normal finish.
             if not self._maybe_end_game():
-                self.advance_turn()
+                if not self._sweep_if_all_passed():
+                    self.advance_turn()
             self._migrate_host_if_eliminated()
         else:
             # Auto-pass
@@ -663,7 +696,8 @@ class Room:
     def game_end_payload(self) -> dict:
         return {
             "winner": self.winner,
-            "winner_name": self.players[self.winner].name if self.winner else None,
+            # The winner may have left the podium already; the result stays.
+            "winner_name": self.players[self.winner].name if self.winner in self.players else None,
             "standings": self.standings(),
             "finish_order": list(self.finish_order),
             "players": self.public_players(),
@@ -693,6 +727,7 @@ class Room:
         self.center_pile = []
         self.last_play = None
         self.pass_count = 0
+        self.passers = set()
         self.dead_pile = []
         
         self.game_over = False
@@ -711,4 +746,11 @@ class Room:
             if player.connected and not player.is_bot and not player.eliminated:
                 self.host_id = player.user_id
                 return self.host_id
+        # Nobody still racing is here: an eliminated human beats a host who has
+        # left, or nobody could press Play again.
+        if self.host_id not in self.players or not self.players[self.host_id].connected:
+            for player in self.players.values():
+                if player.connected and not player.is_bot:
+                    self.host_id = player.user_id
+                    return self.host_id
         return None
