@@ -1,0 +1,24 @@
+/* Super Seven table — loaded only on a Super Seven room page
+   (templates/games/super_seven/table.html); every selector is scoped to
+   .seven-felt, so nothing here reaches another game.
+
+   One screen on a laptop (2026-10-12). A laptop's browser window is its screen
+   minus ~110px of tabs and toolbar, so a 1366x768 laptop shows 1366x657: Throw
+   and Stop sat at y=707, below the bottom edge, and had to be scrolled to on
+   every turn (tests/e2e/measure.js). Nothing moves — the hand, the buttons and
+   the seats stay exactly where players know them; only the empty space between
+   them tightens on short screens. Phones already fit and are untouched. */
+@media (min-width: 721px) and (max-height: 820px) {
+  .seven-felt { gap: 0.6rem; padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .seven-felt .opponents { height: 138px; }
+  .seven-felt .center-row { min-height: 104px; margin-bottom: 0.9rem; }   /* room for the DECK / CENTER labels */
+  .seven-felt .myhand-wrap { gap: 0.45rem; margin-top: 0; }
+}
+@media (min-width: 721px) and (max-height: 680px) {
+  .seven-felt { gap: 0.45rem; padding-top: 0.6rem; padding-bottom: 0.6rem; }
+  .seven-felt .opponents { height: 128px; }
+  .seven-felt .center-row { min-height: 96px; }
+  .seven-felt .card.hand-card { width: 66px; height: 92px; }
+  .seven-felt .center-card { width: 56px; height: 78px; }
+  .seven-felt .deck img { width: 60px; height: 84px; }
+}
