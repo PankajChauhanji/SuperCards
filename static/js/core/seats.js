@@ -241,12 +241,37 @@
     const n = slots.length;
     if (n === 0) return;
     const firstCard = slots[0].querySelector(".hand-card") || slots[0];
-    const cardWidth = firstCard.getBoundingClientRect().width || 74;
-    const containerWidth = container.clientWidth || cardWidth * n;
+    // offsetWidth/Height are the card's own CSS size. getBoundingClientRect()
+    // includes transforms — a card mid-deal (scaled down) or already tilted —
+    // and a wrong width here is exactly how the fan used to spill off a phone.
+    const cardWidth = firstCard.offsetWidth || 74;
+    const cardHeight = firstCard.offsetHeight || cardWidth * 1.4;
+    const containerWidth = container.clientWidth;
+    // Not laid out yet (the table was hidden a moment ago): measure on the
+    // next frame instead of fitting the hand to a width of zero.
+    if (!containerWidth) {
+      if (!container.dataset.fanRetry) {
+        container.dataset.fanRetry = "1";
+        requestAnimationFrame(() => {
+          delete container.dataset.fanRetry;
+          if (slots[0].isConnected) layoutHandFan(container, slots);
+        });
+      }
+      return;
+    }
+    container.dataset.fanWidth = String(containerWidth);
+
+    // The outermost cards are tilted by FAN_MAX_ROT, which pushes their corners
+    // sideways past their own box. Reserve that on both sides, or the end cards
+    // poke out of the felt even when the boxes themselves fit.
+    const rad = (FAN_MAX_ROT * Math.PI) / 180;
+    const tiltSpill = n > 1
+      ? Math.max(0, (cardWidth * Math.cos(rad) + cardHeight * Math.sin(rad) - cardWidth) / 2)
+      : 0;
 
     let overlap = 0;
     if (n > 1) {
-      const available = containerWidth - cardWidth;
+      const available = containerWidth - cardWidth - 2 * tiltSpill;
       const neededToFit = cardWidth - available / (n - 1);
       const minOverlap = cardWidth * FAN_MIN_OVERLAP_RATIO;
       overlap = Math.max(minOverlap, neededToFit);

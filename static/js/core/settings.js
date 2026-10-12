@@ -54,13 +54,10 @@
     if (e.key === "Escape" && isOpen()) close();
   });
 
-  // Rules and Install open their own dialogs; step aside for them.
-  const rulesLink = document.getElementById("settings-rules");
-  if (rulesLink) rulesLink.addEventListener("click", () => {
-    close();
-    const rulesBtn = document.getElementById("rules-btn");
-    if (rulesBtn) rulesBtn.click();
-  });
+  // Rules and Install open their own dialogs (rules_modal.js wires both);
+  // step aside for them.
+  const rulesLink = document.getElementById("rules-btn");
+  if (rulesLink) rulesLink.addEventListener("click", close);
   const installLink = document.getElementById("install-help-link");
   if (installLink) installLink.addEventListener("click", close);
 

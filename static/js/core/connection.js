@@ -269,6 +269,17 @@
 
   if (document.visibilityState === "visible") startHeartbeat();
 
+  // A phone rotating, or its address bar collapsing, changes the table's width.
+  // The hand fan and the seat arc are measured in JS, so repaint once the size
+  // settles rather than leaving them fitted to the old width.
+  let resizeTimer = null;
+  function repaintSoon() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(repaintUI, 160);
+  }
+  window.addEventListener("resize", repaintSoon);
+  window.addEventListener("orientationchange", repaintSoon);
+
   SS.connection = { resume, setStatus, onResync, resync, onRepaint, repaintUI, beat };
   SS.onResync = onResync;
   SS.resync = resync;
