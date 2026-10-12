@@ -1,7 +1,8 @@
 """Bluff gameplay: socket handlers + turn-timer ticker.
 """
 from game.bluff.visibility import public_card_ids
-from game.core.states import STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
+from game.core.cards import RANKS, rank_code
+from game.core.states import STATE_LOBBY, STATE_IN_TURN, STATE_ROUND_END, STATE_GAME_END
 from sockets import audience, director, presenter
 # Guarded drop-in for flask_socketio.emit — see sockets/audience.py.
 from sockets.audience import emit
@@ -10,6 +11,8 @@ from sockets.common import error
 audience.register("bluff", public_card_ids)
 
 GAME = "bluff"
+# The ranks a player may declare: A, 2..10, J, Q, K.
+_RANK_CODES = {rank_code(r) for r in RANKS}
 
 def _deal_private(room, user_id=None):
     targets = ([room.players.get(user_id)] if user_id else room.connected_players())
@@ -44,6 +47,65 @@ def _resync_one(room, user_id):
 presenter.register(GAME, _deal_private)
 presenter.register_refresh(GAME, _refresh_public)
 presenter.register_resync(GAME, _resync_one)
+
+# How long the challenged cards stay face up before the pile moves.
+SHOW_SECONDS = 3
+
+
+def _run_show(socketio, room, challenger_id, background=False):
+    """A Show, start to finish: reveal, hold the cards up, settle, broadcast.
+
+    One routine for a human's Show and a bot's. While the cards are face up the
+    room refuses moves (``is_showing``); _finish_show clears that flag in
+    ``finally`` so no surprise during the pause — a player leaving, the game
+    ending — can leave the table stuck mid-reveal, which used to freeze the
+    room for everyone.
+
+    ``background``: a bot's Show comes from the director, whose one loop ticks
+    every room on the server in turn, so a 3-second pause there used to freeze
+    every other table's timers and computer players with it. The pause then
+    runs as its own task; the lock keeps this room still meanwhile.
+    """
+    result = room.apply_show(challenger_id)
+    if not result:
+        return
+    room.is_showing = True
+    try:
+        socketio.emit("bluff_show_result", result, to=room.code)
+    except Exception:
+        room.is_showing = False
+        raise
+    start = getattr(socketio, "start_background_task", None) if background else None
+    if start is not None:
+        start(_finish_show, socketio, room, result)
+    else:
+        _finish_show(socketio, room, result)
+
+
+def _finish_show(socketio, room, result):
+    import eventlet
+
+    try:
+        eventlet.sleep(SHOW_SECONDS)
+        room.resolve_show(result)
+    finally:
+        room.is_showing = False
+
+    # Give the loser their new hand
+    loser = room.players.get(result["loser"])
+    if loser and loser.connected and loser.sid:
+        socketio.emit("your_hand", {"cards": room.hand_for(loser.user_id)}, to=loser.sid)
+
+    # A challenge can settle the game outright: a defender who truthfully
+    # played their last cards is out the moment the show resolves, and that
+    # can be the finish that fills the podium (or a quit during the reveal
+    # ended it). Without this the room would sit in STATE_GAME_END while the
+    # clients were only told the table changed.
+    if room.state == STATE_GAME_END:
+        socketio.emit("game_end", room.game_end_payload(), to=room.code)
+        return
+    socketio.emit("table_state", room.public_round_state(), to=room.code)
+
 
 def register(socketio, manager):
 
@@ -85,6 +147,8 @@ def register(socketio, manager):
             return error("Select at least one card to throw.")
         if not declared_rank:
             return error("You must declare a rank.")
+        if declared_rank not in _RANK_CODES:
+            return error("That isn't a card rank.")
         if room.target_rank is not None and declared_rank != room.target_rank:
             return error(f"You must match the target rank of {room.target_rank}.")
 
@@ -132,34 +196,10 @@ def register(socketio, manager):
 
         if not room.last_play:
             return error("There's nothing to show!")
-            
-        result = room.apply_show(user_id)
-        room.is_showing = True
+        if room.last_play.get("user_id") == user_id:
+            return error("You can't call Show on your own play.")
 
-        emit("bluff_show_result", result, to=room.code)
-        
-        import eventlet
-        eventlet.sleep(3)
-        
-        room.resolve_show(result)
-        room.is_showing = False
-        
-        # Give the loser their new hand
-        loser_id = result["loser"]
-        loser = room.players.get(loser_id)
-        if loser and loser.connected and loser.sid:
-            socketio.emit("your_hand", {"cards": room.hand_for(loser_id)}, to=loser.sid)
-
-        # A challenge can settle the game outright: a defender who truthfully
-        # played their last cards is out the moment the show resolves, and that
-        # can be the finish that fills the podium. Every other action path
-        # already checked this; without it here the room would sit in
-        # STATE_GAME_END while the clients were only told the table changed.
-        if room.state == STATE_GAME_END:
-            socketio.emit("game_end", room.game_end_payload(), to=room.code)
-            return
-
-        socketio.emit("table_state", room.public_round_state(), to=room.code)
+        _run_show(socketio, room, user_id)
 
     @socketio.on("bluff_shuffle_seats")
     def on_shuffle_seats(data):
@@ -291,21 +331,9 @@ def _tick_bot(socketio, room, bot_id: str):
         socketio.emit("player_passed", {"by": bot_id}, to=code)
     
     elif move["action"] == "show":
-        result = room.apply_show(bot_id)
-        room.is_showing = True
-        socketio.emit("bluff_show_result", result, to=code)
-        
-        import eventlet
-        eventlet.sleep(3)
-        
-        room.resolve_show(result)
-        room.is_showing = False
-        
-        loser_id = result["loser"]
-        loser = room.players.get(loser_id)
-        if loser and loser.connected and loser.sid:
-            socketio.emit("your_hand", {"cards": room.hand_for(loser_id)}, to=loser.sid)
-            
+        _run_show(socketio, room, bot_id, background=True)
+        return
+
     elif move["action"] == "play":
         cards = room.card_objects(bot_id, move["cards"])
         room.apply_play(bot_id, cards, move["declared_rank"])
