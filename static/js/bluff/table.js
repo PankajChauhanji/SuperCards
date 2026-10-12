@@ -296,6 +296,12 @@
       const badgeCount = document.getElementById("center-badge-count");
       
       discard.querySelectorAll(".card").forEach((el) => el.remove());
+      // The pile now shows the revealed faces, not the backs its signature
+      // describes: forget the signature so the next table state always redraws
+      // it. Otherwise a player who missed the update right after the Show (a
+      // short disconnect) kept seeing the revealed cards whenever the pile grew
+      // back to the same size.
+      discard.dataset.sig = "";
       if (empty) empty.style.display = "none";
       if (badgeCount) badgeCount.style.display = "none";
       
