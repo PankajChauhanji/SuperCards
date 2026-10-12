@@ -1467,6 +1467,96 @@ acting). Browser: a normal solo game played four moves and a reaction with no er
 
 ---
 
+## 26. Stability pass — Poker, Super Seven, Bluff — ✅ DONE (2026-10-12)
+
+Owner's report: in Poker some betting buttons went missing, small cards showed
+behind the hole cards until a refresh, and once the hint said High Card while the
+summary said a pair. Asked for a full test of Poker, then Super Seven and Bluff
+too (Super Four skipped, rarely played).
+
+**New tests**
+- `tests/test_poker_fuzz.py` — the evaluator against a brute-force reference
+  (40k hands, every category), then 400 random games (2–9 players, all-ins,
+  side pots, quits, timeouts, late joiners) with invariants after every step and
+  every showdown re-judged. `POKER_FUZZ_GAMES` scales it (3000 run clean).
+- `tests/test_poker_socket_fuzz.py` — 4 socket clients + 2 bots, random play,
+  mid-round reconnects; checks each player's stream (one hand per round, hint =
+  summary, no leaks, coins conserved, same podium).
+- `tests/test_s7_fuzz.py`, `tests/test_bluff_fuzz.py` — 2000 random games each
+  through the real handlers and ticker; Bluff's 3s reveal is hooked so players
+  quit / act / time out inside it.
+- `tests/test_bluff_show_quit.py` (+ `_socket.py`) — a quit during a Show reveal.
+- `tests/e2e/` — browser soak tests (Node + Chrome, not in `run_tests.py`; see
+  its README): several real browsers at phone / tablet / laptop sizes play whole
+  games with reloads, dropped connections and resizes, checking the DOM against
+  the game state; `measure.js` checks every control fits the screen.
+
+**Poker fixes**
+- Phone: with only Fold + Call offered the two buttons collapsed into ~30px
+  pills (the "missing buttons"): a shared column-flex rule turned the button
+  row's 100% into height. `poker.css` "one screen, every screen".
+- Off screen: on your turn the table was ~920px tall, so on every laptop
+  (1366x657 real viewport, 1440x790, 1280x620) and short phones (360x740,
+  375x667) the buttons sat below the edge. Your seat now sits beside your cards;
+  presets + slider share a line; short screens tighten; short wide screens put
+  the betting panel beside your cards. Measured: all controls on screen from
+  360x640 to 1920x950.
+- The hint vs the summary: the move that ended the game's last round never
+  re-sent each player's hand, so the hint missed the last cards (e.g. "Three of a
+  Kind" vs "Full House"). `_broadcast` / resync now include GAME_END.
+- A quit during the last round could name the quitter the winner.
+- Rematch: the new game's round 1 could briefly show the old round 1's cards.
+- The docked Hand rankings card no longer lies over the betting controls.
+
+**Super Seven fixes**
+- Laptops: Throw / Stop below the edge at 1366x657 — `seven.css` tightens the
+  space on short desktop screens; nothing moves. Phones already fit.
+- A player removed for timeouts still counted against a Stop call (the caller
+  was "caught" by someone out of the round).
+- First orbit counted turns, not players: a quit by someone who had played let
+  a player who had not call Stop on their first turn.
+- 8+ players on one deck crashed the deal (56 > 52 cards); decks are added.
+- A quit between rounds leaving one player did not end the game.
+- Spectators who never played topped the standings (above the winner).
+- The game-end payload crashed once the winner had left the podium.
+
+**Bluff fixes**
+- **Freeze**: a quit (or kick) during the 3s Show reveal crashed the resolve and
+  left the room locked ("Cards are being revealed") for everyone, forever.
+  `resolve_show` handles departures; the lock is released in `finally`.
+- A bot's Show slept 3s inside the director, pausing every room on the server;
+  it now runs as its own task.
+- Full pass counted passes, not passers: a passer who then left swept the pile
+  early, skipping a player. The check re-runs after a quit or a timeout removal,
+  so the turn can no longer come back to a claimant with their own claim live —
+  and nobody can Show their own play.
+- Any string was accepted as a declared rank.
+- Desktop: Throw / Pass / Show! at y=906, below every laptop; phone: below
+  360x740 / 375x667, and Show! under the floating reaction buttons. `bluff.css`:
+  your seat beside your hand on desktop (controls on one row), beside the label
+  and rank picker on phones; buttons clear the floating dock.
+- A player who missed the update after a Show kept seeing the revealed cards.
+- `bluff_next_round` referenced an unimported `STATE_LOBBY`.
+
+**Shared (additive)**
+- `table.css`: `.table-view { overflow-x: clip }` — the deal animation swung
+  cards out to x=424 on a 360px phone, widening the page during every deal.
+- `core/deck.js`: preloads the chosen deck on table pages (unseen cards showed
+  as blank boxes for a moment on slow phones).
+- `core/motion.js`: no vibrate before the page has had a tap (Chrome error).
+- Host hand-off: when nobody still in the game is connected, an eliminated
+  human becomes host rather than someone who left (Super Seven, Bluff).
+- `sw.js` cache `v16` → `v17`.
+
+**[decision] for the owner — Bluff Show rule.** The rules text says only the
+*immediate next* player may Show, before anyone acts. The game has always let
+any later player Show the live claim after others passed, and a player who went
+out is only banked after a full pass. Players know the game this way, so it is
+unchanged; `BLUFF_STRICT_SHOW=1 tests/test_bluff_fuzz.py` checks the strict
+rule if you want to switch.
+
+Suite: **55 files, 53 pass, 2 unscored.**
+
 ## Super 4 — game-specific notes & ideas
 
 (Backlog for when we actively iterate on Super 4. Add detail as we decide direction.)
