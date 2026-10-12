@@ -7,6 +7,12 @@
   max-width: var(--page-max);
   margin: 0 auto;
   align-items: flex-start;
+  /* The deal animation swings fanned cards out sideways for half a second
+     (measured: to x=424 on a 360px phone), which made the whole page wider
+     than the screen during every deal — a sideways wobble, or a stray
+     horizontal scroll, on a phone. `clip` (unlike `hidden`) makes no scroll
+     box, so sticky / fixed children and vertical overflow behave as before. */
+  overflow-x: clip;
 }
 
 /* ---------- wide screens: centre the TABLE, not just the page block --------
