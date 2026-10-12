@@ -588,6 +588,21 @@
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+/* At a table on a phone the bottom of the screen is your hand and the betting
+   buttons, so toasts drop in from under the topbar instead of covering them. */
+@media (max-width: 600px) {
+  body.room-page #toast {
+    top: calc(72px + env(safe-area-inset-top));
+    bottom: auto;
+    transform: translateX(-50%) translateY(-0.75rem);
+    max-width: calc(100vw - 2rem);
+    padding: 0.5rem 0.8rem 0.5rem 0.7rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+  body.room-page #toast .toast-text { overflow: hidden; text-overflow: ellipsis; }
+  body.room-page #toast.show { transform: translateX(-50%) translateY(0); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
