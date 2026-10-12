@@ -116,6 +116,7 @@
   });
 
   socket.on("round_start", (data) => {
+    const freshDeal = view.state !== "IN_TURN" || data.round_number !== view.roundNumber;
     view.state = "IN_TURN";
     // A fresh deal (or a resync) sets the baseline for noticing shuffles; it is
     // not itself a shuffle to announce.
@@ -123,7 +124,8 @@
     applyTable(data);
     document.getElementById("roundend-modal").classList.remove("open");
     if (window.SS.hideWinnerScreen) window.SS.hideWinnerScreen();
-    if (window.Selection) window.Selection.reset();
+    // A resync of the round in play keeps your half-made selection.
+    if (window.Selection) { if (freshDeal) window.Selection.reset(); else window.Selection.keep(view.hand); }
     if (window.ActionLog) { window.ActionLog.clear(); window.ActionLog.push("Round " + (view.roundNumber || 1) + " started. Cards dealt!", "system"); }
     sync();
   });
@@ -190,7 +192,7 @@
     } else {
       view.justDrawnId = null;
     }
-    if (window.Selection) window.Selection.reset();
+    if (window.Selection) window.Selection.keep(view.hand);
     if (view.state === "IN_TURN") {
       Table.render(view);
     }
